@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="CineBook.API/CineBook.API.csproj" />
+  <Project Path="CineBook.Application/CineBook.Application.csproj" />
+  <Project Path="CineBook.Domain/CineBook.Domain.csproj" />
+  <Project Path="CineBook.Infrastructure/CineBook.Infrastructure.csproj" />
+</Solution>
