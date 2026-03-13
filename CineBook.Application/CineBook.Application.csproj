@@ -17,16 +17,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="Features\Auth\" />
-    <Folder Include="Features\Movies\" />
-    <Folder Include="Features\Cinemas\" />
-    <Folder Include="Features\Halls\" />
-    <Folder Include="Features\Bookings\" />
-    <Folder Include="Features\Favourites\" />
-    <Folder Include="Features\Reviews\" />
-    <Folder Include="Features\Showtimes\" />
-    <Folder Include="DTOs\" />
-    <Folder Include="Mappings\" />
     <Folder Include="Common\" />
     <Folder Include="Validators\" />
   </ItemGroup>

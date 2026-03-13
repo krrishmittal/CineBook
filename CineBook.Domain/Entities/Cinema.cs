@@ -11,16 +11,16 @@ namespace CineBook.Domain.Entities
         public string City { get; set; }
         public string State { get; set; }
         public string PinCode { get; set; }
-        public string? GoogleMapLink { get; set; }
+        public string? GoogleMapsLink { get; set; }
         public string? CinemaLogo { get; set; }
         public string LicenseNumber { get; set; }
-        public ApprovalStatus ApprovalStatus { get; set; }
-        public string? RejectionStatus { get; set; }
-        public DateTime? RegisteredAt { get; set; }
+        public ApprovalStatus ApprovalStatus { get; set; } = ApprovalStatus.Pending;
+        public string? RejectionReason { get; set; }
+        public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
 
-        //navigation
+        // Navigation
         public ApplicationUser Manager { get; set; }
         public ICollection<Hall> Halls { get; set; }
-        public ICollection<Showtime> Showtime { get; set; }
+        public ICollection<Showtime> Showtimes { get; set; }
     }
 }

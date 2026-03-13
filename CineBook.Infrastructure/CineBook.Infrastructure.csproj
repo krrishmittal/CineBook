@@ -31,7 +31,6 @@
   <ItemGroup>
     <Folder Include="Identity\" />
     <Folder Include="BackgroundJobs\" />
-    <Folder Include="Services\" />
     <Folder Include="Repositories\" />
     <Folder Include="Persistence\Configurations\" />
   </ItemGroup>
