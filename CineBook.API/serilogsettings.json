@@ -8,7 +8,11 @@
       "Default": "Information",
       "Override": {
         "Microsoft": "Warning",
-        "System": "Warning"
+        "System": "Warning",
+        "Hangfire": "Warning",
+        "Hangfire.BackgroundJobServer": "Warning",
+        "Hangfire.Server": "Warning",
+        "Twilio": "Warning"
       }
     },
     "WriteTo": [

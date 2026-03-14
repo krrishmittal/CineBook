@@ -1,0 +1,481 @@
+﻿@{
+    ViewData["Title"] = "Register";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineBook — Register</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --red: #E50914;
+            --red-dark: #b20710;
+            --bg: #0a0a0a;
+            --surface: #141414;
+            --surface2: #1e1e1e;
+            --border: #2a2a2a;
+            --text: #ffffff;
+            --muted: #888888;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            background-color: var(--bg);
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
+
+        .bg-cinematic {
+            position: fixed;
+            inset: 0;
+            z-index: 0;
+            background:
+                radial-gradient(ellipse 80% 60% at 70% 40%, rgba(229,9,20,0.12) 0%, transparent 70%),
+                radial-gradient(ellipse 60% 80% at 20% 80%, rgba(229,9,20,0.06) 0%, transparent 60%),
+                #0a0a0a;
+        }
+
+        .film-strip {
+            position: fixed;
+            left: 0; top: 0; bottom: 0;
+            width: 48px;
+            background: #111;
+            border-right: 1px solid #1f1f1f;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 12px 0;
+            gap: 8px;
+            z-index: 1;
+        }
+
+        .film-hole {
+            width: 20px; height: 14px;
+            background: #0a0a0a;
+            border-radius: 3px;
+            border: 1px solid #222;
+            flex-shrink: 0;
+        }
+
+        .cinput {
+            width: 100%;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 13px 16px;
+            color: var(--text);
+            font-family: 'DM Sans', sans-serif;
+            font-size: 15px;
+            transition: border-color 0.2s, box-shadow 0.2s;
+            outline: none;
+        }
+
+        .cinput:focus {
+            border-color: var(--red);
+            box-shadow: 0 0 0 3px rgba(229,9,20,0.15);
+        }
+
+        .cinput::placeholder { color: var(--muted); }
+
+        .cbtn {
+            width: 100%;
+            background: var(--red);
+            color: white;
+            font-family: 'DM Sans', sans-serif;
+            font-weight: 600;
+            font-size: 15px;
+            padding: 14px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            letter-spacing: 0.03em;
+            transition: background 0.2s, transform 0.1s;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .cbtn:hover { background: var(--red-dark); }
+        .cbtn:active { transform: scale(0.99); }
+        .cbtn:disabled { opacity: 0.7; cursor: not-allowed; }
+
+        .cbtn::after {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: linear-gradient(to bottom, rgba(255,255,255,0.08), transparent);
+        }
+
+        .card {
+            background: var(--surface);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 40px;
+            width: 100%;
+            max-width: 460px;
+            position: relative;
+            z-index: 2;
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0; left: 24px; right: 24px;
+            height: 2px;
+            background: var(--red);
+            border-radius: 0 0 4px 4px;
+        }
+
+        label {
+            display: block;
+            font-size: 13px;
+            font-weight: 500;
+            color: #aaa;
+            margin-bottom: 6px;
+            letter-spacing: 0.02em;
+        }
+
+        .alert {
+            border-radius: 6px;
+            padding: 12px 16px;
+            font-size: 14px;
+            display: none;
+            margin-bottom: 4px;
+        }
+
+        .alert-error {
+            background: rgba(229,9,20,0.1);
+            border: 1px solid rgba(229,9,20,0.3);
+            color: #ff6b6b;
+        }
+
+        .alert-success {
+            background: rgba(34,197,94,0.1);
+            border: 1px solid rgba(34,197,94,0.3);
+            color: #4ade80;
+        }
+
+        .spinner {
+            width: 18px; height: 18px;
+            border: 2px solid rgba(255,255,255,0.3);
+            border-top-color: white;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+            margin: 0 auto;
+        }
+
+        @@keyframes spin { to { transform: rotate(360deg); } }
+
+        @@keyframes fadeUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .card { animation: fadeUp 0.5s ease forwards; }
+
+        /* Role toggle */
+        .role-toggle {
+            display: flex;
+            background: var(--surface2);
+            border: 1px solid var(--border);
+            border-radius: 6px;
+            padding: 4px;
+            gap: 4px;
+        }
+
+        .role-btn {
+            flex: 1;
+            padding: 9px;
+            border: none;
+            border-radius: 4px;
+            font-family: 'DM Sans', sans-serif;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            background: transparent;
+            color: var(--muted);
+        }
+
+        .role-btn.active {
+            background: var(--red);
+            color: white;
+        }
+
+        /* Password strength */
+        .strength-bar {
+            height: 3px;
+            border-radius: 2px;
+            background: var(--border);
+            margin-top: 8px;
+            overflow: hidden;
+        }
+
+        .strength-fill {
+            height: 100%;
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.3s, background 0.3s;
+        }
+
+        .input-wrap { position: relative; }
+
+        .toggle-pw {
+            position: absolute;
+            right: 14px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--muted);
+            cursor: pointer;
+            font-size: 18px;
+            line-height: 1;
+        }
+
+        .toggle-pw:hover { color: #ccc; }
+
+        .divider {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            color: var(--muted);
+            font-size: 13px;
+        }
+
+        .divider::before, .divider::after {
+            content: '';
+            flex: 1;
+            height: 1px;
+            background: var(--border);
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-cinematic"></div>
+
+    <div class="film-strip">
+        @for (int i = 0; i < 40; i++)
+        {
+            <div class="film-hole"></div>
+        }
+    </div>
+
+    <div style="margin-left: 48px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; position: relative; z-index: 2;">
+
+        <!-- Logo -->
+        <div style="margin-bottom: 28px; text-align: center;">
+            <div class="brand" style="font-size: 42px; color: var(--red); line-height: 1;">CINEBOOK</div>
+            <div style="font-size: 12px; color: var(--muted); letter-spacing: 0.15em; margin-top: 2px;">YOUR SEAT AWAITS</div>
+        </div>
+
+        <div class="card">
+            <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 6px;">Create account</h2>
+            <p style="font-size: 14px; color: var(--muted); margin-bottom: 24px;">Join CineBook and start booking today</p>
+
+            <!-- Alert -->
+            <div class="alert alert-error" id="errorAlert"></div>
+            <div class="alert alert-success" id="successAlert"></div>
+
+            <!-- Role Toggle -->
+            <div style="margin-bottom: 20px;">
+                <label>I am a</label>
+                <div class="role-toggle">
+                    <button type="button" class="role-btn active" id="roleUser" onclick="setRole('User')">
+                        🎬 Movie Fan
+                    </button>
+                    <button type="button" class="role-btn" id="roleCinema" onclick="setRole('CinemaManager')">
+                        🏟 Cinema Manager
+                    </button>
+                </div>
+            </div>
+
+            <!-- Form -->
+            <form id="registerForm" style="display: flex; flex-direction: column; gap: 16px;">
+
+                <div>
+                    <label>Full Name</label>
+                    <input class="cinput" type="text" id="fullName"
+                           placeholder="Enter your full name" required />
+                </div>
+
+                <div>
+                    <label>Username</label>
+                    <input class="cinput" type="text" id="userName"
+                           placeholder="Choose a username" required />
+                </div>
+
+                <div>
+                    <label>Phone Number</label>
+                    <input class="cinput" type="tel" id="phoneNumber"
+                           placeholder="10-digit phone number" maxlength="10" required />
+                </div>
+
+                <div>
+                    <label>Password</label>
+                    <div class="input-wrap">
+                        <input class="cinput" type="password" id="password"
+                               placeholder="Create a strong password"
+                               oninput="checkStrength(this.value)"
+                               style="padding-right: 44px;" required />
+                        <button type="button" class="toggle-pw" onclick="togglePw('password')">👁</button>
+                    </div>
+                    <div class="strength-bar">
+                        <div class="strength-fill" id="strengthFill"></div>
+                    </div>
+                </div>
+
+                <div>
+                    <label>Confirm Password</label>
+                    <div class="input-wrap">
+                        <input class="cinput" type="password" id="confirmPassword"
+                               placeholder="Re-enter your password"
+                               style="padding-right: 44px;" required />
+                        <button type="button" class="toggle-pw" onclick="togglePw('confirmPassword')">👁</button>
+                    </div>
+                </div>
+
+                <button type="submit" class="cbtn" id="submitBtn" style="margin-top: 4px;">
+                    <span id="btnText">Create Account</span>
+                    <div class="spinner" id="spinner"></div>
+                </button>
+
+            </form>
+
+            <div class="divider" style="margin: 24px 0;">or</div>
+
+            <p style="text-align: center; font-size: 14px; color: var(--muted);">
+                Already have an account?
+                <a href="/Auth/Login"
+                   style="color: var(--red); text-decoration: none; font-weight: 500;">
+                    Sign in
+                </a>
+            </p>
+        </div>
+
+        <p style="margin-top: 32px; font-size: 12px; color: #444;">
+            © 2026 CineBook. All rights reserved.
+        </p>
+    </div>
+
+    <script>
+        let selectedRole = 'User';
+
+        function setRole(role) {
+            selectedRole = role;
+            document.getElementById('roleUser').classList.toggle('active', role === 'User');
+            document.getElementById('roleCinema').classList.toggle('active', role === 'CinemaManager');
+        }
+
+        function togglePw(id) {
+            const el = document.getElementById(id);
+            el.type = el.type === 'password' ? 'text' : 'password';
+        }
+
+        function checkStrength(pw) {
+            const fill = document.getElementById('strengthFill');
+            let score = 0;
+            if (pw.length >= 6) score++;
+            if (pw.length >= 10) score++;
+            if (/[A-Z]/.test(pw)) score++;
+            if (/[0-9]/.test(pw)) score++;
+            if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+            const pct = (score / 5) * 100;
+            fill.style.width = pct + '%';
+            fill.style.background = score <= 1 ? '#ef4444' : score <= 3 ? '#f97316' : '#22c55e';
+        }
+
+        function showError(msg) {
+            const el = document.getElementById('errorAlert');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('successAlert').style.display = 'none';
+        }
+
+        function showSuccess(msg) {
+            const el = document.getElementById('successAlert');
+            el.textContent = msg;
+            el.style.display = 'block';
+            document.getElementById('errorAlert').style.display = 'none';
+        }
+
+        function setLoading(loading) {
+            document.getElementById('btnText').style.display = loading ? 'none' : 'block';
+            document.getElementById('spinner').style.display = loading ? 'block' : 'none';
+            document.getElementById('submitBtn').disabled = loading;
+        }
+
+        document.getElementById('registerForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const password = document.getElementById('password').value;
+            const confirmPassword = document.getElementById('confirmPassword').value;
+
+            if (password !== confirmPassword) {
+                showError('Passwords do not match');
+                return;
+            }
+
+            setLoading(true);
+
+            const endpoint = selectedRole === 'CinemaManager'
+                ? '/api/Auth/register/cinema-manager'
+                : '/api/Auth/register/user';
+
+            const payload = {
+                fullName: document.getElementById('fullName').value.trim(),
+                userName: document.getElementById('userName').value.trim(),
+                phoneNumber: document.getElementById('phoneNumber').value.trim(),
+                password: password,
+                confirmPassword: confirmPassword
+            };
+
+            try {
+                const res = await fetch(endpoint, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const data = await res.json();
+
+                if (data.success) {
+                    localStorage.setItem('token', data.data.token);
+                    localStorage.setItem('refreshToken', data.data.refreshToken);
+                    localStorage.setItem('user', JSON.stringify({
+                        userId: data.data.userId,
+                        fullName: data.data.fullName,
+                        role: data.data.role
+                    }));
+
+                    showSuccess('Account created! Redirecting...');
+
+                    setTimeout(() => {
+                        const role = data.data.role;
+                        if (role === 'Admin') window.location.href = '/Admin/Dashboard';
+                        else if (role === 'CinemaManager') window.location.href = '/Manager/Dashboard';
+                        else window.location.href = '/Home/Index';
+                    }, 1000);
+                } else {
+                    showError(data.message || 'Registration failed. Please try again.');
+                }
+            } catch (err) {
+                showError('Something went wrong. Please try again.');
+            } finally {
+                setLoading(false);
+            }
+        });
+    </script>
+</body>
+</html>

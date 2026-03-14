@@ -10,7 +10,7 @@ namespace CineBook.Domain.Entities
         // OTP fields
         public string? OtpCodeHash { get; set; }
         public DateTime? OtpExpiresAt { get; set; }
-        public bool OtpIsUsed { get; set; } = false;
+        public bool OtpUsed { get; set; } = false;
 
         // Navigation
         public ICollection<RefreshToken> RefreshTokens { get; set; }

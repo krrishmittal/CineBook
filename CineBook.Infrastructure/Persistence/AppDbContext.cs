@@ -94,7 +94,9 @@ namespace CineBook.Infrastructure.Persistence
                 entity.Property(m => m.Cast).IsRequired();
                 entity.Property(m => m.Director).IsRequired().HasMaxLength(100);
                 entity.Property(m => m.CertificateRating).IsRequired().HasMaxLength(5);
-                entity.HasQueryFilter(m => !m.IsDeleted);
+                builder.Entity<Review>().HasQueryFilter(r => !r.Movie.IsDeleted);
+                builder.Entity<Showtime>().HasQueryFilter(s => !s.Movie.IsDeleted);
+                builder.Entity<UserFavourite>().HasQueryFilter(f => !f.Movie.IsDeleted);
             });
 
             // ── Showtime ──────────────────────────────────────

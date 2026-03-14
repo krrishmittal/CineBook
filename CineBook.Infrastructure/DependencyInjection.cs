@@ -17,9 +17,8 @@ namespace CineBook.Infrastructure
         {
             // Database
             services.AddDbContext<AppDbContext>(options =>
-                options.UseSqlServer(configuration.GetConnectionString("DefaultConnection")));
-            services.AddScoped<IJwtService, JwtService>();
-            services.AddScoped<IAuthService, AuthService>();
+                options.UseSqlServer(
+                    configuration.GetConnectionString("DefaultConnection")));
 
             // Identity
             services.AddIdentity<ApplicationUser, IdentityRole>(options =>
@@ -31,6 +30,13 @@ namespace CineBook.Infrastructure
             })
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
+
+            // Services
+            services.AddScoped<ISmsService, SmsService>();
+            services.AddScoped<IJwtService, JwtService>();
+            services.AddScoped<IAuthService, AuthService>();
+            services.AddScoped<IProfileService, ProfileService>();
+            services.AddScoped<IMovieService, MovieService>();
 
             return services;
         }

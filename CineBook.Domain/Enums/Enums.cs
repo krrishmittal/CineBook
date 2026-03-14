@@ -2,52 +2,52 @@
 {
     public enum HallType
     {
-        TwoD,
-        ThreeD,
-        IMAX
+        TwoD = 0,
+        ThreeD = 1,
+        IMAX = 2
     }
     
     public enum SeatType
     {
-        Standard,
-        Premium,
-        VIP
+        Standard = 0,
+        Premium = 1,
+        VIP = 2
     }
 
     public enum SeatStatus
     {
-        Available,
-        Locket,
-        Booked
+        Available = 0,
+        Locket = 1,
+        Booked = 2
     }
 
     public enum MovieStatus
     {
-        ComingSoon,
-        NowShowing,
-        Archived
+        ComingSoon = 0,
+        NowShowing = 1,
+        Archived = 2
     }
 
     public enum BookingStatus
     {
-        Pending,
-        Confirmed,
-        Cancelled,
-        Expired
+        Pending = 0,
+        Confirmed = 1,
+        Cancelled = 2,
+        Expired = 3
     }
 
     public enum PaymentStatus
     {
-        Pending,
-        Success,
-        Failed,
-        Refunded
+        Pending = 0,
+        Success = 1,
+        Failed = 2,
+        Refunded = 3
     }
 
     public enum ApprovalStatus
     {
-        Pending,
-        Approved,
-        Rejected
+        Pending = 0,
+        Approved = 1,
+        Rejected = 2
     }
 }
