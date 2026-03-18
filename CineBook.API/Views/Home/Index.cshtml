@@ -602,7 +602,8 @@
         // ── Auth State ────────────────────────────────────────
         const token = localStorage.getItem('token');
         const user = JSON.parse(localStorage.getItem('user') || '{}');
-
+        // Redirect Admin and Manager away from home page
+        
         if (token && user.fullName) {
             document.getElementById('guestNav').style.display = 'none';
             document.getElementById('userNav').style.display = 'block';
@@ -806,11 +807,7 @@ document.addEventListener('keydown', e => {
                         }
                         <span class="cert-badge">${m.certificateRating}</span>
                         <button class="wishlist-btn" onclick="event.stopPropagation(); toggleWishlist('${m.id}', this)">🤍</button>
-                        <div class="card-overlay">
-                            <button class="book-btn" onclick="event.stopPropagation(); bookTicket('${m.id}')">
-                                Book Tickets
-                            </button>
-                        </div>
+                        
                     </div>
                     <div class="card-info">
                         <div class="card-title">${m.title}</div>
@@ -888,7 +885,23 @@ else if (filter === 'ComingSoon') filtered = allMovies.filter(m => m.status === 
         }
 
         // Init
-        loadMovies();
+        // Check role redirects FIRST
+        if (token && user.role === 'Admin') {
+            window.location.href = '/Admin/Movies';
+        } else if (token && user.role === 'CinemaManager') {
+            window.location.href = '/Manager/Cinema';
+        } else {
+            // Only setup UI if NOT redirecting
+            if (token && user.fullName) {
+                document.getElementById('guestNav').style.display = 'none';
+                document.getElementById('userNav').style.display = 'block';
+                const initials = user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+                document.getElementById('userAvatar').textContent = initials;
+                document.getElementById('dropdownName').textContent = user.fullName;
+                document.getElementById('dropdownRole').textContent = '🎬 Movie Fan';
+            }
+            loadMovies();
+        }
     </script>
     
 </body>

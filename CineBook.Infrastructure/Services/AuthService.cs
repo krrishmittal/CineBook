@@ -113,7 +113,7 @@ namespace CineBook.Infrastructure.Services
                 request.UserNameorPhone);
 
             var user = await _userManager.FindByNameAsync(request.UserNameorPhone)
-                ?? _userManager.Users.FirstOrDefault(
+                ?? await _userManager.Users.FirstOrDefaultAsync(
                     u => u.PhoneNumber == request.UserNameorPhone);
 
             if (user == null)

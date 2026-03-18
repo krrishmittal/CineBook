@@ -28,7 +28,7 @@ namespace CineBook.Infrastructure.Services
                 Id = Guid.NewGuid(),
                 Title = request.Title,
                 Description = request.Description,
-                Language = request.Language,  
+                Language = request.Language,
                 Genre = request.Genre,
                 Cast = request.Cast,
                 Director = request.Director,
@@ -45,7 +45,7 @@ namespace CineBook.Infrastructure.Services
             await _context.Movies.AddAsync(movie);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Movie created: {Title}", movie.Title);
+            _logger.LogInformation("Movie {MovieId} created successfully: '{Title}'", movie.Id, movie.Title);
 
             return ApiResponse<MovieResponse>.Ok(
                 MapToResponse(movie), "Movie created successfully");
@@ -74,6 +74,9 @@ namespace CineBook.Infrastructure.Services
                 .OrderByDescending(m => m.CreatedAt)
                 .ToListAsync();
 
+            _logger.LogInformation("Retrieved {Count} movies with filters - Search: '{Search}', Genre: '{Genre}', Status: '{Status}'",
+                movies.Count, search ?? "None", genre ?? "None", status ?? "None");
+
             return ApiResponse<List<MovieResponse>>.Ok(
                 movies.Select(MapToResponse).ToList(),
                 "Movies fetched successfully");
@@ -84,8 +87,13 @@ namespace CineBook.Infrastructure.Services
         {
             var movie = await _context.Movies.FindAsync(id);
             if (movie == null)
+            {
+                _logger.LogWarning("GetByIdAsync failed: Movie {MovieId} not found", id);
                 return ApiResponse<MovieResponse>.Fail(
                     "Movie not found", 404, "Movie");
+            }
+
+            _logger.LogInformation("Movie {MovieId} fetched successfully", id);
 
             return ApiResponse<MovieResponse>.Ok(
                 MapToResponse(movie), "Movie fetched successfully");
@@ -97,8 +105,11 @@ namespace CineBook.Infrastructure.Services
         {
             var movie = await _context.Movies.FindAsync(id);
             if (movie == null)
+            {
+                _logger.LogWarning("UpdateAsync failed: Movie {MovieId} not found", id);
                 return ApiResponse<MovieResponse>.Fail(
                     "Movie not found", 404, "Movie");
+            }
 
             movie.Title = request.Title;
             movie.Description = request.Description;
@@ -115,7 +126,7 @@ namespace CineBook.Infrastructure.Services
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Movie updated: {Title}", movie.Title);
+            _logger.LogInformation("Movie {MovieId} updated successfully: '{Title}'", id, movie.Title);
 
             return ApiResponse<MovieResponse>.Ok(
                 MapToResponse(movie), "Movie updated successfully");
@@ -126,13 +137,26 @@ namespace CineBook.Infrastructure.Services
         {
             var movie = await _context.Movies.FindAsync(id);
             if (movie == null)
+            {
+                _logger.LogWarning("DeleteAsync failed: Movie {MovieId} not found", id);
                 return ApiResponse<string>.Fail(
                     "Movie not found", 404, "Movie");
+            }
+
+            // VULNERABILITY FIX: Prevent deleting a movie that has active upcoming scheduled showtimes
+            var hasActiveShowtimes = await _context.Showtimes
+                .AnyAsync(s => s.MovieId == id && s.IsActive && s.StartTime > DateTime.UtcNow);
+
+            if (hasActiveShowtimes)
+            {
+                _logger.LogWarning("DeleteAsync failed: Attempted to delete active Movie {MovieId}", id);
+                return ApiResponse<string>.Fail("Cannot delete a movie that is actively linked to upcoming schedules.", 400, "Movie");
+            }
 
             movie.IsDeleted = true;
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Movie soft deleted: {Title}", movie.Title);
+            _logger.LogInformation("Movie {MovieId} soft deleted successfully: '{Title}'", id, movie.Title);
 
             return ApiResponse<string>.Ok(
                 "Movie deleted successfully", "Movie has been removed");
@@ -144,7 +168,7 @@ namespace CineBook.Infrastructure.Services
             Id = movie.Id,
             Title = movie.Title,
             Description = movie.Description,
-            Language=movie.Language,
+            Language = movie.Language,
             Genre = movie.Genre,
             Cast = movie.Cast,
             Director = movie.Director,

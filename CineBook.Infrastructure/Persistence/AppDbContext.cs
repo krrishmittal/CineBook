@@ -97,6 +97,9 @@ namespace CineBook.Infrastructure.Persistence
                 builder.Entity<Review>().HasQueryFilter(r => !r.Movie.IsDeleted);
                 builder.Entity<Showtime>().HasQueryFilter(s => !s.Movie.IsDeleted);
                 builder.Entity<UserFavourite>().HasQueryFilter(f => !f.Movie.IsDeleted);
+                builder.Entity<Review>().HasQueryFilter(r => !r.Movie.IsDeleted);
+                builder.Entity<Showtime>().HasQueryFilter(s => !s.Movie.IsDeleted);
+                builder.Entity<UserFavourite>().HasQueryFilter(f => !f.Movie.IsDeleted);
             });
 
             // ── Showtime ──────────────────────────────────────
@@ -118,6 +121,17 @@ namespace CineBook.Infrastructure.Persistence
                     .WithMany(c => c.Showtimes)
                     .HasForeignKey(s => s.CinemaId)
                     .OnDelete(DeleteBehavior.Restrict);
+            });
+            builder.Entity<Showtime>(entity =>
+            {
+                entity.Property(s => s.StartTime)
+                    .HasConversion(
+                        v => v,
+                        v => DateTime.SpecifyKind(v, DateTimeKind.Local));
+                entity.Property(s => s.EndTime)
+                    .HasConversion(
+                        v => v,
+                        v => DateTime.SpecifyKind(v, DateTimeKind.Local));
             });
 
             // ── ShowtimeSeat ──────────────────────────────────

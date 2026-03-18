@@ -355,9 +355,9 @@
 
                     // Redirect based on role
                     const role = data.data.role;
-                    if (role === 'Admin') window.location.href = '/Admin/Dashboard';
-                    else if (role === 'CinemaManager') window.location.href = '/Manager/Dashboard';
-                    else window.location.href = '/Home/Index';
+                    if (role === 'Admin') window.location.href = '/Admin/Movies';
+                    else if (role === 'CinemaManager') window.location.href = '/Manager/Cinema';
+                    else window.location.href = '/';
                 } else {
                     showError(data.message || 'Login failed. Please try again.');
                 }

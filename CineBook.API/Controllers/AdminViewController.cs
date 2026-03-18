@@ -10,5 +10,8 @@ namespace CineBook.API.Controllers
 
         [HttpGet("Dashboard")]
         public IActionResult Dashboard() => View("Movies");
+
+        [HttpGet("Approvals")]
+        public IActionResult Approvals() => View();
     }
 }

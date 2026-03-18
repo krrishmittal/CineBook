@@ -11,7 +11,7 @@ namespace CineBook.Application.DTOs.Requests
         public string City { get; set; }
         public string State { get; set; }
         public string PinCode { get; set; }
-        public string? GoogleMapsLink { get; set; }
+        public string? GoogleMapsLink  { get; set; }
         public string? CinemaLogo { get; set; }
         public string LicenseNumber { get; set; }
     }

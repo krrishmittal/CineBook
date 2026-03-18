@@ -1,0 +1,262 @@
+﻿@{
+    ViewData["Title"] = "My Bookings";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineBook — My Bookings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --red: #E50914; --red-dark: #b20710;
+            --bg: #080808; --surface: #111111;
+            --surface2: #191919; --surface3: #222222;
+            --border: #282828; --text: #f5f5f5;
+            --muted: #777777; --muted2: #555555;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; }
+        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.06em; }
+
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; height: 62px; z-index: 100;
+            background: rgba(8,8,8,0.97); border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(16px); display: flex; align-items: center; padding: 0 32px; gap: 24px;
+        }
+
+        .main { padding-top: 92px; min-height: 100vh; max-width: 1200px; margin: 0 auto; padding: 92px 32px 60px; }
+
+        .filter-tabs { display: flex; gap: 8px; margin-bottom: 24px; flex-wrap: wrap; }
+        .filter-tab {
+            padding: 8px 18px; border-radius: 20px; font-size: 13px; font-weight: 600;
+            border: 1px solid var(--border); background: var(--surface);
+            color: var(--muted); cursor: pointer; transition: all 0.2s;
+        }
+        .filter-tab:hover { border-color: #444; color: var(--text); }
+        .filter-tab.active { background: var(--red); border-color: var(--red); color: white; }
+
+        .booking-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px; margin-bottom: 16px; transition: all 0.2s;
+        }
+        .booking-card:hover { border-color: #3a3a3a; }
+
+        .booking-header { display: flex; gap: 16px; margin-bottom: 16px; padding-bottom: 16px; border-bottom: 1px solid var(--border); }
+        .movie-poster { width: 80px; height: 110px; border-radius: 8px; object-fit: cover; background: var(--surface3); flex-shrink: 0; }
+
+        .status-badge {
+            display: inline-flex; align-items: center; padding: 4px 12px;
+            border-radius: 20px; font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+        }
+        .status-confirmed { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.3); }
+        .status-pending { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.3); }
+        .status-cancelled { background: rgba(100,100,100,0.15); color: #888; border: 1px solid rgba(100,100,100,0.3); }
+
+        .seat-tags { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 12px; }
+        .seat-tag {
+            display: inline-flex; align-items: center; gap: 4px;
+            background: var(--surface2); border: 1px solid var(--border);
+            padding: 4px 10px; border-radius: 6px; font-size: 12px; font-weight: 600;
+        }
+
+        .price-summary {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 8px; padding: 14px; margin-top: 12px;
+        }
+        .price-row { display: flex; justify-content: space-between; font-size: 13px; padding: 4px 0; color: var(--muted); }
+        .price-total {
+            display: flex; justify-content: space-between; font-size: 16px; font-weight: 700;
+            padding-top: 10px; margin-top: 10px; border-top: 1px solid var(--border);
+        }
+
+        .btn-cancel {
+            background: transparent; color: #f87171;
+            font-family: 'Outfit', sans-serif; font-weight: 500; font-size: 13px; padding: 10px 20px;
+            border: 1px solid rgba(229,9,20,0.3); border-radius: 8px; cursor: pointer; transition: all 0.2s;
+        }
+        .btn-cancel:hover { background: rgba(229,9,20,0.08); }
+
+        .empty { text-align: center; padding: 80px 20px; color: var(--muted); }
+
+        .user-menu { position: relative; }
+        .user-avatar {
+            width: 34px; height: 34px; border-radius: 50%; background: var(--red);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 700; cursor: pointer; font-family: 'Bebas Neue', sans-serif;
+        }
+        .user-dropdown {
+            position: absolute; top: calc(100% + 10px); right: 0; width: 200px;
+            background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+            padding: 8px; display: none; z-index: 200; box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+        }
+        .user-dropdown.show { display: block; }
+        .dropdown-item {
+            display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 6px;
+            font-size: 14px; color: var(--muted); cursor: pointer; transition: all 0.15s; text-decoration: none;
+        }
+        .dropdown-item:hover { background: var(--surface2); color: var(--text); }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <a href="/" style="text-decoration:none;">
+            <span class="brand" style="font-size:24px; color:var(--red);">CINEBOOK</span>
+        </a>
+        <div style="flex:1;"></div>
+        <a href="/" style="color:var(--muted); text-decoration:none; font-size:14px; font-weight:500;">Home</a>
+        <div class="user-menu">
+            <div class="user-avatar" id="userAvatar" onclick="toggleDropdown()">?</div>
+            <div class="user-dropdown" id="userDropdown">
+                <div style="padding:10px 12px 8px; border-bottom:1px solid var(--border); margin-bottom:6px;">
+                    <div style="font-size:14px; font-weight:600;" id="dropdownName"></div>
+                    <div style="font-size:12px; color:var(--muted);">🎬 Movie Fan</div>
+                </div>
+                <a class="dropdown-item" href="/Profile">👤 My Profile</a>
+                <a class="dropdown-item" href="/Booking/MyBookings">🎟 My Bookings</a>
+                <div class="dropdown-item" onclick="logout()" style="color:#f87171;">🚪 Sign Out</div>
+            </div>
+        </div>
+    </nav>
+
+    <div class="main">
+        <div style="margin-bottom:32px;">
+            <h1 style="font-size:28px; font-weight:700; margin-bottom:8px;">My Bookings</h1>
+            <p style="font-size:14px; color:var(--muted);">View and manage your movie tickets</p>
+        </div>
+
+        <div class="filter-tabs">
+            <div class="filter-tab active" onclick="setFilter('all', this)">All Bookings</div>
+            <div class="filter-tab" onclick="setFilter('upcoming', this)">Upcoming</div>
+            <div class="filter-tab" onclick="setFilter('past', this)">Past</div>
+            <div class="filter-tab" onclick="setFilter('cancelled', this)">Cancelled</div>
+        </div>
+
+        <div id="bookingsList">
+            <div style="text-align:center; padding:40px; color:var(--muted);">Loading bookings...</div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+        if (!token) window.location.href = '/Auth/Login';
+
+        function authHeaders() {
+            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+        }
+
+        if (user.fullName) {
+            const initials = user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+            document.getElementById('userAvatar').textContent = initials;
+            document.getElementById('dropdownName').textContent = user.fullName;
+        }
+
+        function toggleDropdown() { document.getElementById('userDropdown').classList.toggle('show'); }
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.user-menu')) document.getElementById('userDropdown')?.classList.remove('show');
+        });
+        function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
+
+        let allBookings = [];
+
+        async function loadBookings() {
+            try {
+                const res = await fetch('/api/bookings/my', { headers: authHeaders() });
+                const data = await res.json();
+                if (data.success) {
+                    allBookings = data.data;
+                    renderBookings(allBookings);
+                } else {
+                    showEmpty('No bookings found');
+                }
+            } catch {
+                showEmpty('Failed to load bookings');
+            }
+        }
+
+        function setFilter(filter, el) {
+            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            let filtered = allBookings;
+            const now = new Date();
+            if (filter === 'upcoming') filtered = allBookings.filter(b => (b.status === 'Confirmed' || b.status === 1) && new Date(b.showtimeStart) > now);
+            else if (filter === 'past') filtered = allBookings.filter(b => new Date(b.showtimeStart) <= now);
+            else if (filter === 'cancelled') filtered = allBookings.filter(b => b.status === 'Cancelled' || b.status === 2);
+            renderBookings(filtered);
+        }
+
+        function renderBookings(bookings) {
+            const list = document.getElementById('bookingsList');
+            if (!bookings.length) {
+                list.innerHTML = `<div class="empty"><div style="font-size:60px; margin-bottom:16px;">🎟</div><div style="font-size:20px; font-weight:600; margin-bottom:8px;">No bookings found</div><div style="font-size:14px; margin-bottom:24px;">Book your first movie and it will appear here</div><a href="/" style="background:var(--red); color:white; font-family:'Outfit',sans-serif; font-weight:600; font-size:14px; padding:12px 28px; border-radius:8px; text-decoration:none; display:inline-block;">Browse Movies</a></div>`;
+                return;
+            }
+
+            list.innerHTML = bookings.map(b => {
+                const start = new Date(b.showtimeStart);
+                const isPast = start < new Date();
+                const statusBadge = b.status === 'Confirmed' || b.status === 1 ? '<span class="status-badge status-confirmed">✅ Confirmed</span>' : b.status === 'Pending' || b.status === 0 ? '<span class="status-badge status-pending">⏳ Pending</span>' : '<span class="status-badge status-cancelled">❌ Cancelled</span>';
+                const canCancel = (b.status === 'Confirmed' || b.status === 1) && !isPast;
+
+                return `<div class="booking-card">
+                    <div class="booking-header">
+                        <img class="movie-poster" src="${b.moviePoster || ''}" onerror="this.style.display='none'" alt="${b.movieTitle}" />
+                        <div style="flex:1;">
+                            <div style="display:inline-flex; align-items:center; gap:6px; background:var(--surface2); border:1px solid var(--border); padding:4px 10px; border-radius:6px; font-size:12px; color:var(--muted); margin-bottom:8px;">
+                                <span style="color:#888;">REF:</span>
+                                <span style="color:var(--red); font-weight:700; letter-spacing:0.05em;">${b.bookingReference}</span>
+                            </div>
+                            <div style="font-size:18px; font-weight:700; margin-bottom:6px;">${b.movieTitle}</div>
+                            <div style="font-size:13px; color:var(--muted); margin-bottom:4px;">🏟 ${b.cinemaName} • ${b.hallName}</div>
+                            <div style="font-size:13px; color:var(--muted); margin-bottom:4px;">📅 ${start.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long'})}</div>
+                            <div style="font-size:13px; color:var(--muted);">⏰ ${start.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true})}</div>
+                        </div>
+                        ${statusBadge}
+                    </div>
+                    <div style="padding-bottom:12px; border-bottom:1px solid var(--border);">
+                        <div style="font-size:12px; font-weight:600; color:var(--muted); letter-spacing:0.06em; margin-bottom:8px;">SEATS</div>
+                        <div class="seat-tags">
+                            ${b.seats.map(s => {
+                                const color = s.seatType === 'Standard' || s.seatType === 0 ? '#60a5fa' : s.seatType === 'Premium' || s.seatType === 1 ? '#c084fc' : '#facc15';
+                                return `<span class="seat-tag"><span style="color:${color};">●</span> ${s.row}${s.seatNumber}</span>`;
+                            }).join('')}
+                        </div>
+                    </div>
+                    <div class="price-summary">
+                        <div class="price-row"><span>Subtotal</span><span>₹${b.subTotal}</span></div>
+                        <div class="price-row"><span>Convenience Fee</span><span>₹${b.convenienceFee}</span></div>
+                        <div class="price-total"><span>Total Paid</span><span style="color:var(--red);">₹${b.totalAmount}</span></div>
+                    </div>
+                    ${canCancel ? `<button class="btn-cancel" onclick="cancelBooking('${b.id}')" style="margin-top:16px; width:100%;">Cancel Booking</button>` : ''}
+                </div>`;
+            }).join('');
+        }
+
+        async function cancelBooking(id) {
+            if (!confirm('Are you sure you want to cancel this booking?')) return;
+            try {
+                const res = await fetch(`/api/bookings/${id}/cancel`, { method: 'DELETE', headers: authHeaders() });
+                const data = await res.json();
+                if (data.success) {
+                    alert('Booking cancelled successfully');
+                    loadBookings();
+                } else {
+                    alert(data.message || 'Failed to cancel booking');
+                }
+            } catch {
+                alert('Something went wrong');
+            }
+        }
+
+        function showEmpty(msg) {
+            document.getElementById('bookingsList').innerHTML = `<div class="empty"><div style="font-size:60px; margin-bottom:16px;">🎟</div><div style="font-size:20px; font-weight:600;">${msg}</div></div>`;
+        }
+
+        loadBookings();
+    </script>
+</body>
+</html>

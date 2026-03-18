@@ -6,6 +6,13 @@ using System.Security.Claims;
 
 namespace CineBook.API.Controllers
 {
+    [Route("Profile")]
+    public class ProfileViewController : Controller
+    {
+        [HttpGet("")]
+        public IActionResult Index() => View();
+    }
+
     [Route("api/[controller]")]
     [ApiController]
     public class ProfileController : ControllerBase

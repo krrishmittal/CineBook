@@ -7,6 +7,7 @@ using CineBook.Infrastructure.Persistence;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
+
 namespace CineBook.Infrastructure.Services
 {
     public class CinemaService : ICinemaService
@@ -24,10 +25,10 @@ namespace CineBook.Infrastructure.Services
 
         public async Task<ApiResponse<CinemaResponse>> RegisterCinemaAsync(string managerId, RegisterCinemaRequest request)
         {
-            _logger.LogInformation("");
             var existing = await _context.Cinemas.FirstOrDefaultAsync(c => c.ManagerUserId == managerId);
             if (existing != null)
             {
+                _logger.LogWarning("RegisterCinemaAsync failed: Manager {ManagerId} already has a registered cinema", managerId);
                 return ApiResponse<CinemaResponse>.Fail("You already have a registered cinema", 400, "RegisterCinemaAsync");
             }
 
@@ -35,8 +36,11 @@ namespace CineBook.Infrastructure.Services
                 .AnyAsync(c => c.LicenseNumber == request.LicenseNumber);
 
             if (licenseExists)
+            {
+                _logger.LogWarning("RegisterCinemaAsync failed: License number {LicenseNumber} is already registered", request.LicenseNumber);
                 return ApiResponse<CinemaResponse>.Fail(
                     "License number already registered", 400, "LicenseNumber");
+            }
 
             var cinema = new Cinema
             {
@@ -56,7 +60,8 @@ namespace CineBook.Infrastructure.Services
             await _context.Cinemas.AddAsync(cinema);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Cinema registered: {Name} ", cinema.CinemaName);
+            _logger.LogInformation("Cinema {CinemaId} registered successfully: '{Name}' by manager {ManagerId}",
+                cinema.Id, cinema.CinemaName, managerId);
 
             var manager = await _userManager.FindByIdAsync(managerId);
             return ApiResponse<CinemaResponse>.Ok(MapToResponse(cinema, manager), "Cinema registered!  Awaiting admin approval.");
@@ -69,8 +74,13 @@ namespace CineBook.Infrastructure.Services
                 .FirstOrDefaultAsync(c => c.ManagerUserId == managerId);
 
             if (cinema == null)
+            {
+                _logger.LogWarning("GetMyCinemaAsync failed: No cinema found for manager {ManagerId}", managerId);
                 return ApiResponse<CinemaResponse>.Fail(
                     "No cinema registered yet", 404, "Cinema");
+            }
+
+            _logger.LogInformation("Cinema {CinemaId} fetched successfully for manager {ManagerId}", cinema.Id, managerId);
 
             return ApiResponse<CinemaResponse>.Ok(
                 MapToResponse(cinema, cinema.Manager), "Cinema fetched");
@@ -88,6 +98,8 @@ namespace CineBook.Infrastructure.Services
                 .OrderByDescending(c => c.RegisteredAt)
                 .ToListAsync();
 
+            _logger.LogInformation("Retrieved {Count} cinemas with status filter: '{Status}'", cinemas.Count, status ?? "All");
+
             return ApiResponse<List<CinemaResponse>>.Ok(
                 cinemas.Select(c => MapToResponse(c, c.Manager)).ToList(),
                 "Cinemas fetched");
@@ -101,8 +113,11 @@ namespace CineBook.Infrastructure.Services
                 .FirstOrDefaultAsync(c => c.Id == cinemaId);
 
             if (cinema == null)
+            {
+                _logger.LogWarning("ApproveCinemaAsync failed: Cinema {CinemaId} not found", cinemaId);
                 return ApiResponse<CinemaResponse>.Fail(
                     "Cinema not found", 404, "Cinema");
+            }
 
             cinema.ApprovalStatus = request.IsApproved
                 ? ApprovalStatus.Approved
@@ -112,7 +127,8 @@ namespace CineBook.Infrastructure.Services
 
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Cinema {Name} {Status}",
+            _logger.LogInformation("Cinema {CinemaId} ('{Name}') was {Status} by an admin",
+                cinema.Id,
                 cinema.CinemaName,
                 request.IsApproved ? "approved" : "rejected");
 
@@ -142,5 +158,4 @@ namespace CineBook.Infrastructure.Services
             RegisteredAt = cinema.RegisteredAt
         };
     }
-
 }

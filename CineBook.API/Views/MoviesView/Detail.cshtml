@@ -1,0 +1,587 @@
+﻿@{
+    ViewData["Title"] = "Movie Detail";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineBook — Movie Detail</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --red: #E50914; --red-dark: #b20710;
+            --bg: #080808; --surface: #111111;
+            --surface2: #191919; --surface3: #222222;
+            --border: #282828; --text: #f5f5f5;
+            --muted: #777777; --muted2: #555555;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; }
+        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.06em; }
+
+        /* Navbar */
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; height: 62px; z-index: 100;
+            background: rgba(8,8,8,0.95); border-bottom: 1px solid var(--border);
+            backdrop-filter: blur(16px);
+            display: flex; align-items: center; padding: 0 32px; gap: 24px;
+        }
+
+        /* Hero */
+        .hero {
+            margin-top: 62px; position: relative;
+            height: 480px; overflow: hidden;
+        }
+        .hero-bg {
+            width: 100%; height: 100%; object-fit: cover;
+            filter: brightness(0.25); transform: scale(1.05);
+        }
+        .hero-overlay {
+            position: absolute; inset: 0;
+            background: linear-gradient(to right, rgba(8,8,8,0.98) 0%, rgba(8,8,8,0.7) 50%, transparent 100%),
+                        linear-gradient(to top, rgba(8,8,8,1) 0%, transparent 50%);
+        }
+        .hero-content {
+            position: absolute; inset: 0;
+            display: flex; align-items: center;
+            padding: 0 60px; gap: 40px;
+        }
+        .movie-poster-large {
+            width: 200px; height: 290px; border-radius: 12px;
+            object-fit: cover; flex-shrink: 0;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+        .movie-poster-placeholder {
+            width: 200px; height: 290px; border-radius: 12px;
+            background: var(--surface3); display: flex; align-items: center;
+            justify-content: center; font-size: 60px; flex-shrink: 0;
+        }
+
+        .cert-tag {
+            display: inline-flex; align-items: center;
+            background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2);
+            color: #ccc; font-size: 11px; font-weight: 700;
+            padding: 3px 10px; border-radius: 4px; letter-spacing: 0.06em;
+        }
+
+        .genre-tag {
+            display: inline-flex; padding: 4px 12px; border-radius: 20px;
+            background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1);
+            font-size: 12px; color: #bbb;
+        }
+
+        /* Main content */
+        .main { max-width: 1200px; margin: 0 auto; padding: 40px 32px 80px; }
+
+        /* Section title */
+        .section-title {
+            font-size: 18px; font-weight: 700; margin-bottom: 20px;
+            display: flex; align-items: center; gap: 10px;
+        }
+        .section-title::before {
+            content: ''; width: 3px; height: 18px;
+            background: var(--red); border-radius: 2px;
+        }
+
+        /* Date pills */
+        .date-scroll { display: flex; gap: 8px; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+        .date-scroll::-webkit-scrollbar { display: none; }
+        .date-pill {
+            flex-shrink: 0; text-align: center; min-width: 64px;
+            padding: 10px 14px; border-radius: 10px;
+            border: 1px solid var(--border); background: var(--surface);
+            cursor: pointer; transition: all 0.2s;
+        }
+        .date-pill:hover { border-color: #444; }
+        .date-pill.active { border-color: var(--red); background: rgba(229,9,20,0.1); }
+        .date-pill .day { font-size: 11px; color: var(--muted); font-weight: 500; }
+        .date-pill .date { font-size: 18px; font-weight: 700; line-height: 1.2; }
+        .date-pill .month { font-size: 11px; color: var(--muted); }
+
+        /* Format filter */
+        .format-pill {
+            padding: 6px 16px; border-radius: 20px; font-size: 13px; font-weight: 600;
+            border: 1px solid var(--border); background: var(--surface);
+            color: var(--muted); cursor: pointer; transition: all 0.2s;
+        }
+        .format-pill:hover { border-color: #444; color: var(--text); }
+        .format-pill.active { background: var(--red); border-color: var(--red); color: white; }
+
+        /* Cinema showtime card */
+        .cinema-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 20px; margin-bottom: 12px;
+        }
+        .cinema-header {
+            display: flex; align-items: center; justify-content: space-between;
+            margin-bottom: 14px;
+        }
+
+        /* Showtime button */
+        .showtime-btn {
+            display: inline-flex; flex-direction: column; align-items: center;
+            padding: 10px 16px; border-radius: 8px; cursor: pointer;
+            border: 1px solid rgba(229,9,20,0.4); background: rgba(229,9,20,0.08);
+            transition: all 0.2s; min-width: 80px;
+        }
+        .showtime-btn:hover { border-color: var(--red); background: rgba(229,9,20,0.15); }
+        .showtime-btn.filling { border-color: #f59e0b; background: rgba(245,158,11,0.08); }
+        .showtime-btn.almost-full { border-color: #ef4444; background: rgba(239,68,68,0.08); }
+        .showtime-btn .time { font-size: 15px; font-weight: 700; color: var(--text); }
+        .showtime-btn .avail { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+        /* Trailer modal */
+        .trailer-modal {
+            display: none; position: fixed; inset: 0; z-index: 500;
+            background: rgba(0,0,0,0.92); backdrop-filter: blur(8px);
+            align-items: center; justify-content: center;
+        }
+
+        /* Cast */
+        .cast-scroll { display: flex; gap: 12px; overflow-x: auto; padding-bottom: 8px; scrollbar-width: none; }
+        .cast-scroll::-webkit-scrollbar { display: none; }
+        .cast-card {
+            flex-shrink: 0; width: 90px; text-align: center;
+        }
+        .cast-avatar {
+            width: 70px; height: 70px; border-radius: 50%;
+            background: var(--surface3); margin: 0 auto 8px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 24px; border: 2px solid var(--border);
+        }
+
+        /* Rating stars */
+        .stars { color: #f59e0b; font-size: 16px; }
+
+        /* Badge */
+        .badge-hall {
+            display: inline-flex; padding: 2px 8px; border-radius: 4px;
+            font-size: 11px; font-weight: 700; letter-spacing: 0.04em;
+        }
+        .badge-2d { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
+        .badge-3d { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
+        .badge-imax { background: rgba(234,179,8,0.15); color: #facc15; border: 1px solid rgba(234,179,8,0.3); }
+
+        .btn-primary {
+            background: var(--red); color: white; font-family: 'Outfit', sans-serif;
+            font-weight: 600; font-size: 15px; padding: 12px 28px;
+            border: none; border-radius: 8px; cursor: pointer; transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-primary:hover { background: var(--red-dark); transform: translateY(-1px); }
+
+        .btn-ghost {
+            background: rgba(255,255,255,0.08); color: white;
+            font-family: 'Outfit', sans-serif; font-weight: 500;
+            font-size: 14px; padding: 11px 24px;
+            border: 1px solid rgba(255,255,255,0.15); border-radius: 8px;
+            cursor: pointer; transition: all 0.2s;
+            display: inline-flex; align-items: center; gap: 8px;
+        }
+        .btn-ghost:hover { background: rgba(255,255,255,0.14); }
+
+        .empty { text-align: center; padding: 40px; color: var(--muted); }
+
+        /* User dropdown */
+        .user-menu { position: relative; }
+        .user-avatar {
+            width: 34px; height: 34px; border-radius: 50%; background: var(--red);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 14px; font-weight: 700; cursor: pointer;
+            font-family: 'Bebas Neue', sans-serif; border: 2px solid transparent;
+            transition: border-color 0.2s;
+        }
+        .user-avatar:hover { border-color: var(--red); }
+        .user-dropdown {
+            position: absolute; top: calc(100% + 10px); right: 0; width: 200px;
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 10px; padding: 8px; display: none; z-index: 200;
+            box-shadow: 0 16px 40px rgba(0,0,0,0.6);
+        }
+        .user-dropdown.show { display: block; }
+        .dropdown-item {
+            display: flex; align-items: center; gap: 10px; padding: 9px 12px;
+            border-radius: 6px; font-size: 14px; color: var(--muted);
+            cursor: pointer; transition: all 0.15s; text-decoration: none;
+        }
+        .dropdown-item:hover { background: var(--surface2); color: var(--text); }
+
+        .login-btn {
+            background: var(--red); color: white; font-family: 'Outfit', sans-serif;
+            font-weight: 600; font-size: 13px; padding: 8px 18px;
+            border: none; border-radius: 7px; cursor: pointer; text-decoration: none;
+            display: inline-flex; align-items: center;
+        }
+
+        @@keyframes fadeUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .fade-up { animation: fadeUp 0.4s ease forwards; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+    <button onclick="history.back()" style="background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer; padding:4px 8px; margin-right:4px;">←</button>
+    <a href="/" style="text-decoration:none;">
+        <span class="brand" style="font-size:26px; color:var(--red);">CINEBOOK</span>
+    </a>
+    <div style="flex:1;"></div>
+        <div id="guestNav"><a href="/Auth/Login" class="login-btn">Sign In</a></div>
+        <div id="userNav" style="display:none;">
+            <div class="user-menu">
+                <div class="user-avatar" id="userAvatar" onclick="toggleDropdown()">?</div>
+                <div class="user-dropdown" id="userDropdown">
+                    <div style="padding:10px 12px 8px; border-bottom:1px solid var(--border); margin-bottom:6px;">
+                        <div style="font-size:14px; font-weight:600;" id="dropdownName"></div>
+                        <div style="font-size:12px; color:var(--muted);">🎬 Movie Fan</div>
+                    </div>
+                    <a class="dropdown-item" href="/Profile">👤 My Profile</a>
+                    <a class="dropdown-item" href="/Bookings">🎟 My Bookings</a>
+                    <div class="dropdown-item" onclick="logout()" style="color:#f87171;">🚪 Sign Out</div>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero -->
+    <div class="hero" id="movieHero">
+        <div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--muted);">
+            <div style="font-size:40px;">🎬</div>
+        </div>
+    </div>
+
+    <!-- Main -->
+    <div class="main">
+
+        <!-- Movie Info Row -->
+        <div id="movieInfoSection" style="display:none; margin-bottom:40px;" class="fade-up">
+            <div style="display:flex; gap:32px; align-items:flex-start;">
+                <!-- Left: description -->
+                <div style="flex:1;">
+                    <div style="font-size:14px; color:#bbb; line-height:1.7; margin-bottom:20px;" id="movieDesc"></div>
+                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;" id="movieMeta"></div>
+                </div>
+                <!-- Right: cast -->
+                <div style="width:320px; flex-shrink:0;">
+                    <div style="font-size:13px; font-weight:600; color:var(--muted); letter-spacing:0.06em; margin-bottom:10px;">CAST</div>
+                    <div class="cast-scroll" id="castSection"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Book Tickets Section -->
+        <div id="bookingSection">
+            <div class="section-title">Book Tickets</div>
+
+            <!-- Date Selector -->
+            <div class="date-scroll" id="dateSelector" style="margin-bottom:20px;"></div>
+
+            <!-- Format Filter -->
+            <div style="display:flex; gap:8px; margin-bottom:24px; flex-wrap:wrap;" id="formatFilter"></div>
+
+            <!-- Showtimes by Cinema -->
+            <div id="showtimesByCinema">
+                <div class="empty">
+                    <div style="font-size:32px; margin-bottom:10px;">🎬</div>
+                    <div>Loading showtimes...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Trailer Modal -->
+    <div class="trailer-modal" id="trailerModal">
+        <div style="position:relative; width:90%; max-width:900px;">
+            <button onclick="closeTrailer()" style="position:absolute; top:-44px; right:0; background:none; border:none; color:white; font-size:28px; cursor:pointer; opacity:0.7;">✕ Close</button>
+            <div style="position:relative; padding-top:56.25%; border-radius:12px; overflow:hidden; background:#000;">
+                <iframe id="trailerFrame" src="" style="position:absolute; inset:0; width:100%; height:100%; border:none;" allow="autoplay; encrypted-media; fullscreen" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        // Get movie ID from URL
+        const movieId = window.location.pathname.split('/').pop();
+
+        // Auth UI
+        if (token && user.fullName) {
+            document.getElementById('guestNav').style.display = 'none';
+            document.getElementById('userNav').style.display = 'block';
+            const initials = user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
+            document.getElementById('userAvatar').textContent = initials;
+            document.getElementById('dropdownName').textContent = user.fullName;
+        }
+
+        function toggleDropdown() { document.getElementById('userDropdown').classList.toggle('show'); }
+        document.addEventListener('click', e => { if (!e.target.closest('.user-menu')) document.getElementById('userDropdown')?.classList.remove('show'); });
+        function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
+
+        let movie = null;
+        let allShowtimes = [];
+        let selectedDate = '';
+        let selectedFormat = 'all';
+
+        // ── Load Movie ────────────────────────────────────────
+        async function loadMovie() {
+            try {
+                const res = await fetch(`/api/movies/${movieId}`);
+                const data = await res.json();
+                if (data.success) {
+                    movie = data.data;
+                    renderHero(movie);
+                    renderMovieInfo(movie);
+                }
+            } catch {}
+        }
+
+        function renderHero(m) {
+            document.getElementById('movieHero').innerHTML = `
+                ${m.posterUrl ? `<img class="hero-bg" src="${m.posterUrl}" alt="${m.title}" />` : ''}
+                <div class="hero-overlay"></div>
+                <div class="hero-content">
+                    ${m.posterUrl
+                        ? `<img class="movie-poster-large" src="${m.posterUrl}" alt="${m.title}" />`
+                        : `<div class="movie-poster-placeholder">🎬</div>`}
+                    <div style="flex:1;">
+                        <div style="display:flex; align-items:center; gap:10px; margin-bottom:12px; flex-wrap:wrap;">
+                            <span class="cert-tag">${m.certificateRating}</span>
+                            ${m.genre.split(',').map(g => `<span class="genre-tag">${g.trim()}</span>`).join('')}
+                        </div>
+                        <h1 style="font-family:'Bebas Neue',sans-serif; font-size:56px; line-height:1; letter-spacing:0.02em; margin-bottom:10px;">${m.title}</h1>
+                        <div style="display:flex; align-items:center; gap:16px; font-size:13px; color:#aaa; margin-bottom:20px; flex-wrap:wrap;">
+                            <span>⏱ ${m.durationTime} min</span>
+                            <span>🌐 ${m.language}</span>
+                            <span>🎬 ${m.director}</span>
+                            <span>📅 ${new Date(m.releaseDate).toLocaleDateString('en-IN', {day:'numeric',month:'long',year:'numeric'})}</span>
+                        </div>
+                        <div style="display:flex; gap:12px; flex-wrap:wrap;">
+                            <button class="btn-primary" onclick="document.getElementById('bookingSection').scrollIntoView({behavior:'smooth'})">
+                                🎟 Book Tickets
+                            </button>
+                            ${m.trailerUrl ? `<button class="btn-ghost" onclick="watchTrailer('${m.trailerUrl}', '${m.title}')">▶ Watch Trailer</button>` : ''}
+                        </div>
+                    </div>
+                </div>`;
+        }
+
+        function renderMovieInfo(m) {
+            document.getElementById('movieInfoSection').style.display = 'block';
+            document.getElementById('movieDesc').textContent = m.description;
+
+            document.getElementById('movieMeta').innerHTML = `
+                <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px;">
+                    <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">DIRECTOR</div>
+                    <div style="font-size:14px; font-weight:600;">${m.director}</div>
+                </div>
+                <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px;">
+                    <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">DURATION</div>
+                    <div style="font-size:14px; font-weight:600;">${m.durationTime} minutes</div>
+                </div>
+                <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px;">
+                    <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">LANGUAGE</div>
+                    <div style="font-size:14px; font-weight:600;">${m.language}</div>
+                </div>
+                <div style="background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:14px;">
+                    <div style="font-size:11px; color:var(--muted); margin-bottom:4px;">RELEASE DATE</div>
+                    <div style="font-size:14px; font-weight:600;">${new Date(m.releaseDate).toLocaleDateString('en-IN')}</div>
+                </div>`;
+
+            // Cast
+            const castMembers = m.cast.split(',').map(c => c.trim());
+            document.getElementById('castSection').innerHTML = castMembers.map(c => `
+                <div class="cast-card">
+                    <div class="cast-avatar">🎭</div>
+                    <div style="font-size:11px; font-weight:700; color:var(--text); text-align:center; line-height:1.3;">${c}</div>
+                </div>`).join('');
+        }
+
+        // ── Load Showtimes ────────────────────────────────────
+        async function loadShowtimes() {
+            try {
+                const res = await fetch(`/api/showtimes/movie/${movieId}`);
+                const data = await res.json();
+                if (data.success) {
+                    allShowtimes = data.data;
+                    buildDateSelector();
+                    buildFormatFilter();
+                    renderShowtimes();
+                } else {
+                    document.getElementById('showtimesByCinema').innerHTML =
+                        `<div class="empty"><div style="font-size:32px">📭</div><div style="margin-top:10px;">No showtimes available for this movie</div></div>`;
+                }
+            } catch {}
+        }
+
+        // ── Date Selector ─────────────────────────────────────
+        function buildDateSelector() {
+            const dates = [...new Set(allShowtimes.map(s =>
+                new Date(s.startTime).toDateString()
+            ))].sort((a,b) => new Date(a) - new Date(b));
+
+            if (!dates.length) return;
+            selectedDate = dates[0];
+
+            document.getElementById('dateSelector').innerHTML = dates.map((d, i) => {
+                const date = new Date(d);
+                const day = date.toLocaleDateString('en-IN', { weekday: 'short' });
+                const num = date.getDate();
+                const month = date.toLocaleDateString('en-IN', { month: 'short' });
+                const isToday = date.toDateString() === new Date().toDateString();
+                return `
+                    <div class="date-pill ${i === 0 ? 'active' : ''}" onclick="selectDate('${d}', this)">
+                        <div class="day">${isToday ? 'TODAY' : day.toUpperCase()}</div>
+                        <div class="date">${num}</div>
+                        <div class="month">${month}</div>
+                    </div>`;
+            }).join('');
+        }
+
+        function selectDate(date, el) {
+            selectedDate = date;
+            document.querySelectorAll('.date-pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            renderShowtimes();
+        }
+
+        // ── Format Filter ─────────────────────────────────────
+        function buildFormatFilter() {
+            const formats = [...new Set(allShowtimes.map(s => s.hallType))];
+            const container = document.getElementById('formatFilter');
+            container.innerHTML = `<div class="format-pill active" onclick="selectFormat('all', this)">All Formats</div>`;
+            formats.forEach(f => {
+                const label = f === 'TwoD' || f === 0 ? '2D' : f === 'ThreeD' || f === 1 ? '3D' : 'IMAX';
+                container.innerHTML += `<div class="format-pill" onclick="selectFormat('${f}', this)">${label}</div>`;
+            });
+        }
+
+        function selectFormat(format, el) {
+            selectedFormat = format;
+            document.querySelectorAll('.format-pill').forEach(p => p.classList.remove('active'));
+            el.classList.add('active');
+            renderShowtimes();
+        }
+
+        // ── Render Showtimes by Cinema ────────────────────────
+        function renderShowtimes() {
+            let filtered = allShowtimes;
+
+            if (selectedDate)
+                filtered = filtered.filter(s =>
+                    new Date(s.startTime).toDateString() === selectedDate);
+
+            if (selectedFormat !== 'all')
+                filtered = filtered.filter(s => s.hallType === selectedFormat);
+
+            const container = document.getElementById('showtimesByCinema');
+
+            if (!filtered.length) {
+                container.innerHTML = `<div class="empty"><div style="font-size:32px">📭</div><div style="margin-top:10px;">No showtimes for selected date/format</div></div>`;
+                return;
+            }
+
+            // Group by cinema
+            const cinemaGroups = {};
+            filtered.forEach(s => {
+                if (!cinemaGroups[s.cinemaId]) {
+                    cinemaGroups[s.cinemaId] = { name: s.cinemaName, halls: {} };
+                }
+                const hallKey = s.hallId;
+                if (!cinemaGroups[s.cinemaId].halls[hallKey]) {
+                    cinemaGroups[s.cinemaId].halls[hallKey] = {
+                        name: s.hallName, type: s.hallType, showtimes: []
+                    };
+                }
+                cinemaGroups[s.cinemaId].halls[hallKey].showtimes.push(s);
+            });
+
+            container.innerHTML = Object.values(cinemaGroups).map(cinema => `
+                <div class="cinema-card fade-up">
+                    <div class="cinema-header">
+                        <div>
+                            <div style="font-size:16px; font-weight:700;">🏟 ${cinema.name}</div>
+                        </div>
+                        <div style="font-size:12px; color:var(--muted);">Cancellation available</div>
+                    </div>
+                    ${Object.values(cinema.halls).map(hall => `
+                        <div style="margin-bottom:16px;">
+                            <div style="display:flex; align-items:center; gap:8px; margin-bottom:10px;">
+                                ${getHallBadge(hall.type)}
+                                <span style="font-size:13px; color:var(--muted);">${hall.name}</span>
+                                <span style="font-size:12px; color:var(--muted2);">•</span>
+                                <span style="font-size:12px; color:var(--muted);">
+                                    Std ₹${hall.showtimes[0].priceStandard} •
+                                    Prem ₹${hall.showtimes[0].pricePremium} •
+                                    VIP ₹${hall.showtimes[0].priceVIP}
+                                </span>
+                            </div>
+                            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                                ${hall.showtimes.map(s => {
+                                    const time = new Date(s.startTime).toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true});
+                                    const pct = s.totalSeats > 0 ? (s.availableSeats / s.totalSeats) * 100 : 0;
+                                    const cls = pct > 50 ? '' : pct > 20 ? 'filling' : 'almost-full';
+                                    const availLabel = pct > 50 ? 'Available' : pct > 20 ? 'Filling fast' : 'Almost full';
+                                    return `
+                                        <div class="showtime-btn ${cls}" onclick="goToSeats('${s.id}')">
+                                            <div class="time">${time}</div>
+                                            <div class="avail" style="color:${pct > 50 ? '#22c55e' : pct > 20 ? '#f59e0b' : '#ef4444'}">
+                                                ${availLabel}
+                                            </div>
+                                        </div>`;
+                                }).join('')}
+                            </div>
+                        </div>`).join('')}
+                </div>`).join('');
+        }
+
+        function getHallBadge(type) {
+            if (type === 'TwoD' || type === 0) return '<span class="badge-hall badge-2d">2D</span>';
+            if (type === 'ThreeD' || type === 1) return '<span class="badge-hall badge-3d">3D</span>';
+            return '<span class="badge-hall badge-imax">IMAX</span>';
+        }
+
+        function goToSeats(showtimeId) {
+            if (!token) { window.location.href = '/Auth/Login'; return; }
+            window.location.href = `/Booking/Seats?showtimeId=${showtimeId}&movieId=${movieId}`;
+        }
+
+        // ── Trailer ───────────────────────────────────────────
+        function watchTrailer(url, title) {
+            if (!url) return;
+            let embedUrl = '';
+            if (url.includes('youtu.be/')) {
+                embedUrl = `https://www.youtube.com/embed/${url.split('youtu.be/')[1].split('?')[0]}?autoplay=1&rel=0`;
+            } else if (url.includes('youtube.com/watch')) {
+                embedUrl = `https://www.youtube.com/embed/${new URL(url).searchParams.get('v')}?autoplay=1&rel=0`;
+            } else embedUrl = url;
+            document.getElementById('trailerFrame').src = embedUrl;
+            document.getElementById('trailerModal').style.display = 'flex';
+            document.body.style.overflow = 'hidden';
+        }
+
+        function closeTrailer() {
+            document.getElementById('trailerModal').style.display = 'none';
+            document.getElementById('trailerFrame').src = '';
+            document.body.style.overflow = '';
+        }
+
+        document.getElementById('trailerModal').addEventListener('click', function(e) {
+            if (e.target === this) closeTrailer();
+        });
+        document.addEventListener('keydown', e => { if (e.key === 'Escape') closeTrailer(); });
+
+        // Init
+        loadMovie();
+        loadShowtimes();
+    </script>
+</body>
+</html>

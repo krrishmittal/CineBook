@@ -1,0 +1,420 @@
+﻿@{
+    ViewData["Title"] = "Register Cinema";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineBook — Register Cinema</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --red: #E50914; --red-dark: #b20710;
+            --bg: #0a0a0a; --surface: #141414;
+            --surface2: #1e1e1e; --surface3: #242424;
+            --border: #2a2a2a; --text: #ffffff; --muted: #888888;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
+
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; height: 56px;
+            background: rgba(10,10,10,0.97); border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; padding: 0 24px; gap: 16px; z-index: 100;
+        }
+
+        .page { padding-top: 56px; min-height: 100vh; display: flex; }
+
+        /* Sidebar */
+        .sidebar {
+            width: 220px; background: var(--surface);
+            border-right: 1px solid var(--border);
+            padding: 20px 12px; display: flex; flex-direction: column; gap: 4px;
+            position: fixed; top: 56px; bottom: 0;
+        }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px;
+            padding: 10px 12px; border-radius: 6px; font-size: 14px; font-weight: 500;
+            color: var(--muted); cursor: pointer; transition: all 0.2s;
+            text-decoration: none; border: none; background: none; width: 100%;
+        }
+        .nav-item:hover { background: var(--surface2); color: var(--text); }
+        .nav-item.active { background: rgba(229,9,20,0.12); color: var(--red); }
+
+        /* Main */
+        .main { margin-left: 220px; flex: 1; padding: 32px; max-width: 860px; }
+
+        /* Status card - shows current cinema status */
+        .status-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; padding: 24px;
+            display: none; margin-bottom: 24px;
+        }
+
+        /* Form card */
+        .form-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 12px; overflow: hidden;
+        }
+
+        .form-header {
+            padding: 20px 24px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; gap: 14px;
+        }
+
+        .form-body { padding: 24px; }
+
+        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+        .form-full { grid-column: 1 / -1; }
+
+        label { display: block; font-size: 12px; font-weight: 500; color: #999; margin-bottom: 5px; }
+
+        .cinput {
+            width: 100%; background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 6px; padding: 11px 14px; color: var(--text);
+            font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+        .cinput:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(229,9,20,0.12); }
+        .cinput::placeholder { color: #555; }
+
+        .cbtn {
+            background: var(--red); color: white; font-family: 'DM Sans', sans-serif;
+            font-weight: 600; font-size: 14px; padding: 12px 28px;
+            border: none; border-radius: 6px; cursor: pointer; transition: background 0.2s;
+        }
+        .cbtn:hover { background: var(--red-dark); }
+        .cbtn:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .alert {
+            border-radius: 6px; padding: 12px 16px; font-size: 13px;
+            display: none; margin-bottom: 16px;
+        }
+        .alert-error { background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.3); color: #ff6b6b; }
+        .alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; }
+
+        /* Approval status styles */
+        .status-pending { background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3); border-radius: 10px; padding: 20px 24px; }
+        .status-approved { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); border-radius: 10px; padding: 20px 24px; }
+        .status-rejected { background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.3); border-radius: 10px; padding: 20px 24px; }
+
+        .badge {
+            display: inline-flex; align-items: center; padding: 3px 10px;
+            border-radius: 20px; font-size: 12px; font-weight: 600;
+        }
+        .badge-pending { background: rgba(251,191,36,0.2); color: #fbbf24; }
+        .badge-approved { background: rgba(34,197,94,0.2); color: #4ade80; }
+        .badge-rejected { background: rgba(229,9,20,0.2); color: #f87171; }
+
+        .info-row { display: flex; gap: 8px; margin-top: 6px; font-size: 13px; color: var(--muted); }
+        .info-val { color: var(--text); font-weight: 500; }
+
+        .step-indicator {
+            display: flex; gap: 0; margin-bottom: 28px;
+        }
+        .step {
+            flex: 1; text-align: center; padding: 10px;
+            border-bottom: 2px solid var(--border);
+            font-size: 12px; color: var(--muted); font-weight: 500;
+        }
+        .step.active { border-bottom-color: var(--red); color: var(--text); }
+        .step.done { border-bottom-color: #22c55e; color: #4ade80; }
+    </style>
+</head>
+<body>
+
+    <!-- Navbar -->
+    <nav class="navbar">
+        <span class="brand" style="font-size:22px; color:var(--red);">CINEBOOK</span>
+        <span style="font-size:12px; color:var(--border);">|</span>
+        <span style="font-size:13px; color:var(--muted);">Cinema Manager</span>
+        <div style="flex:1;"></div>
+        <span id="managerName" style="font-size:13px; color:var(--muted);"></span>
+        <button onclick="logout()" style="background:none; border:1px solid var(--border); color:var(--muted); font-family:'DM Sans',sans-serif; font-size:13px; padding:6px 14px; border-radius:6px; cursor:pointer;">Sign Out</button>
+    </nav>
+
+    <div class="page">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div style="font-size:11px; color:var(--muted); letter-spacing:0.1em; padding:4px 12px 12px;">MANAGE</div>
+            <a class="nav-item active" href="/Manager/Cinema">🏟 My Cinema</a>
+            <a class="nav-item" href="/Manager/Halls">🪑 Halls</a>
+            <a class="nav-item" href="/Manager/Showtimes">🎬 Showtimes</a>
+            <div style="flex:1;"></div>
+            <a class="nav-item" href="/Manager/Cinema">🏠 Dashboard</a>
+        </aside>
+
+        <!-- Main -->
+        <div class="main">
+
+            <!-- Page Header -->
+            <div style="margin-bottom:24px;">
+                <h1 style="font-size:22px; font-weight:700;">My Cinema</h1>
+                <p style="font-size:13px; color:var(--muted); margin-top:2px;">Register and manage your cinema details</p>
+            </div>
+
+            <!-- Alert -->
+            <div class="alert alert-error" id="alertError"></div>
+            <div class="alert alert-success" id="alertSuccess"></div>
+
+            <!-- Current Cinema Status (shown if already registered) -->
+            <div class="status-card" id="statusCard">
+                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:16px;">
+                    <div style="font-size:16px; font-weight:700;" id="cinemaNameDisplay"></div>
+                    <span class="badge" id="statusBadge"></span>
+                </div>
+                <div id="statusContent"></div>
+            </div>
+
+            <!-- Register Form (shown if no cinema yet) -->
+            <div class="form-card" id="formCard">
+                <div class="form-header">
+                    <div style="font-size:32px;">🏟</div>
+                    <div>
+                        <div style="font-size:16px; font-weight:700;">Register Your Cinema</div>
+                        <div style="font-size:13px; color:var(--muted); margin-top:2px;">Fill in details — Admin will review and approve</div>
+                    </div>
+                </div>
+
+                <div class="form-body">
+
+                    <!-- Step indicator -->
+                    <div class="step-indicator">
+                        <div class="step active" id="step1">1. Basic Info</div>
+                        <div class="step" id="step2">2. Location</div>
+                        <div class="step" id="step3">3. Documents</div>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-full">
+                            <label>Cinema Name *</label>
+                            <input class="cinput" type="text" id="fCinemaName" placeholder="e.g. PVR Cinemas Ludhiana" />
+                        </div>
+
+                        <div class="form-full">
+                            <label>Full Address *</label>
+                            <input class="cinput" type="text" id="fAddress" placeholder="Shop no., Building, Street" />
+                        </div>
+
+                        <div>
+                            <label>City *</label>
+                            <input class="cinput" type="text" id="fCity" placeholder="e.g. Ludhiana" />
+                        </div>
+
+                        <div>
+                            <label>State *</label>
+                            <input class="cinput" type="text" id="fState" placeholder="e.g. Punjab" />
+                        </div>
+
+                        <div>
+                            <label>PIN Code *</label>
+                            <input class="cinput" type="text" id="fPinCode" placeholder="e.g. 141001" maxlength="6" />
+                        </div>
+
+                        <div>
+                            <label>License Number *</label>
+                            <input class="cinput" type="text" id="fLicense" placeholder="e.g. CIN/PB/2024/001" />
+                        </div>
+
+                        <div class="form-full">
+                            <label>Google Maps Link</label>
+                            <input class="cinput" type="url" id="fMapsLink" placeholder="https://maps.google.com/..." />
+                        </div>
+
+                        <div class="form-full">
+                            <label>Cinema Logo URL</label>
+                            <input class="cinput" type="url" id="fLogo" placeholder="https://..." />
+                        </div>
+                    </div>
+
+                    <div style="margin-top:24px; display:flex; align-items:center; gap:16px;">
+                        <button class="cbtn" id="submitBtn" onclick="registerCinema()">
+                            Submit for Approval →
+                        </button>
+                        <div style="font-size:12px; color:var(--muted);">
+                            ⏱ Review typically takes 24-48 hours
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!token) window.location.href = '/Auth/Login';
+        if (user.role !== 'CinemaManager') window.location.href = '/Home/Index';
+
+        document.getElementById('managerName').textContent = user.fullName || 'Manager';
+
+        function authHeaders() {
+            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+        }
+
+        // ── Load existing cinema ──────────────────────────────
+        async function loadMyCinema() {
+            try {
+                const res = await fetch('/api/cinemas/my', { headers: authHeaders() });
+                const data = await res.json();
+
+                if (data.success) {
+                    showCinemaStatus(data.data);
+                }
+                // 404 = no cinema yet, keep form visible
+            } catch { }
+        }
+
+        function showCinemaStatus(cinema) {
+            // Hide form, show status card
+            document.getElementById('formCard').style.display = 'none';
+            const card = document.getElementById('statusCard');
+            card.style.display = 'block';
+
+            document.getElementById('cinemaNameDisplay').textContent = cinema.cinemaName;
+
+            const badge = document.getElementById('statusBadge');
+            const content = document.getElementById('statusContent');
+
+            if (cinema.approvalStatus === 'Pending' || cinema.approvalStatus === 0) {
+                badge.textContent = '⏳ Pending Review';
+                badge.className = 'badge badge-pending';
+                content.innerHTML = `
+                    <div class="status-pending">
+                        <div style="font-size:14px; font-weight:600; color:#fbbf24; margin-bottom:10px;">
+                            Your cinema is under review
+                        </div>
+                        <div style="font-size:13px; color:var(--muted); margin-bottom:14px;">
+                            Admin will review your submission. You'll be notified once approved.
+                        </div>
+                        ${cinemaInfoHtml(cinema)}
+                    </div>`;
+            }
+            else if (cinema.approvalStatus === 'Approved' || cinema.approvalStatus === 1) {
+                badge.textContent = '✅ Approved';
+                badge.className = 'badge badge-approved';
+                content.innerHTML = `
+                    <div class="status-approved">
+                        <div style="font-size:14px; font-weight:600; color:#4ade80; margin-bottom:10px;">
+                            🎉 Your cinema is approved and live!
+                        </div>
+                        <div style="font-size:13px; color:var(--muted); margin-bottom:14px;">
+                            You can now add halls and schedule showtimes.
+                        </div>
+                        ${cinemaInfoHtml(cinema)}
+                    </div>
+                    <div style="display:flex; gap:10px; margin-top:16px;">
+                        <a href="/Manager/Halls" style="background:var(--red); color:white; font-family:'DM Sans',sans-serif; font-weight:600; font-size:13px; padding:10px 20px; border-radius:6px; text-decoration:none;">
+                            🪑 Manage Halls →
+                        </a>
+                    </div>`;
+            }
+            else if (cinema.approvalStatus === 'Rejected' || cinema.approvalStatus === 2) {
+                badge.textContent = '❌ Rejected';
+                badge.className = 'badge badge-rejected';
+                content.innerHTML = `
+                    <div class="status-rejected">
+                        <div style="font-size:14px; font-weight:600; color:#f87171; margin-bottom:8px;">
+                            Your cinema was rejected
+                        </div>
+                        <div style="font-size:13px; color:var(--muted); margin-bottom:6px;">Reason:</div>
+                        <div style="font-size:14px; color:#fca5a5; margin-bottom:14px;">
+                            "${cinema.rejectionReason || 'No reason provided'}"
+                        </div>
+                        ${cinemaInfoHtml(cinema)}
+                    </div>
+                    <div style="margin-top:16px;">
+                        <button class="cbtn" onclick="showResubmitForm()">
+                            Re-submit Application →
+                        </button>
+                    </div>`;
+            }
+        }
+
+        function cinemaInfoHtml(c) {
+            return `
+                <div style="display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-top:10px;">
+                    <div class="info-row"><span>📍 Address:</span> <span class="info-val">${c.address}, ${c.city}</span></div>
+                    <div class="info-row"><span>🏛 State:</span> <span class="info-val">${c.state} — ${c.pinCode}</span></div>
+                    <div class="info-row"><span>📄 License:</span> <span class="info-val">${c.licenseNumber}</span></div>
+                    <div class="info-row"><span>📅 Registered:</span> <span class="info-val">${new Date(c.registeredAt).toLocaleDateString()}</span></div>
+                </div>`;
+        }
+
+        function showResubmitForm() {
+            document.getElementById('statusCard').style.display = 'none';
+            document.getElementById('formCard').style.display = 'block';
+        }
+
+        // ── Register Cinema ───────────────────────────────────
+        async function registerCinema() {
+            const data = {
+                cinemaName: document.getElementById('fCinemaName').value.trim(),
+                address: document.getElementById('fAddress').value.trim(),
+                city: document.getElementById('fCity').value.trim(),
+                state: document.getElementById('fState').value.trim(),
+                pinCode: document.getElementById('fPinCode').value.trim(),
+                licenseNumber: document.getElementById('fLicense').value.trim(),
+                googleMapsLink: document.getElementById('fMapsLink').value.trim() || null,
+                cinemaLogo: document.getElementById('fLogo').value.trim() || null
+            };
+
+            // Validate
+            const required = ['cinemaName','address','city','state','pinCode','licenseNumber'];
+            for (const key of required) {
+                if (!data[key]) {
+                    showAlert('error', 'Please fill all required fields');
+                    return;
+                }
+            }
+
+            if (!/^\d{6}$/.test(data.pinCode)) {
+                showAlert('error', 'PIN Code must be 6 digits');
+                return;
+            }
+
+            const btn = document.getElementById('submitBtn');
+            btn.disabled = true;
+            btn.textContent = 'Submitting...';
+
+            try {
+                const res = await fetch('/api/cinemas/register', {
+                    method: 'POST',
+                    headers: authHeaders(),
+                    body: JSON.stringify(data)
+                });
+
+                const result = await res.json();
+
+                if (result.success) {
+                    showAlert('success', 'Cinema submitted for approval! Admin will review shortly.');
+                    setTimeout(() => showCinemaStatus(result.data), 1500);
+                } else {
+                    showAlert('error', result.message || 'Registration failed');
+                }
+            } catch {
+                showAlert('error', 'Something went wrong');
+            } finally {
+                btn.disabled = false;
+                btn.textContent = 'Submit for Approval →';
+            }
+        }
+
+        function showAlert(type, msg) {
+            const el = document.getElementById(type === 'error' ? 'alertError' : 'alertSuccess');
+            el.textContent = msg;
+            el.style.display = 'block';
+            setTimeout(() => el.style.display = 'none', 4000);
+        }
+
+        function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
+
+        loadMyCinema();
+    </script>
+</body>
+</html>

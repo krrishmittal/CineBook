@@ -26,6 +26,10 @@
     <ProjectReference Include="..\CineBook.Infrastructure\CineBook.Infrastructure.csproj" />
   </ItemGroup>
 
+	<PropertyGroup>
+		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
+		<NoWarn>NU1903</NoWarn>
+	</PropertyGroup>
   <ItemGroup>
     <Folder Include="Hubs\" />
   </ItemGroup>
