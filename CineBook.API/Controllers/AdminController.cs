@@ -3,7 +3,7 @@
 namespace CineBook.API.Controllers
 {
     [Route("Admin")]
-    public class AdminViewController : Controller
+    public class AdminController : Controller
     {
         [HttpGet("Movies")]
         public IActionResult Movies() => View();

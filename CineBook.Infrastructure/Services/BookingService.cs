@@ -4,6 +4,7 @@ using CineBook.Application.Interfaces;
 using CineBook.Domain.Entities;
 using CineBook.Domain.Enums;
 using CineBook.Infrastructure.Persistence;
+using CineBook.Infrastructure.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -99,7 +100,7 @@ namespace CineBook.Infrastructure.Services
                 CinemaName = showtime.Cinema.CinemaName,
                 HallName = showtime.Hall.HallName,
                 HallType = showtime.Hall.HallType.ToString(),
-                StartTime = showtime.StartTime,
+                StartTime = TimeZoneHelper.ConvertToIST(showtime.StartTime),
                 PriceStandard = showtime.PriceStandard,
                 PricePremium = showtime.PricePremium,
                 PriceVIP = showtime.PriceVIP,
@@ -335,6 +336,34 @@ namespace CineBook.Infrastructure.Services
                 "Bookings fetched");
         }
 
+        public async Task<ApiResponse<List<BookingResponse>>> GetCinemaBookingsAsync(
+            string managerId, string? date)
+        {
+            var cinema = await _context.Cinemas
+                .FirstOrDefaultAsync(c => c.ManagerUserId == managerId);
+
+            if (cinema == null)
+                return ApiResponse<List<BookingResponse>>.Fail("Cinema not found", 404, "Cinema");
+
+            var query = _context.Bookings
+                .Include(b => b.BookingSeats).ThenInclude(bs => bs.Seat)
+                .Include(b => b.Showtime).ThenInclude(s => s.Movie)
+                .Include(b => b.Showtime).ThenInclude(s => s.Hall)
+                .Include(b => b.Showtime).ThenInclude(s => s.Cinema)
+                .Include(b => b.User)
+                .Where(b => b.Showtime.CinemaId == cinema.Id)
+                .AsQueryable();
+
+            if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out var filterDate))
+                query = query.Where(b => b.Showtime.StartTime.Date == filterDate.Date);
+
+            var bookings = await query.OrderByDescending(b => b.BookedAt).ToListAsync();
+
+            return ApiResponse<List<BookingResponse>>.Ok(
+                bookings.Select(b => MapToResponse(b, b.Showtime, b.BookingSeats.ToList())).ToList(),
+                "Bookings fetched");
+        }
+
         // ── Cancel Booking ────────────────────────────────────
         public async Task<ApiResponse<string>> CancelBookingAsync(
             Guid bookingId, string userId)
@@ -393,17 +422,72 @@ namespace CineBook.Infrastructure.Services
                 + Random.Shared.Next(1000, 9999).ToString();
         }
 
+        
+        public async Task<ApiResponse<List<BookingResponse>>> GetCancelledBookingsAsync(string managerId)
+        {
+            var cinema = await _context.Cinemas
+                .FirstOrDefaultAsync(c => c.ManagerUserId == managerId);
+
+            if (cinema == null)
+                return ApiResponse<List<BookingResponse>>.Fail("Cinema not found", 404, "Cinema");
+
+            var bookings = await _context.Bookings
+                .Include(b => b.BookingSeats).ThenInclude(bs => bs.Seat)
+                .Include(b => b.Showtime).ThenInclude(s => s.Movie)
+                .Include(b => b.Showtime).ThenInclude(s => s.Hall)
+                .Include(b => b.Showtime).ThenInclude(s => s.Cinema)
+                .Include(b => b.User)
+                .Where(b => b.Showtime.CinemaId == cinema.Id
+                         && b.Status == BookingStatus.Cancelled)
+                .OrderByDescending(b => b.BookedAt)
+                .ToListAsync();
+
+            return ApiResponse<List<BookingResponse>>.Ok(
+                bookings.Select(b => MapToResponse(b, b.Showtime, b.BookingSeats.ToList())).ToList(),
+                "Cancelled bookings fetched");
+        }
+
+        public async Task<ApiResponse<string>> ProcessRefundAsync(
+            Guid bookingId, string managerId, string? note)
+        {
+            var cinema = await _context.Cinemas
+                .FirstOrDefaultAsync(c => c.ManagerUserId == managerId);
+
+            if (cinema == null)
+                return ApiResponse<string>.Fail("Cinema not found", 404, "Cinema");
+
+            var booking = await _context.Bookings
+                .Include(b => b.Showtime)
+                .FirstOrDefaultAsync(b => b.Id == bookingId
+                    && b.Showtime.CinemaId == cinema.Id
+                    && b.Status == BookingStatus.Cancelled);
+
+            if (booking == null)
+                return ApiResponse<string>.Fail("Booking not found or not cancelled", 404, "Booking");
+
+            if (booking.RefundProcessed)
+                return ApiResponse<string>.Fail("Refund already processed", 400, "Refund");
+
+            booking.RefundProcessed = true;
+            booking.RefundedAt = DateTime.UtcNow;  // ✅ CORRECT - stores as UTC
+            booking.RefundNote = note?.Trim() ?? "Refund processed by cinema manager";
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<string>.Ok("Refund processed", "Refund marked as processed successfully");
+        }
         private static BookingResponse MapToResponse(
             Booking booking, Showtime showtime, List<BookingSeat> seats) => new()
             {
                 Id = booking.Id,
+                UserName = booking.User?.FullName,
                 BookingReference = booking.BookingReference,
                 MovieTitle = showtime.Movie?.Title ?? "",
                 MoviePoster = showtime.Movie?.PosterUrl ?? "",
                 CinemaName = showtime.Cinema?.CinemaName ?? "",
                 HallName = showtime.Hall?.HallName ?? "",
-                ShowtimeStart = showtime.StartTime,
-                ShowtimeEnd = showtime.EndTime,
+                ShowtimeStart = TimeZoneHelper.ConvertToIST(showtime.StartTime),
+                ShowtimeEnd = TimeZoneHelper.ConvertToIST(showtime.EndTime),
                 Seats = seats.Select(s => new BookedSeatInfo
                 {
                     Row = s.Seat?.Row ?? "",
@@ -416,7 +500,13 @@ namespace CineBook.Infrastructure.Services
                 TotalAmount = booking.TotalAmount,
                 Status = booking.Status,
                 StatusLabel = booking.Status.ToString(),
-                BookedAt = booking.BookedAt
+                BookedAt = TimeZoneHelper.ConvertToIST(booking.BookedAt),
+                RefundProcessed = booking.RefundProcessed,
+                RefundedAt = booking.RefundedAt.HasValue
+    ? TimeZoneHelper.ConvertToIST(booking.RefundedAt.Value)
+    : null,
+                RefundNote = booking.RefundNote
             };
     }
+    
 }

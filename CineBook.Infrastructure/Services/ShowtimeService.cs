@@ -4,6 +4,7 @@ using CineBook.Application.Interfaces;
 using CineBook.Domain.Entities;
 using CineBook.Domain.Enums;
 using CineBook.Infrastructure.Persistence;
+using CineBook.Infrastructure.Utilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -82,14 +83,13 @@ namespace CineBook.Infrastructure.Services
                 MovieId = request.MovieId,
                 HallId = request.HallId,
                 CinemaId = cinema.Id,
-                StartTime = DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified),
-                EndTime = DateTime.SpecifyKind(request.StartTime, DateTimeKind.Unspecified)
-                  .AddMinutes(movie.DurationTime),
+                StartTime = TimeZoneHelper.ConvertToUTC(request.StartTime),
+                EndTime = TimeZoneHelper.ConvertToUTC(request.StartTime).AddMinutes(movie.DurationTime),
                 PriceStandard = request.PriceStandard,
                 PricePremium = request.PricePremium,
                 PriceVIP = request.PriceVIP,
                 IsActive = true,
-                CreatedAt = DateTime.Now  // local time
+                CreatedAt = DateTime.UtcNow
             };
 
             await _context.Showtimes.AddAsync(showtime);
@@ -204,8 +204,8 @@ namespace CineBook.Infrastructure.Services
                     "Cannot modify this showtime because it has active bookings. Please cancel the bookings first to process refunds.", 400, "Bookings");
             }
 
-            showtime.StartTime = request.StartTime;
-            showtime.EndTime = request.StartTime
+            showtime.StartTime = TimeZoneHelper.ConvertToUTC(request.StartTime);
+            showtime.EndTime = TimeZoneHelper.ConvertToUTC(request.StartTime)
                 .AddMinutes(showtime.Movie.DurationTime);
             showtime.PriceStandard = request.PriceStandard;
             showtime.PricePremium = request.PricePremium;
@@ -229,35 +229,51 @@ namespace CineBook.Infrastructure.Services
                 .FirstOrDefaultAsync(c => c.ManagerUserId == managerId);
 
             if (cinema == null)
-            {
-                _logger.LogWarning("DeleteShowtime failed: Cinema not found for manager {ManagerId}", managerId);
                 return ApiResponse<string>.Fail("Cinema not found", 404, "Cinema");
-            }
 
             var showtime = await _context.Showtimes
+                .Include(s => s.ShowtimeSeats)
                 .FirstOrDefaultAsync(s => s.Id == id && s.CinemaId == cinema.Id);
 
             if (showtime == null)
-            {
-                _logger.LogWarning("DeleteShowtime failed: Showtime {ShowtimeId} not found in cinema {CinemaId}", id, cinema.Id);
                 return ApiResponse<string>.Fail("Showtime not found", 404, "Showtime");
-            }
 
-            var hasBookings = await _context.Bookings
+            // Check active bookings
+            var hasActiveBookings = await _context.Bookings
                 .AnyAsync(b => b.ShowtimeId == id &&
-                    b.Status != BookingStatus.Cancelled);
+                    (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Pending));
 
-            if (hasBookings)
-            {
-                _logger.LogWarning("DeleteShowtime failed: Attempted to delete showtime {ShowtimeId} that has active bookings", id);
+            if (hasActiveBookings)
                 return ApiResponse<string>.Fail(
-                    "Cannot delete this showtime directly because it has active bookings. Please cancel the existing bookings first so that a refund is initiated to the users.", 400, "Bookings");
+                    "Cannot delete showtime with active bookings. Cancel bookings first.", 400, "Bookings");
+
+            // Step 1 — Delete BookingSeats for all bookings of this showtime
+            var bookingIds = await _context.Bookings
+                .Where(b => b.ShowtimeId == id)
+                .Select(b => b.Id)
+                .ToListAsync();
+
+            if (bookingIds.Any())
+            {
+                var bookingSeats = await _context.BookingSeats
+                    .Where(bs => bookingIds.Contains(bs.BookingId))
+                    .ToListAsync();
+                _context.BookingSeats.RemoveRange(bookingSeats);
+
+                // Step 2 — Delete Bookings (cancelled ones)
+                var bookings = await _context.Bookings
+                    .Where(b => bookingIds.Contains(b.Id))
+                    .ToListAsync();
+                _context.Bookings.RemoveRange(bookings);
             }
 
-            _context.Showtimes.Remove(showtime);
-            await _context.SaveChangesAsync();
+            // Step 3 — Delete ShowtimeSeats
+            _context.ShowtimeSeats.RemoveRange(showtime.ShowtimeSeats);
 
-            _logger.LogInformation("Showtime {ShowtimeId} deleted successfully by manager {ManagerId}", id, managerId);
+            // Step 4 — Delete Showtime
+            _context.Showtimes.Remove(showtime);
+
+            await _context.SaveChangesAsync();
 
             return ApiResponse<string>.Ok("Deleted", "Showtime deleted successfully");
         }
@@ -311,15 +327,15 @@ namespace CineBook.Infrastructure.Services
             HallType = s.Hall?.HallType.ToString() ?? "",
             CinemaId = s.CinemaId,
             CinemaName = s.Cinema?.CinemaName ?? "Unknown Cinema",
-            StartTime = s.StartTime,
-            EndTime = s.EndTime,
+            StartTime = TimeZoneHelper.ConvertToIST(s.StartTime),
+            EndTime = TimeZoneHelper.ConvertToIST(s.EndTime),
             PriceStandard = s.PriceStandard,
             PricePremium = s.PricePremium,
             PriceVIP = s.PriceVIP,
             IsActive = s.IsActive,
             TotalSeats = s.Hall?.TotalSeats ?? 0,
             AvailableSeats = availableSeats,
-            CreatedAt = s.CreatedAt
+            CreatedAt = TimeZoneHelper.ConvertToIST(s.CreatedAt)
         };
     }
 }

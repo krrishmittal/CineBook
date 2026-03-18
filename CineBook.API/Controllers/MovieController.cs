@@ -5,6 +5,14 @@ using Microsoft.AspNetCore.Mvc;
 
 namespace CineBook.API.Controllers
 {
+    [Route("Movies")]
+    public class MoviesViewController : Controller
+    {
+        [HttpGet("{id}")]
+        public IActionResult Detail(Guid id) => View("Detail");
+    }
+
+
     [Route("api/movies")]
     [ApiController]
     public class MovieController : ControllerBase

@@ -33,6 +33,7 @@ namespace CineBook.Infrastructure
 
             // Services
             services.AddScoped<ISmsService, SmsService>();
+            services.AddScoped<ITicketService, TicketService>();
             services.AddScoped<IJwtService, JwtService>();
             services.AddScoped<ICinemaService, CinemaService>();
             services.AddScoped<IAuthService, AuthService>();

@@ -1,5 +1,6 @@
 ﻿using CineBook.Application.DTOs.Requests;
 using CineBook.Application.Interfaces;
+using CineBook.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using System.Security.Claims;
@@ -8,6 +9,7 @@ namespace CineBook.API.Controllers
 {
 
     [Route("Booking")]
+    [Route("Bookings")]  
     public class BookingViewController : Controller
     {
         [HttpGet("Seats")]
@@ -15,6 +17,15 @@ namespace CineBook.API.Controllers
 
         [HttpGet("MyBookings")]
         public IActionResult MyBookings() => View("~/Views/BookingView/MyBookings.cshtml");
+
+        [HttpGet("")] 
+        public IActionResult Index() => View("~/Views/BookingView/MyBookings.cshtml");
+
+        [HttpGet("Refunds")]
+        public IActionResult Refunds() => View("~/Views/BookingView/Refunds.cshtml");
+
+        [HttpGet("CinemaBookings")]
+        public IActionResult CinemaBookings() => View("~/Views/BookingView/CinemaBookings.cshtml");
     }
 
     [Route("api/bookings")]
@@ -23,10 +34,12 @@ namespace CineBook.API.Controllers
     public class BookingController : ControllerBase
     {
         private readonly IBookingService _bookingService;
+        private readonly ITicketService _ticketService;
 
-        public BookingController(IBookingService bookingService)
+        public BookingController(IBookingService bookingService, ITicketService ticketService)
         {
             _bookingService = bookingService;
+            _ticketService = ticketService;
         }
 
         private string GetUserId() =>
@@ -64,6 +77,52 @@ namespace CineBook.API.Controllers
         public async Task<IActionResult> GetMyBookings()
         {
             var result = await _bookingService.GetMyBookingsAsync(GetUserId());
+            return Ok(result);
+        }
+
+        // GET api/bookings/cinema — Cinema Manager sees all bookings for their cinema
+        [HttpGet("cinema")]
+        [Authorize(Roles = "CinemaManager")]
+        public async Task<IActionResult> GetCinemaBookings([FromQuery] string? date)
+        {
+            var managerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result = await _bookingService.GetCinemaBookingsAsync(managerId, date);
+            return Ok(result);
+        }
+
+        // GET api/bookings/{id}/ticket
+        [HttpGet("{id}/ticket")]
+        public async Task<IActionResult> DownloadTicket(Guid id)
+        {
+            try
+            {
+                var pdfBytes = await _ticketService.GenerateTicketPdfAsync(id, GetUserId());
+                return File(pdfBytes, "application/pdf", $"CineBook_Ticket_{id}.pdf");
+            }
+            catch (Exception ex)
+            {
+                return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        // GET api/bookings/cinema/cancelled
+        [HttpGet("cinema/cancelled")]
+        [Authorize(Roles = "CinemaManager")]
+        public async Task<IActionResult> GetCancelledBookings()
+        {
+            var managerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result = await _bookingService.GetCancelledBookingsAsync(managerId);
+            return Ok(result);
+        }
+
+        // PUT api/bookings/{id}/refund
+        [HttpPut("{id}/refund")]
+        [Authorize(Roles = "CinemaManager")]
+        public async Task<IActionResult> ProcessRefund(Guid id, [FromBody] ProcessRefundRequest request)
+        {
+            var managerId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var result = await _bookingService.ProcessRefundAsync(id, managerId, request?.Note);
+            if (!result.Success) return BadRequest(result);
             return Ok(result);
         }
 

@@ -232,8 +232,38 @@
                         <div class="price-total"><span>Total Paid</span><span style="color:var(--red);">₹${b.totalAmount}</span></div>
                     </div>
                     ${canCancel ? `<button class="btn-cancel" onclick="cancelBooking('${b.id}')" style="margin-top:16px; width:100%;">Cancel Booking</button>` : ''}
+                    
+                    ${(b.status === 'Confirmed' || b.status === 1)
+                        ? `<button onclick="downloadTicket('${b.id}')"
+                            style="background:var(--surface2); color:var(--text); font-family:'Outfit',sans-serif;
+                                   font-weight:500; font-size:13px; padding:10px 20px;
+                                   border:1px solid var(--border); border-radius:8px; cursor:pointer;
+                                   margin-top:${canCancel ? '8px' : '16px'}; width:100%;
+                                   transition:all 0.2s;">
+                            🎟 Download Ticket PDF
+                          </button>`
+                        : ''}
                 </div>`;
             }).join('');
+        }
+        async function downloadTicket(bookingId) {
+            try {
+                const res = await fetch(`/api/bookings/${bookingId}/ticket`, {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+
+                if (!res.ok) { alert('Failed to generate ticket'); return; }
+
+                const blob = await res.blob();
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `CineBook_Ticket.pdf`;
+                a.click();
+                URL.revokeObjectURL(url);
+            } catch {
+                alert('Something went wrong');  
+            }
         }
 
         async function cancelBooking(id) {

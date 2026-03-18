@@ -5,6 +5,7 @@ namespace CineBook.Application.DTOs.Responses
     public class BookingResponse
     {
         public Guid Id { get; set; }
+        public string UserName { get; set; }
         public string BookingReference { get; set; }
         public string MovieTitle { get; set; }
         public string MoviePoster { get; set; }
@@ -19,6 +20,9 @@ namespace CineBook.Application.DTOs.Responses
         public BookingStatus Status { get; set; }
         public string StatusLabel { get; set; }
         public DateTime BookedAt { get; set; }
+        public bool RefundProcessed { get; set; }
+        public DateTime? RefundedAt { get; set; }
+        public string? RefundNote { get; set; }
     }
 
     public class BookedSeatInfo

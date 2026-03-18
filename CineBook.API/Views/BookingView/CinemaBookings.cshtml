@@ -1,0 +1,579 @@
+﻿@{
+    ViewData["Title"] = "Cinema Bookings";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineBook — Cinema Bookings</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --red: #E50914; --red-dark: #b20710;
+            --bg: #0a0a0a; --surface: #141414;
+            --surface2: #1e1e1e; --surface3: #242424;
+            --border: #2a2a2a; --text: #ffffff; --muted: #888888;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
+        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
+
+        .navbar {
+            position: fixed; top: 0; left: 0; right: 0; height: 56px;
+            background: rgba(10,10,10,0.97); border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; padding: 0 24px; gap: 16px; z-index: 200;
+        }
+        .sidebar {
+            position: fixed; left: 0; top: 56px; bottom: 0; width: 220px;
+            background: var(--surface); border-right: 1px solid var(--border);
+            padding: 20px 12px; z-index: 100; display: flex; flex-direction: column; gap: 4px;
+        }
+        .nav-item {
+            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
+            border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--muted);
+            cursor: pointer; transition: all 0.2s; text-decoration: none;
+            border: none; background: none; width: 100%;
+        }
+        .nav-item:hover { background: var(--surface2); color: var(--text); }
+        .nav-item.active { background: rgba(229,9,20,0.12); color: var(--red); }
+
+        .main { margin-left: 220px; padding-top: 56px; min-height: 100vh; }
+        .content { padding: 24px; }
+
+        .stat-card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 10px; padding: 20px;
+            display: flex; align-items: center; gap: 16px;
+        }
+        .stat-icon { font-size: 32px; }
+        .stat-val { font-size: 26px; font-weight: 700; line-height: 1; }
+        .stat-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+        .filter-bar {
+            display: flex; gap: 10px; align-items: center;
+            flex-wrap: wrap; margin-bottom: 20px;
+        }
+        .cinput {
+            background: var(--surface2); border: 1px solid var(--border);
+            border-radius: 6px; padding: 9px 14px; color: var(--text);
+            font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
+            transition: border-color 0.2s;
+        }
+        .cinput:focus { border-color: var(--red); }
+        select.cinput option { background: var(--surface2); }
+
+        .status-tab {
+            padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
+            border: 1px solid var(--border); background: var(--surface);
+            color: var(--muted); cursor: pointer; transition: all 0.2s;
+        }
+        .status-tab:hover { border-color: #444; color: var(--text); }
+        .status-tab.active { background: var(--red); border-color: var(--red); color: white; }
+
+        .table-wrap {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 10px; overflow: hidden;
+        }
+        table { width: 100%; border-collapse: collapse; }
+        thead { background: var(--surface2); }
+        th {
+            padding: 12px 16px; text-align: left; font-size: 11px;
+            font-weight: 700; color: var(--muted); letter-spacing: 0.08em;
+            border-bottom: 1px solid var(--border);
+        }
+        td {
+            padding: 14px 16px; font-size: 13px;
+            border-bottom: 1px solid var(--border);
+            vertical-align: middle;
+        }
+        tr:last-child td { border-bottom: none; }
+        tr:hover td { background: var(--surface2); }
+
+        .badge {
+            display: inline-flex; align-items: center; padding: 3px 10px;
+            border-radius: 20px; font-size: 11px; font-weight: 600;
+        }
+        .badge-confirmed { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
+        .badge-pending { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
+
+        .seat-tag {
+            display: inline-flex; align-items: center; gap: 3px;
+            background: var(--surface3); border: 1px solid var(--border);
+            padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 600;
+            margin: 1px;
+        }
+
+        .revenue-card {
+            background: linear-gradient(135deg, rgba(229,9,20,0.15), rgba(229,9,20,0.05));
+            border: 1px solid rgba(229,9,20,0.3);
+            border-radius: 10px; padding: 20px;
+        }
+
+        /* Refund alert card */
+        .refund-alert {
+            background: rgba(248,113,113,0.08); border: 1px solid rgba(248,113,113,0.25);
+            border-radius: 10px; padding: 14px 20px;
+            display: none; margin-bottom: 20px;
+            align-items: center; justify-content: space-between; gap: 12px;
+        }
+        .refund-alert.show { display: flex; }
+
+        .empty { text-align: center; padding: 60px; color: var(--muted); }
+
+        .search-wrap { position: relative; }
+        .search-wrap input { padding-left: 36px; width: 240px; }
+        .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+
+        @@keyframes fadeIn {
+            from { opacity: 0; transform: translateY(8px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .movie-poster-sm {
+            width: 36px; height: 50px; border-radius: 4px;
+            object-fit: cover; background: var(--surface3);
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="navbar">
+        <span class="brand" style="font-size:22px; color:var(--red);">CINEBOOK</span>
+        <span style="font-size:12px; color:var(--border);">|</span>
+        <span style="font-size:13px; color:var(--muted);">Cinema Manager</span>
+        <div style="flex:1;"></div>
+        <span id="managerName" style="font-size:13px; color:var(--muted);"></span>
+        <button onclick="logout()" style="background:none; border:1px solid var(--border); color:var(--muted); font-family:'DM Sans',sans-serif; font-size:13px; padding:6px 14px; border-radius:6px; cursor:pointer;">Sign Out</button>
+    </nav>
+
+    <aside class="sidebar">
+        <div style="font-size:11px; color:var(--muted); letter-spacing:0.1em; padding:4px 12px 12px;">MANAGE</div>
+        <a class="nav-item" href="/Manager/Cinema">🏟 My Cinema</a>
+        <a class="nav-item" href="/Manager/Halls">🪑 Halls</a>
+        <a class="nav-item" href="/Manager/Showtimes">🎬 Showtimes</a>
+        <a class="nav-item active" href="/Booking/CinemaBookings">📋 Bookings</a>
+        <a class="nav-item" href="/Booking/Refunds">↩ Refunds</a>
+        <div style="flex:1;"></div>
+        <a class="nav-item" href="/Manager/Cinema">🏠 Dashboard</a>
+    </aside>
+
+    <div class="main">
+        <div class="content">
+
+            <!-- Header -->
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
+                <div>
+                    <h1 style="font-size:22px; font-weight:700;">Cinema Bookings</h1>
+                    <p style="font-size:13px; color:var(--muted); margin-top:2px;" id="cinemaNameHeader">Loading...</p>
+                </div>
+                <div style="display:flex; align-items:center; gap:12px;">
+                    <div style="font-size:13px; color:var(--muted);" id="lastUpdated"></div>
+                </div>
+            </div>
+
+            <!-- Pending Refunds Alert Banner -->
+            <div class="refund-alert" id="refundAlert">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <span style="font-size:20px;">↩</span>
+                    <div>
+                        <div style="font-size:14px; font-weight:600; color:#f87171;" id="refundAlertText"></div>
+                        <div style="font-size:12px; color:var(--muted);">These cancelled bookings need to be refunded to customers</div>
+                    </div>
+                </div>
+                <a href="/Booking/Refunds"
+                   style="background:rgba(248,113,113,0.15); color:#f87171; font-family:'DM Sans',sans-serif;
+                          font-weight:600; font-size:13px; padding:9px 18px;
+                          border:1px solid rgba(248,113,113,0.3); border-radius:8px;
+                          text-decoration:none; white-space:nowrap; flex-shrink:0;">
+                    Process Refunds →
+                </a>
+            </div>
+
+            <!-- Stats Grid -->
+            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px;">
+                <div class="stat-card">
+                    <div class="stat-icon">🎟</div>
+                    <div>
+                        <div class="stat-val" id="totalBookings">0</div>
+                        <div class="stat-label">Total Bookings</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">✅</div>
+                    <div>
+                        <div class="stat-val" id="confirmedBookings">0</div>
+                        <div class="stat-label">Confirmed</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🪑</div>
+                    <div>
+                        <div class="stat-val" id="totalSeatsBooked">0</div>
+                        <div class="stat-label">Seats Sold</div>
+                    </div>
+                </div>
+                <div class="revenue-card">
+                    <div style="display:flex; align-items:center; gap:16px;">
+                        <div style="font-size:32px;">💰</div>
+                        <div>
+                            <div style="font-size:26px; font-weight:700; color:var(--red);" id="totalRevenue">₹0</div>
+                            <div style="font-size:12px; color:var(--muted);">Net Revenue</div>
+                            <div style="font-size:11px; color:#f87171; margin-top:2px;" id="refundedAmountLabel"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Filters -->
+            <div class="filter-bar">
+                <div class="search-wrap">
+                    <span class="search-icon">🔍</span>
+                    <input class="cinput" type="text" id="searchInput"
+                           placeholder="Search ref, movie, user..."
+                           oninput="applyFilters()" />
+                </div>
+                <input class="cinput" type="date" id="dateFilter" onchange="applyFilters()" />
+                <select class="cinput" id="movieFilter" onchange="applyFilters()">
+                    <option value="">All Movies</option>
+                </select>
+                <div style="display:flex; gap:6px; margin-left:auto;">
+                    <div class="status-tab active" onclick="setStatusFilter('all', this)">All</div>
+                    <div class="status-tab" onclick="setStatusFilter('Confirmed', this)">✅ Confirmed</div>
+                    <div class="status-tab" onclick="setStatusFilter('Pending', this)">⏳ Pending</div>
+                </div>
+            </div>
+
+            <!-- Bookings Table -->
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>BOOKING REF</th>
+                            <th>MOVIE</th>
+                            <th>SHOWTIME</th>
+                            <th>HALL</th>
+                            <th>CUSTOMER</th>
+                            <th>SEATS</th>
+                            <th>AMOUNT</th>
+                            <th>STATUS</th>
+                            <th>BOOKED AT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookingsTableBody">
+                        <tr>
+                            <td colspan="9" style="text-align:center; padding:40px; color:var(--muted);">
+                                Loading bookings...
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Footer -->
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-top:16px; font-size:13px; color:var(--muted);">
+                <div id="paginationInfo"></div>
+                <div id="exportBtn" style="display:none;">
+                    <button onclick="exportCSV()" style="background:var(--surface); border:1px solid var(--border); color:var(--text); font-family:'DM Sans',sans-serif; font-size:13px; padding:8px 16px; border-radius:6px; cursor:pointer;">
+                        📊 Export CSV
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const user = JSON.parse(localStorage.getItem('user') || '{}');
+
+        if (!token) window.location.href = '/Auth/Login';
+        if (user.role !== 'CinemaManager') window.location.href = '/';
+
+        document.getElementById('managerName').textContent = user.fullName || 'Manager';
+        document.getElementById('lastUpdated').textContent = `Updated: ${new Date().toLocaleTimeString('en-IN')}`;
+
+        function authHeaders() {
+            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+        }
+
+        let allBookings = [];
+        let currentStatus = 'all';
+
+        async function loadBookings() {
+            try {
+                const res = await fetch('/api/bookings/cinema', { headers: authHeaders() });
+                const data = await res.json();
+
+                if (data.success) {
+                    allBookings = data.data;
+                    updateStats();
+                    buildMovieFilter();
+                    checkPendingRefunds();
+                    applyFilters();
+                    document.getElementById('exportBtn').style.display = 'block';
+
+                    if (allBookings.length > 0) {
+                        document.getElementById('cinemaNameHeader').textContent =
+                            `📍 ${allBookings[0].cinemaName}`;
+                    } else {
+                        document.getElementById('cinemaNameHeader').textContent = 'No bookings yet';
+                    }
+                } else {
+                    showEmpty('No bookings found for your cinema');
+                }
+            } catch {
+                showEmpty('Failed to load bookings');
+            }
+        }
+
+        // ── Check pending refunds & show alert banner ─────────
+        function checkPendingRefunds() {
+            const pendingRefunds = allBookings.filter(b =>
+                (b.status === 'Cancelled' || b.status === 2) && !b.refundProcessed);
+
+            if (pendingRefunds.length > 0) {
+                const alert = document.getElementById('refundAlert');
+                document.getElementById('refundAlertText').textContent =
+                    `${pendingRefunds.length} cancelled booking${pendingRefunds.length > 1 ? 's' : ''} pending refund`;
+                alert.classList.add('show');
+            }
+        }
+
+        // ── Stats — only confirmed bookings count as revenue ──
+        function updateStats(bookings = allBookings) {
+            // Only count non-cancelled for display stats
+            const nonCancelled = bookings.filter(b => b.status !== 'Cancelled' && b.status !== 2);
+            const confirmed = bookings.filter(b => b.status === 'Confirmed' || b.status === 1);
+            const cancelled = bookings.filter(b => b.status === 'Cancelled' || b.status === 2);
+
+            const totalSeats = confirmed.reduce((sum, b) => sum + (b.seats?.length || 0), 0);
+            const revenue = confirmed.reduce((sum, b) => sum + b.totalAmount, 0);
+            const refunded = cancelled.reduce((sum, b) => sum + b.totalAmount, 0);
+
+            document.getElementById('totalBookings').textContent = nonCancelled.length;
+            document.getElementById('confirmedBookings').textContent = confirmed.length;
+            document.getElementById('totalSeatsBooked').textContent = totalSeats;
+            document.getElementById('totalRevenue').textContent = `₹${revenue.toLocaleString('en-IN')}`;
+
+            // Show refunded amount label if any
+            if (refunded > 0) {
+                document.getElementById('refundedAmountLabel').textContent =
+                    `₹${refunded.toLocaleString('en-IN')} in refunds`;
+            }
+        }
+
+        function buildMovieFilter() {
+            // Only non-cancelled movies in filter
+            const movies = [...new Set(
+                allBookings
+                    .filter(b => b.status !== 'Cancelled' && b.status !== 2)
+                    .map(b => b.movieTitle)
+            )].sort();
+
+            const select = document.getElementById('movieFilter');
+            select.innerHTML = '<option value="">All Movies</option>';
+            movies.forEach(m => {
+                const opt = document.createElement('option');
+                opt.value = m; opt.textContent = m;
+                select.appendChild(opt);
+            });
+        }
+
+        function setStatusFilter(status, el) {
+            currentStatus = status;
+            document.querySelectorAll('.status-tab').forEach(t => t.classList.remove('active'));
+            el.classList.add('active');
+            applyFilters();
+        }
+
+        function applyFilters() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const date = document.getElementById('dateFilter').value;
+            const movie = document.getElementById('movieFilter').value;
+
+            // ── ALWAYS exclude cancelled from main table ──────
+            let filtered = allBookings.filter(b =>
+                b.status !== 'Cancelled' && b.status !== 2);
+
+            if (currentStatus === 'Confirmed')
+                filtered = filtered.filter(b => b.status === 'Confirmed' || b.status === 1);
+            else if (currentStatus === 'Pending')
+                filtered = filtered.filter(b => b.status === 'Pending' || b.status === 0);
+
+            if (date)
+                filtered = filtered.filter(b =>
+                    b.showtimeStart?.split('T')[0] === date);
+
+            if (movie)
+                filtered = filtered.filter(b => b.movieTitle === movie);
+
+            if (search)
+                filtered = filtered.filter(b =>
+                    b.bookingReference?.toLowerCase().includes(search) ||
+                    b.movieTitle?.toLowerCase().includes(search) ||
+                    b.userName?.toLowerCase().includes(search));
+
+            updateStats(filtered);
+            renderTable(filtered);
+
+            const total = allBookings.filter(b => b.status !== 'Cancelled' && b.status !== 2).length;
+            document.getElementById('paginationInfo').textContent =
+                `Showing ${filtered.length} of ${total} bookings`;
+        }
+
+        function renderTable(bookings) {
+            const tbody = document.getElementById('bookingsTableBody');
+
+            if (!bookings.length) {
+                tbody.innerHTML = `
+                    <tr><td colspan="9">
+                        <div class="empty">
+                            <div style="font-size:40px; margin-bottom:12px;">🎟</div>
+                            <div style="font-size:16px; font-weight:500;">No bookings found</div>
+                        </div>
+                    </td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = bookings.map(b => {
+                const startStr = b.showtimeStart?.split('T');
+                const startDate = startStr?.[0] ?? '';
+                const startTime = startStr?.[1]?.substring(0, 5) ?? '';
+                const [h, m] = startTime.split(':');
+                const hour = parseInt(h);
+                const ampm = hour >= 12 ? 'pm' : 'am';
+                const hour12 = hour % 12 || 12;
+                const timeFormatted = startTime ? `${hour12}:${m} ${ampm}` : '';
+
+                const [yr, mo, dy] = startDate.split('-');
+                const dateFormatted = startDate
+                    ? new Date(parseInt(yr), parseInt(mo) - 1, parseInt(dy))
+                        .toLocaleDateString('en-IN', {day:'numeric', month:'short'})
+                    : '';
+
+                const bookedAtStr = b.bookedAt?.split('T');
+                const bookedDate = bookedAtStr?.[0] ?? '';
+                const bookedTime = bookedAtStr?.[1]?.substring(0, 5) ?? '';
+                const [bh, bm] = bookedTime.split(':');
+                const bHour = parseInt(bh);
+                const bAmpm = bHour >= 12 ? 'pm' : 'am';
+                const bHour12 = bHour % 12 || 12;
+                const bookedFormatted = bookedDate
+                    ? new Date(parseInt(bookedDate.split('-')[0]), parseInt(bookedDate.split('-')[1]) - 1, parseInt(bookedDate.split('-')[2]))
+                        .toLocaleDateString('en-IN', {day:'numeric', month:'short'})
+                    : '';
+                const bookedTimeFormatted = bookedTime ? `${bHour12}:${bm} ${bAmpm}` : '';
+
+                const statusBadge = b.status === 'Confirmed' || b.status === 1
+                    ? '<span class="badge badge-confirmed">✅ Confirmed</span>'
+                    : '<span class="badge badge-pending">⏳ Pending</span>';
+
+                const seatTags = (b.seats || []).map(s => {
+                    const color = (s.seatType === 'Standard' || s.seatType === 0) ? '#60a5fa'
+                                : (s.seatType === 'Premium' || s.seatType === 1) ? '#c084fc' : '#facc15';
+                    return `<span class="seat-tag"><span style="color:${color}">●</span>${s.row}${s.seatNumber}</span>`;
+                }).join('');
+
+                return `
+                    <tr>
+                        <td>
+                            <div style="font-weight:700; color:var(--red); letter-spacing:0.04em; font-size:12px;">
+                                ${b.bookingReference}
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display:flex; align-items:center; gap:10px;">
+                                <img class="movie-poster-sm" src="${b.moviePoster || ''}"
+                                     onerror="this.style.display='none'" />
+                                <div style="font-weight:600;">${b.movieTitle}</div>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-weight:600;">${dateFormatted}</div>
+                            <div style="font-size:12px; color:var(--muted);">${timeFormatted}</div>
+                        </td>
+                        <td style="color:var(--muted);">${b.hallName}</td>
+                        <td><div style="font-weight:500;">${b.userName || 'User'}</div></td>
+                        <td>
+                            <div style="display:flex; flex-wrap:wrap; gap:2px; max-width:180px;">
+                                ${seatTags}
+                            </div>
+                        </td>
+                        <td>
+                            <div style="font-weight:700;">₹${b.totalAmount}</div>
+                            <div style="font-size:11px; color:var(--muted);">
+                                ${b.seats?.length || 0} seat${b.seats?.length > 1 ? 's' : ''}
+                            </div>
+                        </td>
+                        <td>${statusBadge}</td>
+                        <td style="color:var(--muted); font-size:12px;">
+                            ${bookedFormatted}<br>${bookedTimeFormatted}
+                        </td>
+                    </tr>`;
+            }).join('');
+        }
+
+        // ── Export CSV — only confirmed bookings ──────────────
+        function exportCSV() {
+            const confirmedOnly = allBookings.filter(b =>
+                b.status === 'Confirmed' || b.status === 1);
+
+            const headers = ['Ref', 'Movie', 'Date', 'Time', 'Hall',
+                             'Customer', 'Seats', 'Amount', 'Status', 'Booked At'];
+
+            const rows = confirmedOnly.map(b => {
+                const startStr = b.showtimeStart?.split('T');
+                const startDate = startStr?.[0] ?? '';
+                const startTime = startStr?.[1]?.substring(0, 5) ?? '';
+                const [h, m] = startTime.split(':');
+                const hour = parseInt(h);
+                const ampm = hour >= 12 ? 'pm' : 'am';
+                const hour12 = hour % 12 || 12;
+
+                return [
+                    b.bookingReference,
+                    b.movieTitle,
+                    startDate,
+                    startTime ? `${hour12}:${m} ${ampm}` : '',
+                    b.hallName,
+                    b.userName || 'User',
+                    (b.seats || []).map(s => `${s.row}${s.seatNumber}`).join(' '),
+                    b.totalAmount,
+                    b.status,
+                    b.bookedAt?.split('T')[0] ?? ''
+                ];
+            });
+
+            // Summary row
+            const totalRevenue = confirmedOnly.reduce((s, b) => s + b.totalAmount, 0);
+            rows.push([]);
+            rows.push(['TOTAL REVENUE (Confirmed Only)', '', '', '', '', '', '',
+                       totalRevenue, '', '']);
+
+            const csv = [headers, ...rows].map(r => r.map(v => `"${v}"`).join(',')).join('\n');
+            const blob = new Blob([csv], { type: 'text/csv' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `cinebookings_${new Date().toISOString().split('T')[0]}.csv`;
+            a.click();
+        }
+
+        function showEmpty(msg) {
+            document.getElementById('bookingsTableBody').innerHTML = `
+                <tr><td colspan="9">
+                    <div class="empty">
+                        <div style="font-size:40px; margin-bottom:12px;">🎟</div>
+                        <div style="font-size:16px; font-weight:500;">${msg}</div>
+                    </div>
+                </td></tr>`;
+        }
+
+        function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
+
+        loadBookings();
+    </script>
+</body>
+</html>

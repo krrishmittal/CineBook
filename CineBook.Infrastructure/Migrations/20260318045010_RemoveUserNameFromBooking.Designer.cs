@@ -4,6 +4,7 @@ using CineBook.Infrastructure.Persistence;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace CineBook.Infrastructure.Migrations
 {
     [DbContext(typeof(AppDbContext))]
-    partial class AppDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260318045010_RemoveUserNameFromBooking")]
+    partial class RemoveUserNameFromBooking
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -123,15 +126,6 @@ namespace CineBook.Infrastructure.Migrations
 
                     b.Property<decimal>("ConvenienceFee")
                         .HasColumnType("decimal(18,2)");
-
-                    b.Property<string>("RefundNote")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<bool>("RefundProcessed")
-                        .HasColumnType("bit");
-
-                    b.Property<DateTime?>("RefundedAt")
-                        .HasColumnType("datetime2");
 
                     b.Property<Guid>("ShowtimeId")
                         .HasColumnType("uniqueidentifier");

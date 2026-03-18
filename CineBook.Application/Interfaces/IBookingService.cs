@@ -7,8 +7,11 @@ namespace CineBook.Application.Interfaces
     {
         Task<ApiResponse<SeatLayoutResponse>> GetSeatLayoutAsync(Guid showtimeId, string userId);
         Task<ApiResponse<BookingResponse>> InitiateBookingAsync(string userId, InitiateBookingRequest request);
-        Task<ApiResponse<BookingResponse>> ConfirmBookingAsync(string userId, ConfirmBookingRequest request);
+        Task<ApiResponse<BookingResponse>> ConfirmBookingAsync(string userId, ConfirmBookingRequest request);   
         Task<ApiResponse<List<BookingResponse>>> GetMyBookingsAsync(string userId);
+        Task<ApiResponse<List<BookingResponse>>> GetCinemaBookingsAsync(string managerId, string? date);
+        Task<ApiResponse<List<BookingResponse>>> GetCancelledBookingsAsync(string managerId);
+        Task<ApiResponse<string>> ProcessRefundAsync(Guid bookingId, string managerId, string? note);
         Task<ApiResponse<string>> CancelBookingAsync(Guid bookingId, string userId);
     }
 }

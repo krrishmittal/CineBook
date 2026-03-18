@@ -3,7 +3,7 @@
 namespace CineBook.API.Controllers
 {
     [Route("Manager")]
-    public class ManagerViewController : Controller
+    public class ManagerController : Controller
     {
         [HttpGet("Dashboard")]
         public IActionResult Dashboard() => RedirectToAction("Cinema");

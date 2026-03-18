@@ -670,8 +670,24 @@
 
         function showSuccess(booking) {
             const start = new Date(booking.showtimeStart);
+            const bookedAt = new Date(booking.bookedAt);  // ✅ Parse booking date/time
+    
             document.getElementById('bookingRef').textContent = booking.bookingReference;
+            
+            // ✅ Format booking date and time separately
+            const formattedDate = bookedAt.toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric'
+            });  
+            const formattedTime = bookedAt.toLocaleTimeString('en-IN', {
+                hour: '2-digit',
+                minute: '2-digit',
+                hour12: true
+            });
+                        // ✅ Display booking details with formatted time at the topme
             document.getElementById('bookingDetails').innerHTML = `
+                <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">${formattedDate}, ${formattedTime}</div>
                 <div style="margin-bottom:6px;">🎬 ${booking.movieTitle}</div>
                 <div style="margin-bottom:6px;">🏟 ${booking.cinemaName} • ${booking.hallName}</div>
                 <div style="margin-bottom:6px;">📅 ${start.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long'})}</div>
