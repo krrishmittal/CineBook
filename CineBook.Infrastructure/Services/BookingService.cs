@@ -52,14 +52,14 @@ namespace CineBook.Infrastructure.Services
             if (expiredLocks.Any())
             {
                 _logger.LogInformation("Releasing {Count} expired seat locks for Showtime {ShowtimeId}", expiredLocks.Count, showtimeId);
-                
+
                 foreach (var lock_ in expiredLocks)
                 {
                     lock_.Status = SeatStatus.Available;
                     lock_.LockedByUserId = null;
                     lock_.LockedAt = null;
                 }
-                
+
                 try
                 {
                     await _context.SaveChangesAsync();
@@ -175,7 +175,7 @@ namespace CineBook.Infrastructure.Services
             if (existingBooking != null)
             {
                 _logger.LogInformation("Releasing previous pending booking {BookingId} locks for User {UserId} on Showtime {ShowtimeId}", existingBooking.Id, userId, request.ShowtimeId);
-                
+
                 // Release old locks
                 var oldSeatIds = existingBooking.BookingSeats.Select(bs => bs.SeatId).ToList();
                 var oldLocks = showtime.ShowtimeSeats
@@ -235,7 +235,7 @@ namespace CineBook.Infrastructure.Services
             await _context.BookingSeats.AddRangeAsync(bookingSeats);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Booking {BookingId} (Ref: {Ref}) initiated by User {UserId} with {Count} locked seats for Showtime {ShowtimeId}", 
+            _logger.LogInformation("Booking {BookingId} (Ref: {Ref}) initiated by User {UserId} with {Count} locked seats for Showtime {ShowtimeId}",
                 booking.Id, booking.BookingReference, userId, bookingSeats.Count, request.ShowtimeId);
 
             booking.BookingSeats = bookingSeats;
@@ -277,15 +277,15 @@ namespace CineBook.Infrastructure.Services
                 .ToListAsync();
 
             // VULNERABILITY FIX: Double-booking protection. Verify seats weren't snatched internally if locks expired during gateway delay
-            var snatchedSeats = showtimeSeats.Where(ss => 
-                ss.Status == SeatStatus.Booked || 
+            var snatchedSeats = showtimeSeats.Where(ss =>
+                ss.Status == SeatStatus.Booked ||
                 (ss.Status == SeatStatus.Locket && ss.LockedByUserId != userId)
             ).ToList();
 
             if (snatchedSeats.Any())
             {
                 _logger.LogWarning("ConfirmBookingAsync failed: {Count} seats were snatched for User {UserId} in Booking {BookingId}", snatchedSeats.Count, userId, request.BookingId);
-                
+
                 // Auto-cancel the compromised pending booking to start refund process
                 booking.Status = BookingStatus.Cancelled;
                 await _context.SaveChangesAsync();
@@ -304,7 +304,7 @@ namespace CineBook.Infrastructure.Services
             booking.Status = BookingStatus.Confirmed;
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Booking {BookingId} (Ref: {Ref}) confirmed successfully for User {UserId}", 
+            _logger.LogInformation("Booking {BookingId} (Ref: {Ref}) confirmed successfully for User {UserId}",
                 booking.Id, booking.BookingReference, userId);
 
             return ApiResponse<BookingResponse>.Ok(
@@ -409,7 +409,7 @@ namespace CineBook.Infrastructure.Services
             booking.Status = BookingStatus.Cancelled;
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Booking {BookingId} (Ref: {Ref}) cancelled successfully by User {UserId}, {Count} seats released", 
+            _logger.LogInformation("Booking {BookingId} (Ref: {Ref}) cancelled successfully by User {UserId}, {Count} seats released",
                 booking.Id, booking.BookingReference, userId, showtimeSeats.Count);
 
             return ApiResponse<string>.Ok("Cancelled", "Booking cancelled successfully");
@@ -422,7 +422,7 @@ namespace CineBook.Infrastructure.Services
                 + Random.Shared.Next(1000, 9999).ToString();
         }
 
-        
+
         public async Task<ApiResponse<List<BookingResponse>>> GetCancelledBookingsAsync(string managerId)
         {
             var cinema = await _context.Cinemas
@@ -469,16 +469,35 @@ namespace CineBook.Infrastructure.Services
                 return ApiResponse<string>.Fail("Refund already processed", 400, "Refund");
 
             booking.RefundProcessed = true;
-            booking.RefundedAt = DateTime.UtcNow;  // ✅ CORRECT - stores as UTC
+            booking.RefundedAt = DateTime.UtcNow;  
             booking.RefundNote = note?.Trim() ?? "Refund processed by cinema manager";
 
             await _context.SaveChangesAsync();
 
             return ApiResponse<string>.Ok("Refund processed", "Refund marked as processed successfully");
         }
-        private static BookingResponse MapToResponse(
-            Booking booking, Showtime showtime, List<BookingSeat> seats) => new()
-            {
+
+
+        public async Task<ApiResponse<BookingResponse>> GetBookingByIdAsync(
+        Guid bookingId, string userId) {
+            var booking = await _context.Bookings
+                .Include(b => b.BookingSeats).ThenInclude(bs => bs.Seat)
+                .Include(b => b.Showtime).ThenInclude(s => s.Movie)
+                .Include(b => b.Showtime).ThenInclude(s => s.Hall)
+                .Include(b => b.Showtime).ThenInclude(s => s.Cinema)
+                .FirstOrDefaultAsync(b => b.Id == bookingId && b.UserId == userId);
+
+            if (booking == null)
+                return ApiResponse<BookingResponse>.Fail(
+                    "Booking not found", 404, "Booking");
+
+            return ApiResponse<BookingResponse>.Ok(
+                MapToResponse(booking, booking.Showtime, booking.BookingSeats.ToList()),
+                "Booking fetched");
+        }
+       
+
+    private static BookingResponse MapToResponse(Booking booking, Showtime showtime, List<BookingSeat> seats) => new(){
                 Id = booking.Id,
                 UserName = booking.User?.FullName,
                 BookingReference = booking.BookingReference,
@@ -503,10 +522,9 @@ namespace CineBook.Infrastructure.Services
                 BookedAt = TimeZoneHelper.ConvertToIST(booking.BookedAt),
                 RefundProcessed = booking.RefundProcessed,
                 RefundedAt = booking.RefundedAt.HasValue
-    ? TimeZoneHelper.ConvertToIST(booking.RefundedAt.Value)
-    : null,
+                    ? TimeZoneHelper.ConvertToIST(booking.RefundedAt.Value)
+                : null,
                 RefundNote = booking.RefundNote
-            };
+     };
     }
-    
 }

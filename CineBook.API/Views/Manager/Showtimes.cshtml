@@ -223,6 +223,54 @@
             background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2);
             border-radius: 10px; padding: 24px; text-align: center;
         }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed; top: 20px; right: 20px; z-index: 300;
+            display: flex; flex-direction: column; gap: 10px;
+        }
+
+        .toast {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 8px; padding: 14px 18px; font-size: 14px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            display: flex; align-items: center; gap: 12px;
+            animation: slideIn 0.3s ease forwards;
+            min-width: 300px;
+        }
+
+        .toast-success {
+            border-left: 4px solid #22c55e;
+            color: #4ade80;
+        }
+
+        .toast-error {
+            border-left: 4px solid #ef4444;
+            color: #ff6b6b;
+        }
+
+        .toast-info {
+            border-left: 4px solid #3b82f6;
+            color: #60a5fa;
+        }
+
+        .toast-icon {
+            font-size: 18px; flex-shrink: 0;
+        }
+
+        @@keyframes slideIn {
+            from { opacity: 0; transform: translateX(400px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @@keyframes slideOut {
+            from { opacity: 1; transform: translateX(0); }
+            to { opacity: 0; transform: translateX(400px); }
+        }
+
+        .toast.removing {
+            animation: slideOut 0.3s ease forwards;
+        }
     </style>
 </head>
 <body>
@@ -297,7 +345,7 @@
                     <div style="font-size:24px;">✅</div>
                     <div>
                         <div style="font-size:20px; font-weight:700;" id="activeShowtimes">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Active</div>
+                        <div style="font-size:12px; color:var,--muted);">Active</div>
                     </div>
                 </div>
             </div>
@@ -857,49 +905,108 @@
         }
 
         async function submitShowtime(method, url, data) {
-            const btn = document.getElementById('saveBtn');
-            btn.disabled = true; btn.textContent = 'Saving...';
-            document.getElementById('formError').style.display = 'none';
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true;
+    btn.textContent = method === 'POST' ? 'Creating...' : 'Updating...';
+    document.getElementById('formError').style.display = 'none';
 
-            try {
-                const res = await fetch(url, {
-                    method, headers: authHeaders(), body: JSON.stringify(data)
-                });
-                const result = await res.json();
+    try {
+        const res = await fetch(url, {
+            method, headers: authHeaders(), body: JSON.stringify(data)
+        });
+        const result = await res.json();
 
-                if (result.success) {
-                    document.getElementById('formSuccess').textContent =
-                        isEditMode ? 'Showtime updated!' : 'Showtime created!';
-                    document.getElementById('formSuccess').style.display = 'block';
-                    await loadShowtimes();
-                    setTimeout(closePanel, 1200);
-                } else {
-                    showError(result.message || 'Failed');
-                }
-            } catch {
-                showError('Something went wrong');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = isEditMode ? 'Update Showtime' : 'Create Showtime';
-            }
+        if (result.success) {
+            const message = isEditMode ? 'Showtime updated!' : 'Showtime created!';
+            showToast(message, 'success');
+            document.getElementById('formSuccess').textContent = message;
+            document.getElementById('formSuccess').style.display = 'block';
+            await loadShowtimes();
+            setTimeout(closePanel, 1500);
+        } else {
+            showToast(result.message || 'Failed', 'error');
+            showError(result.message || 'Failed');
         }
+    } catch (error) {
+        showToast('Something went wrong', 'error');
+        showError('Something went wrong');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = isEditMode ? 'Update Showtime' : 'Create Showtime';
+    }
+}
 
         async function deleteShowtime() {
-            if (!editingId) return;
-            try {
-                const res = await fetch(`/api/showtimes/${editingId}`, {
-                    method: 'DELETE', headers: authHeaders()
-                });
-                const result = await res.json();
-                if (result.success) { await loadShowtimes(); closePanel(); }
-                else showError(result.message);
-            } catch { showError('Failed to delete'); }
-        }
+    if (!editingId) {
+        showToast('No showtime selected', 'error');
+        return;
+    }
 
-        function showError(msg) {
-            const el = document.getElementById('formError');
-            el.textContent = msg; el.style.display = 'block';
+    const btn = document.querySelector('#deleteConfirm button.cbtn');
+    if (btn) {
+        btn.disabled = true;
+        btn.textContent = 'Deleting...';
+    }
+
+    try {
+        const res = await fetch(`/api/showtimes/${editingId}`, {
+            method: 'DELETE', 
+            headers: authHeaders()
+        });
+
+        const result = await res.json();
+
+        if (result.success) {
+            showToast('Showtime deleted successfully!', 'success');
+            document.getElementById('formSuccess').textContent = 'Showtime deleted successfully!';
+            document.getElementById('formSuccess').style.display = 'block';
+            await loadShowtimes();
+            setTimeout(closePanel, 1500);
+        } else {
+            showToast(result.message || 'Failed to delete showtime', 'error');
+            showError(result.message || 'Failed to delete showtime');
         }
+    } catch (error) {
+        showToast('Failed to delete: ' + error.message, 'error');
+        showError('Failed to delete: ' + error.message);
+    } finally {
+        if (btn) {
+            btn.disabled = false;
+            btn.textContent = 'Confirm Delete';
+        }
+    }
+}
+
+function showError(msg) {
+    const el = document.getElementById('formError');
+    el.textContent = msg;
+    el.style.display = 'block';
+}
+
+function showToast(message, type = 'info') {
+    const container = document.getElementById('toastContainer');
+    
+    const icons = {
+        success: '✓',
+        error: '✕',
+        info: 'ℹ'
+    };
+
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div class="toast-icon">${icons[type]}</div>
+        <div>${message}</div>
+    `;
+
+    container.appendChild(toast);
+
+    // Auto-remove after 4 seconds
+    setTimeout(() => {
+        toast.classList.add('removing');
+        setTimeout(() => toast.remove(), 300);
+    }, 4000);
+}
 
         function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
 

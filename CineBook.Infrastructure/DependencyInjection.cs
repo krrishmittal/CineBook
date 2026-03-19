@@ -42,6 +42,8 @@ namespace CineBook.Infrastructure
             services.AddScoped<IShowtimeService, ShowtimeService>();
             services.AddScoped<IProfileService, ProfileService>();
             services.AddScoped<IMovieService, MovieService>();
+            services.AddScoped<IReviewService, ReviewService>();
+            services.AddScoped<IFavouriteService, FavouriteService>();
 
             return services;
         }

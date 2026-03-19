@@ -1,0 +1,168 @@
+﻿@{
+    ViewData["Title"] = "Booking Confirmed";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineBook — Booking Confirmed!</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --red: #E50914;
+            --bg: #080808; --surface: #111111;
+            --border: #282828; --text: #f5f5f5; --muted: #777777;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: 'Outfit', sans-serif; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center;
+            padding: 20px;
+        }
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 20px; padding: 48px 40px; max-width: 500px;
+            width: 100%; text-align: center;
+        }
+        .success-icon {
+            width: 80px; height: 80px; border-radius: 50%;
+            background: rgba(34,197,94,0.15); border: 2px solid rgba(34,197,94,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 36px; margin: 0 auto 24px;
+            animation: pop 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+        @@keyframes pop {
+            from { transform: scale(0); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .booking-ref {
+            background: rgba(229,9,20,0.08); border: 1px solid rgba(229,9,20,0.2);
+            border-radius: 10px; padding: 16px 20px; margin: 20px 0;
+        }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 14px;
+            padding: 12px 24px; border-radius: 10px; cursor: pointer;
+            text-decoration: none; transition: all 0.2s; border: none;
+        }
+        .btn-primary { background: var(--red); color: white; }
+        .btn-primary:hover { background: #b20710; }
+        .btn-ghost { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+        .btn-ghost:hover { color: var(--text); border-color: #444; }
+
+        .spinner {
+            width: 40px; height: 40px;
+            border: 3px solid rgba(255,255,255,0.1); border-top-color: var(--red);
+            border-radius: 50%; animation: spin 0.8s linear infinite;
+            margin: 0 auto 20px;
+        }
+        @@keyframes spin { to { transform: rotate(360deg); } }
+    </style>
+</head>
+<body>
+    <div class="card" id="loadingCard">
+        <div class="spinner"></div>
+        <div style="font-size:18px; font-weight:600; margin-bottom:8px;">Confirming your booking...</div>
+        <div style="font-size:14px; color:var(--muted);">Please wait while we process your payment</div>
+    </div>
+
+    <div class="card" id="successCard" style="display:none;">
+        <div class="success-icon">🎉</div>
+        <h1 style="font-size:26px; font-weight:700; margin-bottom:8px;">Booking Confirmed!</h1>
+        <p style="font-size:14px; color:var(--muted); margin-bottom:20px;">
+            Your tickets have been booked successfully. Enjoy the movie!
+        </p>
+
+        <div class="booking-ref">
+            <div style="font-size:11px; color:var(--muted); letter-spacing:0.08em; margin-bottom:6px;">BOOKING REFERENCE</div>
+            <div style="font-size:22px; font-weight:700; color:var(--red); letter-spacing:0.1em;" id="bookingRef">--</div>
+        </div>
+
+        <div id="bookingDetails" style="font-size:13px; color:var(--muted); margin-bottom:28px; line-height:2;"></div>
+
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <a href="/Bookings" class="btn btn-ghost">🎟 My Bookings</a>
+            <a href="/" class="btn btn-primary">🎬 Browse More</a>
+        </div>
+    </div>
+
+    <div class="card" id="errorCard" style="display:none;">
+        <div style="font-size:60px; margin-bottom:20px;">⚠️</div>
+        <h1 style="font-size:22px; font-weight:700; margin-bottom:8px; color:#f87171;">Confirmation Failed</h1>
+        <p style="font-size:14px; color:var(--muted); margin-bottom:24px;" id="errorMsg">
+            Payment was received but booking confirmation failed. Please contact support.
+        </p>
+        <a href="/Bookings" class="btn btn-primary">Check My Bookings</a>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const params = new URLSearchParams(window.location.search);
+        const bookingId = params.get('bookingId');
+        const sessionId = params.get('session_id');
+
+        if (!token || !bookingId || !sessionId) {
+            window.location.href = '/';
+        }
+
+        async function confirmPayment() {
+            try {
+                const res = await fetch('/api/checkout/confirm-payment', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ bookingId, sessionId })
+                });
+
+                const data = await res.json();
+
+                document.getElementById('loadingCard').style.display = 'none';
+
+                if (data.success) {
+                    const b = data.data;
+                    document.getElementById('bookingRef').textContent = b.bookingReference;
+
+                    const startParts = b.showtimeStart?.split('T');
+                    const datePart = startParts?.[0] ?? '';
+                    const timePart = startParts?.[1]?.substring(0,5) ?? '';
+                    const [h, m] = timePart.split(':');
+                    const hour = parseInt(h);
+                    const ampm = hour >= 12 ? 'pm' : 'am';
+                    const hour12 = hour % 12 || 12;
+                    const [yr, mo, dy] = datePart.split('-');
+                    const dateStr = datePart
+                        ? new Date(parseInt(yr), parseInt(mo)-1, parseInt(dy))
+                            .toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long'})
+                        : '';
+
+                    document.getElementById('bookingDetails').innerHTML = `
+                        🎬 ${b.movieTitle}<br>
+                        🏟 ${b.cinemaName} • ${b.hallName}<br>
+                        📅 ${dateStr}<br>
+                        ⏰ ${hour12}:${m} ${ampm}<br>
+                        🪑 ${b.seats.map(s => `${s.row}${s.seatNumber}`).join(', ')}<br>
+                        <strong style="color:var(--red);">₹${b.totalAmount} Paid</strong>
+                    `;
+
+                    document.getElementById('successCard').style.display = 'block';
+                } else {
+                    document.getElementById('errorMsg').textContent =
+                        data.message || 'Booking confirmation failed';
+                    document.getElementById('errorCard').style.display = 'block';
+                }
+            } catch {
+                document.getElementById('loadingCard').style.display = 'none';
+                document.getElementById('errorMsg').textContent = 'Something went wrong';
+                document.getElementById('errorCard').style.display = 'block';
+            }
+        }
+
+        confirmPayment();
+    </script>
+</body>
+</html>

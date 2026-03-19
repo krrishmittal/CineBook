@@ -1,0 +1,84 @@
+﻿@{
+    ViewData["Title"] = "Payment Cancelled";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineBook — Payment Cancelled</title>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <style>
+        :root {
+            --red: #E50914;
+            --bg: #080808; --surface: #111111;
+            --border: #282828; --text: #f5f5f5; --muted: #777777;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            background: var(--bg); color: var(--text);
+            font-family: 'Outfit', sans-serif; min-height: 100vh;
+            display: flex; align-items: center; justify-content: center; padding: 20px;
+        }
+        .card {
+            background: var(--surface); border: 1px solid var(--border);
+            border-radius: 20px; padding: 48px 40px;
+            max-width: 460px; width: 100%; text-align: center;
+        }
+        .btn {
+            display: inline-flex; align-items: center; justify-content: center;
+            font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 14px;
+            padding: 12px 24px; border-radius: 10px; cursor: pointer;
+            text-decoration: none; transition: all 0.2s; border: none;
+        }
+        .btn-primary { background: var(--red); color: white; }
+        .btn-primary:hover { background: #b20710; }
+        .btn-ghost { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
+        .btn-ghost:hover { color: var(--text); border-color: #444; }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div style="font-size:64px; margin-bottom:20px;">💳</div>
+        <h1 style="font-size:24px; font-weight:700; margin-bottom:10px;">Payment Cancelled</h1>
+        <p style="font-size:14px; color:var(--muted); margin-bottom:8px;">
+            You cancelled the payment. Don't worry — your seats are still locked for a few minutes.
+        </p>
+        <p style="font-size:13px; color:var(--muted); margin-bottom:28px;" id="timerMsg">
+            Seats will be released soon if not paid.
+        </p>
+
+        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
+            <button onclick="retryPayment()" class="btn btn-primary">↩ Try Again</button>
+            <a href="/" class="btn btn-ghost">🏠 Home</a>
+        </div>
+    </div>
+
+    <script>
+        const params = new URLSearchParams(window.location.search);
+        const bookingId = params.get('bookingId');
+
+        function retryPayment() {
+            if (!bookingId) { window.location.href = '/'; return; }
+
+            // Re-create checkout session for same booking
+            const token = localStorage.getItem('token');
+            fetch('/api/checkout/create-session', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ bookingId })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) window.location.href = data.url;
+                else alert('Could not retry payment. Seats may have been released.');
+            })
+            .catch(() => alert('Something went wrong'));
+        }
+    </script>
+</body>
+</html>

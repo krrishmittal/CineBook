@@ -1,7 +1,9 @@
 ﻿namespace CineBook.Application.DTOs.Requests
 {
-    public class ReviewRequest
+    public class CreateReviewRequest
     {
-        //public 
+        public Guid MovieId { get; set; }
+        public int Rating { get; set; }  
+        public string? Comment { get; set; }
     }
 }

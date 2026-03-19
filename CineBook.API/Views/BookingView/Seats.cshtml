@@ -595,7 +595,7 @@
             btn.textContent = 'Locking seats...';
 
             try {
-                // Step 1: Initiate booking (lock seats)
+                // Step 1 — Initiate booking (lock seats)
                 const initRes = await fetch('/api/bookings/initiate', {
                     method: 'POST',
                     headers: authHeaders(),
@@ -611,34 +611,34 @@
                     alert(initData.message || 'Failed to lock seats');
                     btn.disabled = false;
                     updateSummary();
-                    await loadLayout(); // Refresh seat map
+                    await loadLayout();
                     return;
                 }
 
                 const bookingId = initData.data.id;
-
-                // Start 10 min lock timer
                 startLockTimer();
 
-                btn.textContent = 'Confirming booking...';
+                // Step 2 — Create Stripe Checkout Session
+                btn.textContent = 'Redirecting to payment...';
 
-                // Step 2: For now directly confirm (payment integration later)
-                const confirmRes = await fetch('/api/bookings/confirm', {
+                const sessionRes = await fetch('/api/checkout/create-session', {
                     method: 'POST',
                     headers: authHeaders(),
                     body: JSON.stringify({ bookingId })
                 });
 
-                const confirmData = await confirmRes.json();
+                const sessionData = await sessionRes.json();
 
-                if (confirmData.success) {
-                    clearInterval(lockTimerInterval);
-                    showSuccess(confirmData.data);
-                } else {
-                    alert(confirmData.message || 'Booking failed');
+                if (!sessionData.success) {
+                    alert(sessionData.message || 'Payment setup failed');
                     btn.disabled = false;
                     updateSummary();
+                    return;
                 }
+
+                // Step 3 — Redirect to Stripe Checkout
+                window.location.href = sessionData.url;
+
             } catch {
                 alert('Something went wrong');
                 btn.disabled = false;

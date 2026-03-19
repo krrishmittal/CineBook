@@ -11,6 +11,7 @@ namespace CineBook.Application.Interfaces
         Task<ApiResponse<List<BookingResponse>>> GetMyBookingsAsync(string userId);
         Task<ApiResponse<List<BookingResponse>>> GetCinemaBookingsAsync(string managerId, string? date);
         Task<ApiResponse<List<BookingResponse>>> GetCancelledBookingsAsync(string managerId);
+        Task<ApiResponse<BookingResponse>> GetBookingByIdAsync(Guid bookingId, string userId);
         Task<ApiResponse<string>> ProcessRefundAsync(Guid bookingId, string managerId, string? note);
         Task<ApiResponse<string>> CancelBookingAsync(Guid bookingId, string userId);
     }

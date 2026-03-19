@@ -10,6 +10,9 @@ namespace CineBook.API.Controllers
     {
         [HttpGet("{id}")]
         public IActionResult Detail(Guid id) => View("Detail");
+
+        [HttpGet("{id}/Book")]
+        public IActionResult Book(Guid id) => View("~/Views/MoviesView/BookTickets.cshtml");
     }
 
 
@@ -23,6 +26,8 @@ namespace CineBook.API.Controllers
         {
             _movieService = movieService;
         }
+
+        
 
         // GET api/movies
         [HttpGet]

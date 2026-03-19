@@ -269,7 +269,6 @@
         <div style="font-size:11px; color:var(--muted); letter-spacing:0.1em; padding:4px 12px 12px;">MANAGE</div>
         <a class="nav-item active" href="/Admin/Movies">🎬 Movies</a>
         <a class="nav-item" href="/Admin/Approvals">🏟 Cinema Approvals</a>
-        <a class="nav-item" href="/Admin/Users">👥 Users</a>
         <div style="flex:1;"></div>
         <a class="nav-item" href="/Admin/Movies">🏠 Dashboard</a>
     </aside>
@@ -467,6 +466,20 @@
         let allMovies = [];
         let editingId = null;
 
+        // Status mapping (string to integer)
+        const statusMap = {
+            'ComingSoon': 0,
+            'NowShowing': 1,
+            'Archived': 2
+        };
+
+        // Reverse mapping (integer to string) ✅
+        const statusReverseMap = {
+            0: 'ComingSoon',
+            1: 'NowShowing',
+            2: 'Archived'
+        };
+
         function authHeaders() {
             return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
         }
@@ -606,7 +619,8 @@
             document.getElementById('fDirector').value = m.director || '';
             document.getElementById('fDuration').value = m.durationTime || '';
             document.getElementById('fCast').value = m.cast || '';
-            document.getElementById('fStatus').value = m.status || 'ComingSoon';
+            // ✅ Convert integer status to string
+            document.getElementById('fStatus').value = statusReverseMap[m.status] || 'ComingSoon';
             document.getElementById('fPosterUrl').value = m.posterUrl || '';
             document.getElementById('fTrailerUrl').value = m.trailerUrl || '';
             if (m.releaseDate) {
@@ -616,13 +630,6 @@
         }
 
         function getFormData() {
-            // Map status string to enum integer value
-            const statusMap = {
-                'ComingSoon': 0,
-                'NowShowing': 1,
-                'Archived': 2
-            };
-
             return {
                 title: document.getElementById('fTitle').value.trim(),
                 description: document.getElementById('fDescription').value.trim(),
@@ -633,7 +640,7 @@
                 durationTime: parseInt(document.getElementById('fDuration').value),  
                 cast: document.getElementById('fCast').value.trim(),
                 releaseDate: document.getElementById('fReleaseDate').value,
-                status: statusMap[document.getElementById('fStatus').value],  // ✅ Convert string to integer
+                status: statusMap[document.getElementById('fStatus').value],  // ✅ String to integer
                 posterUrl: document.getElementById('fPosterUrl').value.trim(),
                 trailerUrl: document.getElementById('fTrailerUrl').value.trim() || null
             };

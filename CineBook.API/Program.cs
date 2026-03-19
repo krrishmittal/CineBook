@@ -6,12 +6,15 @@ using Microsoft.OpenApi;
 using Serilog;
 using System.Text;
 using QuestPDF.Infrastructure;
+using CineBook.Application.DTOs.Requests;
 QuestPDF.Settings.License = LicenseType.Community;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add serilogsettings.json to configuration
 builder.Configuration
     .AddJsonFile("serilogsettings.json", optional: true);
+
+builder.Services.Configure<StripeSettings>(builder.Configuration.GetSection("StripeSettings"));
 
 builder.Host.UseSerilog((context, config) =>
     config.ReadFrom.Configuration(context.Configuration));
