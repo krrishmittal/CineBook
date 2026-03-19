@@ -1,4 +1,5 @@
-﻿@{
+﻿@* ─────── MyFavourites.cshtml ─────── *@
+@{
     ViewData["Title"] = "My Favourites";
     Layout = null;
 }
@@ -8,279 +9,111 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CineBook — My Favourites</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --red: #E50914; --red-dark: #b20710;
-            --bg: #080808; --surface: #111111;
-            --surface2: #191919; --surface3: #222222;
-            --border: #282828; --text: #f5f5f5;
-            --muted: #777777;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; }
-        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.06em; }
-
-        .navbar {
-            position: fixed; top: 0; left: 0; right: 0; height: 62px; z-index: 100;
-            background: rgba(8,8,8,0.97); border-bottom: 1px solid var(--border);
-            backdrop-filter: blur(16px);
-            display: flex; align-items: center; padding: 0 32px; gap: 24px;
-        }
-
-        .main { padding-top: 62px; max-width: 1200px; margin: 0 auto; padding: 82px 32px 80px; }
-
-        /* Movie grid */
-        .movies-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 20px;
-        }
-
-        .movie-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; overflow: hidden; cursor: pointer;
-            transition: all 0.2s; position: relative;
-        }
-        .movie-card:hover { border-color: #3a3a3a; transform: translateY(-4px); box-shadow: 0 12px 32px rgba(0,0,0,0.5); }
-
-        .movie-poster {
-            width: 100%; aspect-ratio: 2/3; object-fit: cover;
-            background: var(--surface3); display: block;
-        }
-        .movie-poster-placeholder {
-            width: 100%; aspect-ratio: 2/3;
-            background: var(--surface3); display: flex;
-            align-items: center; justify-content: center; font-size: 40px;
-        }
-
-        .movie-info { padding: 12px; }
-
-        /* Heart button on card */
-        .heart-btn {
-            position: absolute; top: 10px; right: 10px;
-            width: 32px; height: 32px; border-radius: 50%;
-            background: rgba(0,0,0,0.7); border: none;
-            display: flex; align-items: center; justify-content: center;
-            cursor: pointer; font-size: 16px; transition: all 0.2s;
-            backdrop-filter: blur(4px);
-        }
-        .heart-btn:hover { background: rgba(229,9,20,0.8); transform: scale(1.1); }
-        .heart-btn.hearted { background: rgba(229,9,20,0.9); }
-
-        /* Status badge */
-        .status-badge {
-            display: inline-flex; padding: 2px 8px; border-radius: 20px;
-            font-size: 10px; font-weight: 700; letter-spacing: 0.04em;
-        }
-        .status-NowShowing { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
-        .status-ComingSoon { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
-        .status-Archived { background: rgba(100,100,100,0.15); color: #888; border: 1px solid rgba(100,100,100,0.2); }
-
-        .user-menu { position: relative; }
-        .user-avatar {
-            width: 34px; height: 34px; border-radius: 50%; background: var(--red);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 14px; font-weight: 700; cursor: pointer;
-        }
-        .user-dropdown {
-            position: absolute; top: calc(100% + 10px); right: 0; width: 200px;
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 10px; padding: 8px; display: none; z-index: 200;
-            box-shadow: 0 16px 40px rgba(0,0,0,0.6);
-        }
-        .user-dropdown.show { display: block; }
-        .dropdown-item {
-            display: flex; align-items: center; gap: 10px; padding: 9px 12px;
-            border-radius: 6px; font-size: 14px; color: var(--muted);
-            cursor: pointer; transition: all 0.15s; text-decoration: none;
-        }
-        .dropdown-item:hover { background: var(--surface2); color: var(--text); }
-
-        .login-btn {
-            background: var(--red); color: white; font-family: 'Outfit', sans-serif;
-            font-weight: 600; font-size: 13px; padding: 8px 18px;
-            border: none; border-radius: 7px; cursor: pointer; text-decoration: none;
-            display: inline-flex; align-items: center;
-        }
-
-        .empty { text-align: center; padding: 80px 20px; color: var(--muted); }
-
-        @@keyframes fadeIn {
-            from { opacity: 0; transform: translateY(12px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .movie-card { animation: fadeIn 0.3s ease forwards; }
+        body{font-family:'Outfit',sans-serif;}.brand{font-family:'Bebas Neue',sans-serif;letter-spacing:.06em;}
+        #toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+        .toast{pointer-events:all;min-width:260px;max-width:340px;background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.6);animation:tIn .35s cubic-bezier(.34,1.56,.64,1) forwards;font-size:14px;color:#fff;}
+        .toast.removing{animation:tOut .25s ease forwards;}
+        .toast-success{border-left:3px solid #22c55e;}.toast-error{border-left:3px solid #E50914;}.toast-info{border-left:3px solid #3b82f6;}
+        @@keyframes tIn{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
+        @@keyframes tOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(100px)}}
+        @@keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+        .fade-in{animation:fadeIn .3s ease forwards;opacity:0;}
+        .movie-card{transition:transform .3s,box-shadow .3s;}
+        .movie-card:hover{transform:translateY(-6px);box-shadow:0 20px 40px rgba(0,0,0,.6);}
+        .heart-btn{opacity:0;transition:opacity .2s;}
+        .movie-card:hover .heart-btn{opacity:1;}
+        .user-dropdown{display:none;}.user-dropdown.show{display:block;}
     </style>
 </head>
-<body>
+<body class="bg-[#080808] text-[#f5f5f5] min-h-screen">
+<div id="toast-container"></div>
 
-    <nav class="navbar">
-        <a href="/" style="text-decoration:none;">
-            <span class="brand" style="font-size:26px; color:var(--red);">CINEBOOK</span>
-        </a>
-        <div style="flex:1;"></div>
-        <a href="/" style="font-size:14px; color:var(--muted); text-decoration:none; font-weight:500;">Home</a>
-        <div id="guestNav"><a href="/Auth/Login" class="login-btn">Sign In</a></div>
-        <div id="userNav" style="display:none;">
-            <div class="user-menu">
-                <div class="user-avatar" id="userAvatar" onclick="toggleDropdown()">?</div>
-                <div class="user-dropdown" id="userDropdown">
-                    <div style="padding:10px 12px 8px; border-bottom:1px solid var(--border); margin-bottom:6px;">
-                        <div style="font-size:14px; font-weight:600;" id="dropdownName"></div>
-                    </div>
-                    <a class="dropdown-item" href="/Profile">👤 My Profile</a>
-                    <a class="dropdown-item" href="/Bookings">🎟 My Bookings</a>
-                    <a class="dropdown-item" href="/Favourites" style="color:var(--red);">❤️ My Favourites</a>
-                    <div class="dropdown-item" onclick="logout()" style="color:#f87171;">🚪 Sign Out</div>
-                </div>
-            </div>
-        </div>
-    </nav>
-
-    <div class="main">
-        <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:28px;">
-            <div>
-                <h1 style="font-size:28px; font-weight:700; display:flex; align-items:center; gap:10px;">
-                    ❤️ My Favourites
-                </h1>
-                <p style="font-size:14px; color:var(--muted); margin-top:6px;" id="favCount">Loading...</p>
-            </div>
-            <a href="/" style="font-size:13px; color:var(--muted); text-decoration:none;">← Browse Movies</a>
-        </div>
-
-        <div id="favGrid">
-            <div style="text-align:center; padding:40px; color:var(--muted);">Loading...</div>
+<nav class="fixed top-0 left-0 right-0 h-16 z-50 bg-[#080808]/97 border-b border-[#282828] flex items-center px-4 sm:px-8 gap-6 backdrop-blur-xl">
+    <a href="/" class="text-[#E50914] no-underline"><span class="brand text-2xl sm:text-3xl">CINEBOOK</span></a>
+    <div class="flex-1"></div>
+    <a href="/" class="hidden sm:block text-sm text-[#777] font-medium hover:text-white transition-colors">Home</a>
+    <div class="relative">
+        <div id="userAvatar" onclick="toggleDropdown()" class="w-9 h-9 rounded-full bg-[#E50914] flex items-center justify-center text-sm font-bold cursor-pointer select-none">?</div>
+        <div id="userDropdown" class="user-dropdown absolute top-[calc(100%+10px)] right-0 w-48 bg-[#141414] border border-[#282828] rounded-xl p-2 z-50 shadow-2xl">
+            <div class="px-3 py-2 border-b border-[#282828] mb-2"><div class="text-sm font-semibold" id="dropdownName"></div></div>
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[#777] hover:bg-[#1a1a1a] hover:text-white transition-all" href="/Profile">👤 My Profile</a>
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[#777] hover:bg-[#1a1a1a] hover:text-white transition-all" href="/Bookings">🎟 My Bookings</a>
+            <a class="flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[#E50914]" href="/Favourites">❤️ My Favourites</a>
+            <button onclick="logout()" class="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[#f87171] hover:bg-[#1a1a1a] transition-all">🚪 Sign Out</button>
         </div>
     </div>
+</nav>
 
-    <script>
-        const token = localStorage.getItem('token');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+<div class="max-w-6xl mx-auto px-4 sm:px-8 pt-24 pb-16">
+    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
+        <div>
+            <h1 class="text-2xl sm:text-3xl font-bold flex items-center gap-3">❤️ My Favourites</h1>
+            <p class="text-sm text-[#777] mt-1.5" id="favCount">Loading...</p>
+        </div>
+        <a href="/" class="text-sm text-[#777] hover:text-white transition-colors">← Browse Movies</a>
+    </div>
 
-        if (!token) window.location.href = '/Auth/Login';
+    <div id="favGrid">
+        <div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">❤️</div><div>Loading...</div></div>
+    </div>
+</div>
 
-        if (user.fullName) {
-            document.getElementById('guestNav').style.display = 'none';
-            document.getElementById('userNav').style.display = 'block';
-            const initials = user.fullName.split(' ').map(n => n[0]).join('').toUpperCase().slice(0,2);
-            document.getElementById('userAvatar').textContent = initials;
-            document.getElementById('dropdownName').textContent = user.fullName;
-        }
+<script>
+function showToast(msg,type='info',duration=4000){const icons={success:'✓',error:'✕',info:'ℹ'};const colors={success:'#22c55e',error:'#E50914',info:'#3b82f6'};const c=document.getElementById('toast-container');const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">${icons[type]||'ℹ'}</div><div style="flex:1;line-height:1.5;">${msg}</div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:0;">✕</button>`;c.appendChild(t);setTimeout(()=>{t.classList.add('removing');setTimeout(()=>t.remove(),250);},duration);}
 
-        function toggleDropdown() { document.getElementById('userDropdown').classList.toggle('show'); }
-        document.addEventListener('click', e => {
-            if (!e.target.closest('.user-menu')) document.getElementById('userDropdown')?.classList.remove('show');
-        });
-        function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
+const token=localStorage.getItem('token');const user=JSON.parse(localStorage.getItem('user')||'{}');
+if(!token)window.location.href='/Auth/Login';
+function authHeaders(){return{'Content-Type':'application/json','Authorization':`Bearer ${token}`};}
+if(user.fullName){const initials=user.fullName.split(' ').map(n=>n[0]).join('').toUpperCase().slice(0,2);document.getElementById('userAvatar').textContent=initials;document.getElementById('dropdownName').textContent=user.fullName;}
+function toggleDropdown(){document.getElementById('userDropdown').classList.toggle('show');}
+document.addEventListener('click',e=>{if(!e.target.closest('#userAvatar')&&!e.target.closest('#userDropdown'))document.getElementById('userDropdown')?.classList.remove('show');});
+function logout(){localStorage.clear();window.location.href='/Auth/Login';}
 
-        function authHeaders() {
-            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-        }
+async function loadFavourites(){
+    try{
+        const res=await fetch('/api/favourites/my',{headers:authHeaders()});const data=await res.json();
+        if(data.success)renderFavourites(data.data);else showToast('Failed to load favourites','error');
+    }catch{showToast('Something went wrong','error');}
+}
 
-        async function loadFavourites() {
-            try {
-                const res = await fetch('/api/favourites/my', { headers: authHeaders() });
-                const data = await res.json();
+function renderFavourites(favs){
+    const grid=document.getElementById('favGrid');
+    document.getElementById('favCount').textContent=favs.length>0?`${favs.length} movie${favs.length>1?'s':''} saved`:'No favourites yet';
+    if(!favs.length){grid.innerHTML=`<div class="text-center py-20 text-[#777]"><div class="text-6xl mb-4">🎬</div><div class="text-xl font-semibold mb-2">No favourites yet</div><div class="text-sm mb-6">Heart movies you love and they'll appear here</div><a href="/" class="bg-[#E50914] text-white font-semibold text-sm px-7 py-3 rounded-xl inline-block">Browse Movies</a></div>`;return;}
+    grid.innerHTML=`<div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">${favs.map((f,i)=>{
+        const statusCls=f.status==='NowShowing'?'text-green-400 bg-green-400/10 border-green-400/20':f.status==='ComingSoon'?'text-blue-400 bg-blue-400/10 border-blue-400/20':'text-[#888] bg-[#888]/10 border-[#888]/20';
+        const statusLabel=f.status==='NowShowing'?'Now Showing':f.status==='ComingSoon'?'Coming Soon':'Archived';
+        return`<div class="fade-in movie-card bg-[#111] rounded-xl overflow-hidden cursor-pointer border border-transparent hover:border-[#282828] relative" style="animation-delay:${i*.04}s" onclick="window.location.href='/Movies/${f.movieId}'">
+            <div class="relative" style="padding-top:148%">
+                ${f.posterUrl?`<img class="absolute inset-0 w-full h-full object-cover" src="${f.posterUrl}" alt="${f.title}" loading="lazy" onerror="this.style.display='none'" />`:''}
+                <div class="absolute inset-0 ${!f.posterUrl?'flex items-center justify-center text-5xl':''}" style="${!f.posterUrl?'background:#222':''}">🎬</div>
+                <button class="heart-btn absolute top-2 right-2 w-8 h-8 rounded-full bg-[#E50914]/80 flex items-center justify-center text-base backdrop-blur-sm hover:bg-[#E50914] transition-all" onclick="removeFav(event,'${f.movieId}')" title="Remove from favourites">❤️</button>
+            </div>
+            <div class="p-3">
+                <div class="font-semibold text-sm truncate mb-1.5">${f.title}</div>
+                <div class="flex items-center justify-between gap-1 mb-1">
+                    <span class="text-xs font-semibold px-1.5 py-0.5 rounded-full border ${statusCls}">${statusLabel}</span>
+                    <span class="text-xs text-[#555]">${f.durationTime}m</span>
+                </div>
+                <div class="text-xs text-[#555] truncate">${(f.genre||'').split(',')[0].trim()}</div>
+                ${f.status==='NowShowing'?`<button onclick="event.stopPropagation();window.location.href='/Movies/${f.movieId}/Book'" class="w-full mt-2.5 bg-[#E50914] hover:bg-[#b20710] text-white font-semibold text-xs py-2 rounded-lg transition-colors">🎟 Book Now</button>`:''}
+            </div>
+        </div>`;
+    }).join('')}</div>`;
+}
 
-                if (data.success) {
-                    renderFavourites(data.data);
-                } else {
-                    showEmpty('Failed to load favourites');
-                }
-            } catch {
-                showEmpty('Something went wrong');
-            }
-        }
-
-        function renderFavourites(favs) {
-            const grid = document.getElementById('favGrid');
-
-            document.getElementById('favCount').textContent =
-                favs.length > 0
-                    ? `${favs.length} movie${favs.length > 1 ? 's' : ''} saved`
-                    : 'No favourites yet';
-
-            if (!favs.length) {
-                grid.innerHTML = `
-                    <div class="empty">
-                        <div style="font-size:64px; margin-bottom:16px;">🎬</div>
-                        <div style="font-size:20px; font-weight:600; margin-bottom:8px;">No favourites yet</div>
-                        <div style="font-size:14px; margin-bottom:24px;">Heart movies you love and they'll appear here</div>
-                        <a href="/" style="background:var(--red); color:white; font-family:'Outfit',sans-serif;
-                           font-weight:600; font-size:14px; padding:12px 28px; border-radius:8px; text-decoration:none;">
-                            Browse Movies
-                        </a>
-                    </div>`;
-                return;
-            }
-
-            grid.innerHTML = `<div class="movies-grid">${favs.map(f => {
-                const statusCls = f.status === 'NowShowing' ? 'status-NowShowing'
-                                : f.status === 'ComingSoon' ? 'status-ComingSoon'
-                                : 'status-Archived';
-                const statusLabel = f.status === 'NowShowing' ? 'Now Showing'
-                                  : f.status === 'ComingSoon' ? 'Coming Soon'
-                                  : 'Archived';
-
-                return `
-                <div class="movie-card" onclick="window.location.href='/Movies/${f.movieId}'">
-                    ${f.posterUrl
-                        ? `<img class="movie-poster" src="${f.posterUrl}" alt="${f.title}" loading="lazy"
-                               onerror="this.style.display='none'; this.nextElementSibling.style.display='flex'" />
-                           <div class="movie-poster-placeholder" style="display:none;">🎬</div>`
-                        : `<div class="movie-poster-placeholder">🎬</div>`}
-
-                    <!-- Heart remove button -->
-                    <button class="heart-btn hearted" onclick="removeFav(event, '${f.movieId}')" title="Remove from favourites">
-                        ❤️
-                    </button>
-
-                    <div class="movie-info">
-                        <div style="font-size:13px; font-weight:600; margin-bottom:6px;
-                                    white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            ${f.title}
-                        </div>
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:6px;">
-                            <span class="status-badge ${statusCls}">${statusLabel}</span>
-                            <span style="font-size:11px; color:var(--muted);">${f.durationTime}m</span>
-                        </div>
-                        <div style="font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                            ${f.genre.split(',')[0].trim()}
-                        </div>
-                        ${f.status === 'NowShowing' ? `
-                        <button onclick="event.stopPropagation(); window.location.href='/Movies/${f.movieId}/Book'"
-                            style="width:100%; margin-top:10px; background:var(--red); color:white;
-                                   font-family:'Outfit',sans-serif; font-weight:600; font-size:12px;
-                                   padding:8px; border:none; border-radius:6px; cursor:pointer;">
-                            🎟 Book Now
-                        </button>` : ''}
-                    </div>
-                </div>`;
-            }).join('')}</div>`;
-        }
-
-        async function removeFav(event, movieId) {
-            event.stopPropagation();
-            try {
-                const res = await fetch(`/api/favourites/toggle/${movieId}`, {
-                    method: 'POST',
-                    headers: authHeaders()
-                });
-                const data = await res.json();
-                if (data.success) await loadFavourites();
-            } catch {}
-        }
-
-        function showEmpty(msg) {
-            document.getElementById('favGrid').innerHTML = `
-                <div class="empty">
-                    <div style="font-size:40px; margin-bottom:12px;">❤️</div>
-                    <div style="font-size:18px;">${msg}</div>
-                </div>`;
-        }
-
-        loadFavourites();
-    </script>
+async function removeFav(event,movieId){
+    event.stopPropagation();
+    try{
+        const res=await fetch(`/api/favourites/toggle/${movieId}`,{method:'POST',headers:authHeaders()});
+        const data=await res.json();
+        if(data.success){showToast('Removed from favourites','info',2500);await loadFavourites();}
+    }catch{}
+}
+loadFavourites();
+</script>
 </body>
 </html>

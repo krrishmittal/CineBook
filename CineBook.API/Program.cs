@@ -1,13 +1,16 @@
 using CineBook.Infrastructure;
-using Hangfire;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi;
 using Serilog;
 using System.Text;
+using CineBook.API.Hubs;
 using QuestPDF.Infrastructure;
 using CineBook.Application.DTOs.Requests;
+
 QuestPDF.Settings.License = LicenseType.Community;
+
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add serilogsettings.json to configuration
@@ -62,17 +65,13 @@ builder.Services.AddAuthentication(options =>
     };
 });
 
-// Hangfire
-builder.Services.AddHangfire(config =>
-    config.UseSqlServerStorage(
-        builder.Configuration.GetConnectionString("DefaultConnection")));
-builder.Services.AddHangfireServer();
 
 // SignalR
 builder.Services.AddSignalR();
 
 try
 {
+
     Log.Information("Starting CineBook API...");
     var app = builder.Build();
 
@@ -86,13 +85,12 @@ try
         app.UseExceptionHandler("/Home/Error");
         app.UseHsts();
     }
-
     app.UseHttpsRedirection();
     app.UseStaticFiles();
     app.UseRouting();
     app.UseAuthentication();
     app.UseAuthorization();
-    app.UseHangfireDashboard();
+    app.MapHub<SeatHub>("/hubs/seats");
 
     app.MapControllerRoute(
     name: "default",

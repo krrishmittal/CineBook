@@ -30,8 +30,5 @@
 		<TreatWarningsAsErrors>false</TreatWarningsAsErrors>
 		<NoWarn>NU1903</NoWarn>
 	</PropertyGroup>
-  <ItemGroup>
-    <Folder Include="Hubs\" />
-  </ItemGroup>
 
 </Project>

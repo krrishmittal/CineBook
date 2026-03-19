@@ -1,8 +1,10 @@
-﻿using CineBook.Application.DTOs.Requests;
+﻿using CineBook.API.Hubs;
+using CineBook.Application.DTOs.Requests;
 using CineBook.Application.Interfaces;
 using CineBook.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.SignalR;
 using System.Security.Claims;
 
 namespace CineBook.API.Controllers
@@ -25,7 +27,7 @@ namespace CineBook.API.Controllers
         public IActionResult Refunds() => View("~/Views/BookingView/Refunds.cshtml");
 
         [HttpGet("CinemaBookings")]
-        public IActionResult CinemaBookings() => View("~/Views/BookingView/CinemaBookings.cshtml");
+        public IActionResult CinemaBookings() => View("~/Views/Manager/CinemaBookings.cshtml");
     }
 
     [Route("api/bookings")]
@@ -35,11 +37,13 @@ namespace CineBook.API.Controllers
     {
         private readonly IBookingService _bookingService;
         private readonly ITicketService _ticketService;
+        private readonly IHubContext<SeatHub> _seatHub;
 
-        public BookingController(IBookingService bookingService, ITicketService ticketService)
+        public BookingController(IBookingService bookingService, ITicketService ticketService, IHubContext<SeatHub>seatHub)
         {
             _bookingService = bookingService;
             _ticketService = ticketService;
+            _seatHub = seatHub;
         }
 
         private string GetUserId() =>
@@ -54,12 +58,21 @@ namespace CineBook.API.Controllers
             return Ok(result);
         }
 
-        // POST api/bookings/initiate
+        // POST api/bookings/initiate 
         [HttpPost("initiate")]
         public async Task<IActionResult> Initiate([FromBody] InitiateBookingRequest request)
         {
             var result = await _bookingService.InitiateBookingAsync(GetUserId(), request);
             if (!result.Success) return BadRequest(result);
+             
+            await _seatHub.Clients
+                .Group($"showtime-{request.ShowtimeId}")
+                .SendAsync("SeatsLocked", new
+                {
+                    seatIds = request.SeatIds,
+                    lockedByUserId = GetUserId()
+                });
+
             return Ok(result);
         }
 
@@ -69,6 +82,39 @@ namespace CineBook.API.Controllers
         {
             var result = await _bookingService.ConfirmBookingAsync(GetUserId(), request);
             if (!result.Success) return BadRequest(result);
+
+            // ✅ Get seat info from booking seats response
+            await _seatHub.Clients
+                .Group($"showtime-{result.Data.ShowtimeId}")
+                .SendAsync("SeatsBooked", new
+                {
+                    seatIds = result.Data.Seats
+                        .Select(s => new { row = s.Row, seatNumber = s.SeatNumber })
+                        .ToList()
+                });
+
+            return Ok(result);
+        }
+
+        [HttpPost("{id}/release")]
+        public async Task<IActionResult> ReleaseSeats(Guid id)
+        {
+            var result = await _bookingService.ReleaseLockedSeatsAsync(id, GetUserId());
+            if (!result.Success) return BadRequest(result);
+
+            // ── Broadcast seat release to ALL users in this showtime ──
+            // Get the booking's showtimeId first
+            var booking = await _bookingService.GetBookingByIdAsync(id, GetUserId());
+            if (booking.Success)
+            {
+                await _seatHub.Clients
+                    .Group($"showtime-{booking.Data.ShowtimeId}")
+                    .SendAsync("SeatsReleased", new
+                    {
+                        bookingId = id
+                    });
+            }
+
             return Ok(result);
         }
 

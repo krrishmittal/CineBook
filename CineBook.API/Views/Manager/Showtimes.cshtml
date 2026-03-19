@@ -8,1012 +8,378 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CineBook — Showtime Management</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --red: #E50914; --red-dark: #b20710;
-            --bg: #0a0a0a; --surface: #141414;
-            --surface2: #1e1e1e; --surface3: #242424;
-            --border: #2a2a2a; --text: #ffffff; --muted: #888888;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
-        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
-
-        .navbar {
-            position: fixed; top: 0; left: 0; right: 0; height: 56px;
-            background: rgba(10,10,10,0.97); border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; padding: 0 24px; gap: 16px; z-index: 200;
-        }
-        .sidebar {
-            position: fixed; left: 0; top: 56px; bottom: 0; width: 220px;
-            background: var(--surface); border-right: 1px solid var(--border);
-            padding: 20px 12px; z-index: 100; display: flex; flex-direction: column; gap: 4px;
-        }
-        .nav-item {
-            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-            border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--muted);
-            cursor: pointer; transition: all 0.2s; text-decoration: none;
-            border: none; background: none; width: 100%;
-        }
-        .nav-item:hover { background: var(--surface2); color: var(--text); }
-        .nav-item.active { background: rgba(229,9,20,0.12); color: var(--red); }
-
-        .main { margin-left: 220px; padding-top: 56px; display: flex; min-height: 100vh; }
-        .list-panel { flex: 1; padding: 24px; overflow-y: auto; max-height: calc(100vh - 56px); }
-
-        /* Slide Panel */
-        .slide-panel {
-            width: 520px; background: var(--surface);
-            border-left: 1px solid var(--border);
-            position: fixed; right: -520px; top: 56px; bottom: 0;
-            transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
-            z-index: 150; display: flex; flex-direction: column;
-        }
-        .slide-panel.open { right: 0; }
-
-        .overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-            z-index: 140; opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        }
-        .overlay.show { opacity: 1; pointer-events: all; }
-
-        .panel-header {
-            padding: 20px 24px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-        }
-        .panel-body { flex: 1; overflow-y: auto; padding: 24px; }
-        .panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-shrink: 0; }
-
-        /* Inputs */
-        label { display: block; font-size: 12px; font-weight: 500; color: #999; margin-bottom: 5px; }
-        .cinput {
-            width: 100%; background: var(--surface2); border: 1px solid var(--border);
-            border-radius: 6px; padding: 11px 14px; color: var(--text);
-            font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
-            transition: border-color 0.2s;
-        }
-        .cinput:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(229,9,20,0.12); }
-        .cinput::placeholder { color: #555; }
-        select.cinput option { background: var(--surface2); }
-
-        /* Buttons */
-        .cbtn {
-            background: var(--red); color: white; font-family: 'DM Sans', sans-serif;
-            font-weight: 600; font-size: 14px; padding: 10px 20px;
-            border: none; border-radius: 6px; cursor: pointer; transition: background 0.2s;
-            white-space: nowrap;
-        }
-        .cbtn:hover { background: var(--red-dark); }
-        .cbtn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .cbtn-outline {
-            background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif;
-            font-weight: 500; font-size: 14px; padding: 10px 20px;
-            border: 1px solid var(--border); border-radius: 6px;
-            cursor: pointer; transition: all 0.2s; flex: 1;
-        }
-        .cbtn-outline:hover { border-color: #555; color: white; }
-
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .form-full { grid-column: 1 / -1; }
-
-        /* Showtime card */
-        .showtime-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 10px; padding: 16px; margin-bottom: 10px;
-            cursor: pointer; transition: all 0.2s;
-            display: flex; gap: 14px; align-items: flex-start;
-        }
-        .showtime-card:hover { border-color: #3a3a3a; background: var(--surface2); }
-        .showtime-card.selected { border-color: var(--red); background: rgba(229,9,20,0.05); }
-
-        .showtime-poster {
-            width: 48px; height: 66px; border-radius: 6px;
-            object-fit: cover; background: var(--surface3);
-            flex-shrink: 0;
-        }
-
-        /* Date group header */
-        .date-group-header {
-            font-size: 12px; font-weight: 700; color: var(--muted);
-            letter-spacing: 0.08em; padding: 16px 0 8px;
-            display: flex; align-items: center; gap: 8px;
-        }
-        .date-group-header::after {
-            content: ''; flex: 1; height: 1px; background: var(--border);
-        }
-
-        /* Time badge */
-        .time-badge {
-            background: var(--red); color: white;
-            font-size: 15px; font-weight: 700;
-            padding: 6px 12px; border-radius: 6px;
-            font-family: 'Bebas Neue', sans-serif;
-            letter-spacing: 0.05em; white-space: nowrap;
-        }
-
-        /* Badges */
-        .badge {
-            display: inline-flex; align-items: center; padding: 2px 8px;
-            border-radius: 20px; font-size: 11px; font-weight: 600;
-        }
-        .badge-active { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
-        .badge-inactive { background: rgba(100,100,100,0.15); color: #888; border: 1px solid rgba(100,100,100,0.2); }
-        .badge-2d { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
-        .badge-3d { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.2); }
-        .badge-imax { background: rgba(234,179,8,0.15); color: #facc15; border: 1px solid rgba(234,179,8,0.2); }
-
-        /* Price boxes */
-        .price-grid { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; margin-top: 4px; }
-        .price-box {
-            background: var(--surface3); border: 1px solid var(--border);
-            border-radius: 6px; padding: 8px 10px; text-align: center;
-        }
-
-        /* Seat availability bar */
-        .seat-bar {
-            height: 4px; border-radius: 2px; background: var(--surface3);
-            margin-top: 6px; overflow: hidden;
-        }
-        .seat-bar-fill { height: 100%; border-radius: 2px; background: #22c55e; transition: width 0.3s; }
-
-        /* Alert */
-        .alert {
-            border-radius: 6px; padding: 10px 14px; font-size: 13px;
-            display: none; margin-bottom: 14px;
-        }
-        .alert-error { background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.3); color: #ff6b6b; }
-        .alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; }
-
-        /* Delete confirm */
-        .delete-confirm {
-            background: rgba(229,9,20,0.08); border: 1px solid rgba(229,9,20,0.2);
-            border-radius: 8px; padding: 16px; margin-top: 16px; display: none;
-        }
-
-        /* Stat cards */
-        .stat-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 8px; padding: 14px 18px;
-            display: flex; align-items: center; gap: 12px;
-        }
-
-        /* Movie select card */
-        .movie-option {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px; border: 1px solid var(--border);
-            border-radius: 8px; cursor: pointer; transition: all 0.2s;
-            margin-bottom: 6px;
-        }
-        .movie-option:hover { border-color: #444; background: var(--surface2); }
-        .movie-option.selected-movie { border-color: var(--red); background: rgba(229,9,20,0.08); }
-
-        /* End time preview */
-        .end-time-preview {
-            background: var(--surface2); border: 1px solid var(--border);
-            border-radius: 6px; padding: 10px 14px; font-size: 13px;
-            color: var(--muted); display: none; margin-top: 8px;
-        }
-
-        /* Date filter */
-        .date-filter {
-            display: flex; gap: 8px; margin-bottom: 20px; overflow-x: auto;
-            padding-bottom: 4px; scrollbar-width: none;
-        }
-        .date-filter::-webkit-scrollbar { display: none; }
-        .date-pill {
-            flex-shrink: 0; padding: 7px 16px; border-radius: 20px;
-            font-size: 13px; font-weight: 500;
-            border: 1px solid var(--border); background: var(--surface);
-            color: var(--muted); cursor: pointer; transition: all 0.2s;
-        }
-        .date-pill:hover { border-color: #444; color: var(--text); }
-        .date-pill.active { background: var(--red); border-color: var(--red); color: white; }
-
-        .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
-
-        @@keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .showtime-card { animation: fadeIn 0.3s ease forwards; }
-
-        .warning-card {
-            background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2);
-            border-radius: 10px; padding: 24px; text-align: center;
-        }
-
-        /* Toast Notifications */
-        .toast-container {
-            position: fixed; top: 20px; right: 20px; z-index: 300;
-            display: flex; flex-direction: column; gap: 10px;
-        }
-
-        .toast {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 8px; padding: 14px 18px; font-size: 14px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
-            display: flex; align-items: center; gap: 12px;
-            animation: slideIn 0.3s ease forwards;
-            min-width: 300px;
-        }
-
-        .toast-success {
-            border-left: 4px solid #22c55e;
-            color: #4ade80;
-        }
-
-        .toast-error {
-            border-left: 4px solid #ef4444;
-            color: #ff6b6b;
-        }
-
-        .toast-info {
-            border-left: 4px solid #3b82f6;
-            color: #60a5fa;
-        }
-
-        .toast-icon {
-            font-size: 18px; flex-shrink: 0;
-        }
-
-        @@keyframes slideIn {
-            from { opacity: 0; transform: translateX(400px); }
-            to { opacity: 1; transform: translateX(0); }
-        }
-
-        @@keyframes slideOut {
-            from { opacity: 1; transform: translateX(0); }
-            to { opacity: 0; transform: translateX(400px); }
-        }
-
-        .toast.removing {
-            animation: slideOut 0.3s ease forwards;
-        }
+        body{font-family:'DM Sans',sans-serif;}.brand{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;}
+        .cinput{width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;}
+        .cinput:focus{border-color:#E50914;box-shadow:0 0 0 3px rgba(229,9,20,.12);}
+        .cinput::placeholder{color:#555;}
+        select.cinput option{background:#1e1e1e;}
+        .slide-panel{transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);}
+        .slide-panel.open{transform:translateX(0);}
+        .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:80;}
+        .sidebar-overlay.show{display:block;}
+        #toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+        .toast{pointer-events:all;min-width:260px;max-width:340px;background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.6);animation:tIn .35s cubic-bezier(.34,1.56,.64,1) forwards;font-size:14px;color:#fff;}
+        .toast.removing{animation:tOut .25s ease forwards;}
+        .toast-success{border-left:3px solid #22c55e;}.toast-error{border-left:3px solid #E50914;}.toast-info{border-left:3px solid #3b82f6;}.toast-warning{border-left:3px solid #f59e0b;}
+        @@keyframes tIn{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
+        @@keyframes tOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(100px)}}
+        @@keyframes spin{to{transform:rotate(360deg)}}
+        .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+        @@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .fade-in{animation:fadeIn .3s ease forwards;}
+        .date-filter{scrollbar-width:none;}.date-filter::-webkit-scrollbar{display:none;}
+        .movie-option{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #2a2a2a;border-radius:8px;cursor:pointer;transition:all .2s;margin-bottom:6px;}
+        .movie-option:hover{border-color:#444;background:#1e1e1e;}
+        .movie-option.selected-movie{border-color:#E50914;background:rgba(229,9,20,.08);}
     </style>
 </head>
-<body>
+<body class="bg-[#0a0a0a] text-white min-h-screen">
+<div id="toast-container"></div>
 
-    <!-- Navbar -->
-    <nav class="navbar">
-        <span class="brand" style="font-size:22px; color:var(--red);">CINEBOOK</span>
-        <span style="font-size:12px; color:var(--border);">|</span>
-        <span style="font-size:13px; color:var(--muted);">Cinema Manager</span>
-        <div style="flex:1;"></div>
-        <span id="managerName" style="font-size:13px; color:var(--muted);"></span>
-        <button onclick="logout()" style="background:none; border:1px solid var(--border); color:var(--muted); font-family:'DM Sans',sans-serif; font-size:13px; padding:6px 14px; border-radius:6px; cursor:pointer;">Sign Out</button>
-    </nav>
+<nav class="fixed top-0 left-0 right-0 h-14 bg-[#0a0a0a]/95 border-b border-[#2a2a2a] flex items-center px-4 sm:px-6 gap-4 z-50 backdrop-blur-sm">
+    <button onclick="toggleSidebar()" class="sm:hidden text-[#888] text-xl p-1">☰</button>
+    <span class="brand text-2xl text-[#E50914]">CINEBOOK</span>
+    <span class="hidden sm:block text-xs text-[#2a2a2a]">|</span>
+    <span class="hidden sm:block text-sm text-[#888]">Cinema Manager</span>
+    <div class="flex-1"></div>
+    <span id="managerName" class="hidden sm:block text-sm text-[#888]"></span>
+    <button onclick="logout()" class="text-sm text-[#888] border border-[#2a2a2a] rounded-md px-3 py-1.5 hover:border-[#555] hover:text-white transition-all">Sign Out</button>
+</nav>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div style="font-size:11px; color:var(--muted); letter-spacing:0.1em; padding:4px 12px 12px;">MANAGE</div>
-        <a class="nav-item" href="/Manager/Cinema">🏟 My Cinema</a>
-        <a class="nav-item" href="/Manager/Halls">🪑 Halls</a>
-        <a class="nav-item active" href="/Manager/Showtimes">🎬 Showtimes</a>
-        <a class="nav-item" href="/Booking/CinemaBookings">📋 Bookings</a>
-        <a class="nav-item" href="/Booking/Refunds">↩ Refunds</a>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<aside id="sidebar" class="fixed left-0 top-14 bottom-0 w-56 bg-[#141414] border-r border-[#2a2a2a] px-3 py-5 z-[100] flex flex-col gap-1 -translate-x-full sm:translate-x-0 transition-transform duration-300">
+    <div class="text-xs text-[#555] tracking-widest px-3 pb-3">MANAGE</div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Manager/Cinema">🏟 My Cinema</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Manager/Halls">🪑 Halls</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#E50914] bg-[#E50914]/10" href="/Manager/Showtimes">🎬 Showtimes</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Booking/CinemaBookings">📋 Bookings</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Booking/Refunds">↩ Refunds</a>
+    <div class="flex-1"></div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/">🏠 Dashboard</a>
+</aside>
 
-        <div style="flex:1;"></div>
-        <a class="nav-item" href="/Manager/Cinema">🏠 Dashboard</a>
-    </aside>
+<div class="sm:ml-56 pt-14 flex min-h-screen">
+    <div class="flex-1 p-4 sm:p-6 overflow-y-auto max-h-[calc(100vh-56px)]">
 
-    <div class="main">
-        <div class="list-panel">
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div><h1 class="text-xl font-bold">Showtimes</h1><p class="text-sm text-[#888] mt-0.5">Schedule movies in your halls</p></div>
+            <button onclick="openAddPanel()" class="bg-[#E50914] hover:bg-[#b20710] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors w-full sm:w-auto">+ Add Showtime</button>
+        </div>
 
-            <!-- Header -->
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-                <div>
-                    <h1 style="font-size:22px; font-weight:700;">Showtimes</h1>
-                    <p style="font-size:13px; color:var(--muted); margin-top:2px;">Schedule movies in your halls</p>
-                </div>
-                <button class="cbtn" onclick="openAddPanel()">+ Add Showtime</button>
-            </div>
+        <div id="noCinemaWarning" class="hidden mb-6 bg-yellow-400/5 border border-yellow-400/20 rounded-2xl p-8 text-center">
+            <div class="text-4xl mb-3">🏟</div>
+            <div class="text-base font-semibold text-yellow-400 mb-2">Cinema not approved yet</div>
+            <div class="text-sm text-[#888] mb-5">You need an approved cinema with halls before adding showtimes.</div>
+            <a href="/Manager/Cinema" class="bg-[#E50914] text-white font-semibold text-sm px-5 py-2.5 rounded-xl inline-block">Go to My Cinema →</a>
+        </div>
 
-            <!-- No cinema warning -->
-            <div class="warning-card" id="noCinemaWarning" style="display:none;">
-                <div style="font-size:32px; margin-bottom:12px;">🏟</div>
-                <div style="font-size:16px; font-weight:600; color:#fbbf24; margin-bottom:8px;">Cinema not approved yet</div>
-                <div style="font-size:13px; color:var(--muted); margin-bottom:16px;">You need an approved cinema with halls before adding showtimes.</div>
-                <a href="/Manager/Cinema" style="background:var(--red); color:white; font-family:'DM Sans',sans-serif; font-weight:600; font-size:13px; padding:10px 20px; border-radius:6px; text-decoration:none;">Go to My Cinema →</a>
-            </div>
+        <!-- Stats -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5" id="statsSection">
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">🎬</div><div><div class="text-xl font-bold" id="totalShowtimes">0</div><div class="text-xs text-[#888]">Total</div></div></div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">📅</div><div><div class="text-xl font-bold" id="todayShowtimes">0</div><div class="text-xs text-[#888]">Today</div></div></div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">🪑</div><div><div class="text-xl font-bold" id="totalAvailable">0</div><div class="text-xs text-[#888]">Avail. Seats</div></div></div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">✅</div><div><div class="text-xl font-bold" id="activeShowtimes">0</div><div class="text-xs text-[#888]">Active</div></div></div>
+        </div>
 
-            <!-- Stats -->
-            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:20px;" id="statsSection">
-                <div class="stat-card">
-                    <div style="font-size:24px;">🎬</div>
-                    <div>
-                        <div style="font-size:20px; font-weight:700;" id="totalShowtimes">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Total</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div style="font-size:24px;">📅</div>
-                    <div>
-                        <div style="font-size:20px; font-weight:700;" id="todayShowtimes">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Today</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div style="font-size:24px;">🪑</div>
-                    <div>
-                        <div style="font-size:20px; font-weight:700;" id="totalAvailable">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Available Seats</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div style="font-size:24px;">✅</div>
-                    <div>
-                        <div style="font-size:20px; font-weight:700;" id="activeShowtimes">0</div>
-                        <div style="font-size:12px; color:var,--muted);">Active</div>
-                    </div>
-                </div>
-            </div>
+        <!-- Date filter -->
+        <div class="date-filter flex gap-2 overflow-x-auto pb-2 mb-5" id="dateFilter"></div>
 
-            <!-- Date filter pills -->
-            <div class="date-filter" id="dateFilter"></div>
-
-            <!-- Showtimes list -->
-            <div id="showtimeList">
-                <div class="empty">
-                    <div style="font-size:40px; margin-bottom:12px;">🎬</div>
-                    <div style="font-size:16px; font-weight:500;">Loading showtimes...</div>
-                </div>
-            </div>
+        <div id="showtimeList">
+            <div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🎬</div><div>Loading showtimes...</div></div>
         </div>
     </div>
+</div>
 
-    <!-- Overlay -->
-    <div class="overlay" id="overlay" onclick="closePanel()"></div>
+<!-- Overlay -->
+<div class="fixed inset-0 bg-black/60 z-40 opacity-0 pointer-events-none transition-opacity duration-300" id="overlay" onclick="closePanel()"></div>
 
-    <!-- Slide Panel -->
-    <div class="slide-panel" id="slidePanel">
-        <div class="panel-header">
-            <div>
-                <div style="font-size:17px; font-weight:600;" id="panelTitle">Add Showtime</div>
-                <div style="font-size:12px; color:var(--muted); margin-top:2px;" id="panelSubtitle">Schedule a movie in a hall</div>
+<!-- Slide Panel -->
+<div class="slide-panel fixed right-0 top-14 bottom-0 w-full sm:w-[520px] bg-[#141414] border-l border-[#2a2a2a] z-50 flex flex-col" id="slidePanel">
+    <div class="p-5 border-b border-[#2a2a2a] flex items-center justify-between flex-shrink-0">
+        <div><div class="text-base font-semibold" id="panelTitle">Add Showtime</div><div class="text-xs text-[#888] mt-0.5" id="panelSubtitle">Schedule a movie in a hall</div></div>
+        <button onclick="closePanel()" class="text-[#888] hover:text-white text-2xl leading-none transition-colors">✕</button>
+    </div>
+    <div class="flex-1 overflow-y-auto p-5">
+        <div id="formError" class="hidden bg-[#E50914]/10 border border-[#E50914]/30 text-[#ff6b6b] rounded-lg px-4 py-2.5 text-sm mb-4"></div>
+        <div id="formSuccess" class="hidden bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg px-4 py-2.5 text-sm mb-4"></div>
+
+        <!-- Add Form -->
+        <div id="addForm">
+            <div class="mb-4">
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Select Movie *</label>
+                <input class="cinput mb-2" type="text" id="movieSearch" placeholder="Search movies..." oninput="filterMovieOptions(this.value)" />
+                <div id="movieOptions" class="max-h-48 overflow-y-auto"></div>
+                <input type="hidden" id="fMovieId" />
             </div>
-            <button onclick="closePanel()" style="background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer;">✕</button>
-        </div>
-
-        <div class="panel-body">
-            <div class="alert alert-error" id="formError"></div>
-            <div class="alert alert-success" id="formSuccess"></div>
-
-            <!-- Add Form -->
-            <div id="addForm">
-
-                <!-- Movie Select -->
-                <div style="margin-bottom:16px;">
-                    <label>Select Movie *</label>
-                    <div style="position:relative; margin-bottom:8px;">
-                        <input class="cinput" type="text" id="movieSearch"
-                               placeholder="Search movies..."
-                               oninput="filterMovieOptions(this.value)" />
-                    </div>
-                    <div id="movieOptions" style="max-height:200px; overflow-y:auto;"></div>
-                    <input type="hidden" id="fMovieId" />
-                </div>
-
-                <!-- Hall Select -->
-                <div style="margin-bottom:16px;">
-                    <label>Select Hall *</label>
-                    <select class="cinput" id="fHallId">
-                        <option value="">-- Select Hall --</option>
-                    </select>
-                </div>
-
-                <div class="form-grid">
-                    <div>
-                        <label>Date *</label>
-                        <input class="cinput" type="date" id="fDate" oninput="updateEndTimePreview()" />
-                    </div>
-                    <div>
-                        <label>Start Time *</label>
-                        <input class="cinput" type="time" id="fTime" oninput="updateEndTimePreview()" />
-                    </div>
-                </div>
-
-                <!-- End time auto preview -->
-                <div class="end-time-preview" id="endTimePreview">
-                    ⏱ End time: <strong id="endTimeVal">--</strong>
-                </div>
-
-                <!-- Prices -->
-                <div style="margin-top:16px; margin-bottom:4px;">
-                    <label>Ticket Prices (₹) *</label>
-                </div>
-                <div class="form-grid">
-                    <div>
-                        <label style="color:#60a5fa;">Standard</label>
-                        <input class="cinput" type="number" id="fPriceStandard" placeholder="e.g. 150" min="0" />
-                    </div>
-                    <div>
-                        <label style="color:#c084fc;">Premium</label>
-                        <input class="cinput" type="number" id="fPricePremium" placeholder="e.g. 250" min="0" />
-                    </div>
-                    <div class="form-full">
-                        <label style="color:#facc15;">VIP</label>
-                        <input class="cinput" type="number" id="fPriceVIP" placeholder="e.g. 400" min="0" />
-                    </div>
-                </div>
+            <div class="mb-4">
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Select Hall *</label>
+                <select class="cinput" id="fHallId"><option value="">-- Select Hall --</option></select>
             </div>
-
-            <!-- Edit Form -->
-            <div id="editForm" style="display:none;">
-
-                <!-- Movie + Hall info (read only) -->
-                <div style="background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px; margin-bottom:16px;" id="editMovieInfo">
-                </div>
-
-                <div class="form-grid">
-                    <div>
-                        <label>Date *</label>
-                        <input class="cinput" type="date" id="eDate" oninput="updateEditEndTimePreview()" />
-                    </div>
-                    <div>
-                        <label>Start Time *</label>
-                        <input class="cinput" type="time" id="eTime" oninput="updateEditEndTimePreview()" />
-                    </div>
-                </div>
-
-                <div class="end-time-preview" id="editEndTimePreview" style="margin-bottom:12px;">
-                    ⏱ End time: <strong id="editEndTimeVal">--</strong>
-                </div>
-
-                <!-- Prices -->
-                <div style="margin-top:16px; margin-bottom:4px;">
-                    <label>Ticket Prices (₹) *</label>
-                </div>
-                <div class="form-grid">
-                    <div>
-                        <label style="color:#60a5fa;">Standard</label>
-                        <input class="cinput" type="number" id="ePriceStandard" min="0" />
-                    </div>
-                    <div>
-                        <label style="color:#c084fc;">Premium</label>
-                        <input class="cinput" type="number" id="ePricePremium" min="0" />
-                    </div>
-                    <div class="form-full">
-                        <label style="color:#facc15;">VIP</label>
-                        <input class="cinput" type="number" id="ePriceVIP" min="0" />
-                    </div>
-                </div>
-
-                <div style="margin-top:14px;">
-                    <label>Status</label>
-                    <select class="cinput" id="eIsActive">
-                        <option value="true">Active</option>
-                        <option value="false">Inactive</option>
-                    </select>
-                </div>
-
-                <!-- Delete -->
-                <div class="delete-confirm" id="deleteConfirm">
-                    <div style="font-size:14px; font-weight:600; color:#f87171; margin-bottom:8px;">⚠ Delete Showtime</div>
-                    <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">Cannot delete if bookings exist.</div>
-                    <button class="cbtn" onclick="deleteShowtime()" style="background:#dc2626; width:100%; font-size:13px; padding:10px;">Confirm Delete</button>
-                </div>
-
-                <button onclick="toggleDelete()" style="
-                    background:none; border:1px solid rgba(229,9,20,0.3); color:#f87171;
-                    font-family:'DM Sans',sans-serif; font-size:13px; padding:9px 16px;
-                    border-radius:6px; cursor:pointer; margin-top:16px; width:100%;">
-                    🗑 Delete Showtime
-                </button>
+            <div class="grid grid-cols-2 gap-4 mb-2">
+                <div><label class="block text-xs font-medium text-[#999] mb-1.5">Date *</label><input class="cinput" type="date" id="fDate" oninput="updateEndTimePreview()" /></div>
+                <div><label class="block text-xs font-medium text-[#999] mb-1.5">Start Time *</label><input class="cinput" type="time" id="fTime" oninput="updateEndTimePreview()" /></div>
+            </div>
+            <div id="endTimePreview" class="hidden bg-[#1e1e1e] border border-[#2a2a2a] rounded-lg px-4 py-2.5 text-sm text-[#888] mb-4">⏱ End time: <strong id="endTimeVal" class="text-white">--</strong></div>
+            <div class="mb-2"><label class="block text-xs font-medium text-[#999] mb-2">Ticket Prices (₹) *</label></div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div><label class="block text-xs font-medium text-blue-400 mb-1.5">Standard</label><input class="cinput" type="number" id="fPriceStandard" placeholder="e.g. 150" min="0" /></div>
+                <div><label class="block text-xs font-medium text-purple-400 mb-1.5">Premium</label><input class="cinput" type="number" id="fPricePremium" placeholder="e.g. 250" min="0" /></div>
+                <div><label class="block text-xs font-medium text-yellow-400 mb-1.5">VIP</label><input class="cinput" type="number" id="fPriceVIP" placeholder="e.g. 400" min="0" /></div>
             </div>
         </div>
 
-        <div class="panel-footer">
-            <button class="cbtn-outline" onclick="closePanel()">Cancel</button>
-            <button class="cbtn" id="saveBtn" onclick="saveShowtime()" style="flex:2;">Save Showtime</button>
+        <!-- Edit Form -->
+        <div id="editForm" class="hidden">
+            <div class="bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl p-4 mb-5" id="editMovieInfo"></div>
+            <div class="grid grid-cols-2 gap-4 mb-2">
+                <div><label class="block text-xs font-medium text-[#999] mb-1.5">Date *</label><input class="cinput" type="date" id="eDate" oninput="updateEditEndTimePreview()" /></div>
+                <div><label class="block text-xs font-medium text-[#999] mb-1.5">Start Time *</label><input class="cinput" type="time" id="eTime" oninput="updateEditEndTimePreview()" /></div>
+            </div>
+            <div id="editEndTimePreview" class="hidden bg-[#1e1e1e] border border-[#2a2a2a] rounded-lg px-4 py-2.5 text-sm text-[#888] mb-4">⏱ End time: <strong id="editEndTimeVal" class="text-white">--</strong></div>
+            <div class="mb-2"><label class="block text-xs font-medium text-[#999] mb-2">Ticket Prices (₹) *</label></div>
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div><label class="block text-xs font-medium text-blue-400 mb-1.5">Standard</label><input class="cinput" type="number" id="ePriceStandard" min="0" /></div>
+                <div><label class="block text-xs font-medium text-purple-400 mb-1.5">Premium</label><input class="cinput" type="number" id="ePricePremium" min="0" /></div>
+                <div><label class="block text-xs font-medium text-yellow-400 mb-1.5">VIP</label><input class="cinput" type="number" id="ePriceVIP" min="0" /></div>
+            </div>
+            <div><label class="block text-xs font-medium text-[#999] mb-1.5">Status</label><select class="cinput" id="eIsActive"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+            <div id="deleteConfirm" class="hidden mt-5 bg-[#E50914]/8 border border-[#E50914]/20 rounded-xl p-4">
+                <div class="text-sm font-semibold text-[#f87171] mb-2">⚠ Delete Showtime</div>
+                <div class="text-xs text-[#888] mb-3">Cannot delete if bookings exist.</div>
+                <button onclick="deleteShowtime()" class="w-full bg-red-700 hover:bg-red-800 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors">Confirm Delete</button>
+            </div>
+            <button onclick="toggleDelete()" class="w-full mt-4 text-[#f87171] border border-[#E50914]/30 bg-[#E50914]/5 hover:bg-[#E50914]/10 font-medium text-sm py-2.5 rounded-xl transition-all">🗑 Delete Showtime</button>
         </div>
     </div>
+    <div class="p-4 border-t border-[#2a2a2a] flex gap-3 flex-shrink-0">
+        <button onclick="closePanel()" class="flex-1 text-[#888] border border-[#2a2a2a] hover:border-[#555] hover:text-white rounded-xl py-2.5 text-sm font-medium transition-all">Cancel</button>
+        <button id="saveBtn" onclick="saveShowtime()" class="flex-[2] bg-[#E50914] hover:bg-[#b20710] text-white font-semibold text-sm py-2.5 rounded-xl transition-colors">Create Showtime</button>
+    </div>
+</div>
 
-    <script>
-        const token = localStorage.getItem('token');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+<script>
+function showToast(msg,type='info',duration=4000){const icons={success:'✓',error:'✕',info:'ℹ',warning:'⚠'};const colors={success:'#22c55e',error:'#E50914',info:'#3b82f6',warning:'#f59e0b'};const c=document.getElementById('toast-container');const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">${icons[type]}</div><div style="flex:1;line-height:1.5;">${msg}</div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:0;">✕</button>`;c.appendChild(t);setTimeout(()=>{t.classList.add('removing');setTimeout(()=>t.remove(),250);},duration);}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('-translate-x-full');document.getElementById('sidebarOverlay').classList.toggle('show');}
+function logout(){localStorage.clear();window.location.href='/Auth/Login';}
+const token=localStorage.getItem('token');const user=JSON.parse(localStorage.getItem('user')||'{}');
+if(!token)window.location.href='/Auth/Login';if(user.role!=='CinemaManager')window.location.href='/';
+document.getElementById('managerName').textContent=user.fullName||'Manager';
+function authHeaders(){return{'Content-Type':'application/json','Authorization':`Bearer ${token}`};}
 
-        if (!token) window.location.href = '/Auth/Login';
-        if (user.role !== 'CinemaManager') window.location.href = '/';
+let allShowtimes=[],allMovies=[],allHalls=[],editingId=null,isEditMode=false,selectedMovieDuration=0,editMovieDuration=0;
 
-        document.getElementById('managerName').textContent = user.fullName || 'Manager';
+async function init(){await Promise.all([loadShowtimes(),loadMovies(),loadHalls()]);}
 
-        let allShowtimes = [];
-        let allMovies = [];
-        let allHalls = [];
-        let editingId = null;
-        let isEditMode = false;
-        let selectedMovieDuration = 0;
-        let editMovieDuration = 0;
-        let currentDateFilter = 'all';
+async function loadShowtimes(){
+    try{const res=await fetch('/api/showtimes/my',{headers:authHeaders()});const data=await res.json();
+        if(data.success){allShowtimes=data.data;updateStats();buildDateFilter();renderShowtimes(allShowtimes);}
+        else{document.getElementById('noCinemaWarning').classList.remove('hidden');document.getElementById('statsSection').classList.add('hidden');document.getElementById('showtimeList').innerHTML='';}
+    }catch{showToast('Failed to load showtimes','error');}
+}
 
-        function authHeaders() {
-            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-        }
+async function loadMovies(){
+    try{const res=await fetch('/api/movies',{headers:authHeaders()});const data=await res.json();
+        if(data.success)allMovies=data.data.filter(m=>m.status==='NowShowing'||m.status===1);
+    }catch{}
+}
 
-        // ── Init ──────────────────────────────────────────────
-        async function init() {
-            await Promise.all([loadShowtimes(), loadMovies(), loadHalls()]);
-        }
+async function loadHalls(){
+    try{const res=await fetch('/api/halls',{headers:authHeaders()});const data=await res.json();
+        if(data.success){allHalls=data.data.filter(h=>h.isActive);const sel=document.getElementById('fHallId');sel.innerHTML='<option value="">-- Select Hall --</option>';allHalls.forEach(h=>{const o=document.createElement('option');o.value=h.id;o.textContent=`${h.hallName} (${h.hallTypeLabel||h.hallType}) — ${h.totalSeats} seats`;sel.appendChild(o);});}
+    }catch{}
+}
 
-        // ── Load Showtimes ────────────────────────────────────
-        async function loadShowtimes() {
-            try {
-                const res = await fetch('/api/showtimes/my', { headers: authHeaders() });
-                const data = await res.json();
+function updateStats(){
+    const today=new Date().toDateString();
+    document.getElementById('totalShowtimes').textContent=allShowtimes.length;
+    document.getElementById('todayShowtimes').textContent=allShowtimes.filter(s=>new Date(s.startTime).toDateString()===today).length;
+    document.getElementById('totalAvailable').textContent=allShowtimes.reduce((sum,s)=>sum+s.availableSeats,0);
+    document.getElementById('activeShowtimes').textContent=allShowtimes.filter(s=>s.isActive).length;
+}
 
-                if (data.success) {
-                    allShowtimes = data.data;
-                    updateStats();
-                    buildDateFilter();
-                    renderShowtimes(allShowtimes);
-                } else {
-                    document.getElementById('noCinemaWarning').style.display = 'block';
-                    document.getElementById('statsSection').style.display = 'none';
-                    document.getElementById('showtimeList').innerHTML = '';
-                }
-            } catch {
-                document.getElementById('showtimeList').innerHTML =
-                    `<div class="empty"><div style="font-size:32px">⚠</div><div>Failed to load</div></div>`;
-            }
-        }
+function buildDateFilter(){
+    const dates=[...new Set(allShowtimes.map(s=>new Date(s.startTime).toDateString()))].sort((a,b)=>new Date(a)-new Date(b));
+    const c=document.getElementById('dateFilter');
+    c.innerHTML=`<button class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-[#E50914] text-white border border-[#E50914] date-pill" onclick="filterByDate('all',this)">All Dates</button>`;
+    dates.forEach(d=>{const date=new Date(d);const label=date.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});c.innerHTML+=`<button class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium text-[#888] border border-[#2a2a2a] bg-[#141414] hover:border-[#444] hover:text-white transition-all date-pill" onclick="filterByDate('${d}',this)">${label}</button>`;});
+}
 
-        async function loadMovies() {
-            try {
-                const res = await fetch('/api/movies', { headers: authHeaders() });
-                const data = await res.json();
-                if (data.success) allMovies = data.data.filter(m => m.status === 'NowShowing' || m.status === 1);
-            } catch {}
-        }
+function filterByDate(date,el){
+    document.querySelectorAll('.date-pill').forEach(p=>{p.classList.remove('bg-[#E50914]','text-white','border-[#E50914]');p.classList.add('text-[#888]','border-[#2a2a2a]','bg-[#141414]');});
+    el.classList.add('bg-[#E50914]','text-white','border-[#E50914]');el.classList.remove('text-[#888]','border-[#2a2a2a]','bg-[#141414]');
+    const filtered=date==='all'?allShowtimes:allShowtimes.filter(s=>new Date(s.startTime).toDateString()===date);
+    renderShowtimes(filtered);
+}
 
-        async function loadHalls() {
-            try {
-                const res = await fetch('/api/halls', { headers: authHeaders() });
-                const data = await res.json();
-                if (data.success) {
-                    allHalls = data.data.filter(h => h.isActive);
-                    const select = document.getElementById('fHallId');
-                    select.innerHTML = '<option value="">-- Select Hall --</option>';
-                    allHalls.forEach(h => {
-                        const opt = document.createElement('option');
-                        opt.value = h.id;
-                        opt.textContent = `${h.hallName} (${h.hallTypeLabel || h.hallType}) — ${h.totalSeats} seats`;
-                        select.appendChild(opt);
-                    });
-                }
-            } catch {}
-        }
+function hallTypeBadge(type){
+    if(type==='TwoD'||type===0)return'<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-blue-400/10 border border-blue-400/20 text-blue-400">2D</span>';
+    if(type==='ThreeD'||type===1)return'<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-purple-400/10 border border-purple-400/20 text-purple-400">3D</span>';
+    return'<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-yellow-400/10 border border-yellow-400/20 text-yellow-400">IMAX</span>';
+}
 
-        // ── Stats ─────────────────────────────────────────────
-        function updateStats() {
-            const today = new Date().toDateString();
-            document.getElementById('totalShowtimes').textContent = allShowtimes.length;
-            document.getElementById('todayShowtimes').textContent =
-                allShowtimes.filter(s => new Date(s.startTime).toDateString() === today).length;
-            document.getElementById('totalAvailable').textContent =
-                allShowtimes.reduce((sum, s) => sum + s.availableSeats, 0);
-            document.getElementById('activeShowtimes').textContent =
-                allShowtimes.filter(s => s.isActive).length;
-        }
+function formatTime12(isoStr){
+    if(!isoStr)return'';const t=isoStr.split('T')[1]?.substring(0,5)||'';if(!t)return'';
+    const[h,m]=t.split(':');const hour=parseInt(h);const ampm=hour>=12?'pm':'am';const h12=hour%12||12;return`${h12}:${m} ${ampm}`;
+}
 
-        // ── Date Filter ───────────────────────────────────────
-        function buildDateFilter() {
-            const dates = [...new Set(allShowtimes.map(s =>
-                new Date(s.startTime).toDateString()
-            ))].sort((a, b) => new Date(a) - new Date(b));
-
-            const container = document.getElementById('dateFilter');
-            container.innerHTML = `<div class="date-pill active" onclick="filterByDate('all', this)">All Dates</div>`;
-
-            dates.forEach(d => {
-                const date = new Date(d);
-                const label = date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
-                container.innerHTML += `
-                    <div class="date-pill" onclick="filterByDate('${d}', this)">${label}</div>`;
-            });
-        }
-
-        function filterByDate(date, el) {
-            currentDateFilter = date;
-            document.querySelectorAll('.date-pill').forEach(p => p.classList.remove('active'));
-            el.classList.add('active');
-
-            const filtered = date === 'all'
-                ? allShowtimes
-                : allShowtimes.filter(s => new Date(s.startTime).toDateString() === date);
-
-            renderShowtimes(filtered);
-        }
-
-        // ── Render Showtimes ──────────────────────────────────
-        function renderShowtimes(showtimes) {
-            const list = document.getElementById('showtimeList');
-
-            if (!showtimes.length) {
-                list.innerHTML = `
-                    <div class="empty">
-                        <div style="font-size:40px; margin-bottom:12px;">🎬</div>
-                        <div style="font-size:16px; font-weight:500; margin-bottom:6px;">No showtimes found</div>
-                        <div style="font-size:13px;">Click "+ Add Showtime" to schedule a movie</div>
-                    </div>`;
-                return;
-            }
-
-            // Group by date
-            const groups = {};
-            showtimes.forEach(s => {
-                const dateKey = new Date(s.startTime).toDateString();
-                if (!groups[dateKey]) groups[dateKey] = [];
-                groups[dateKey].push(s);
-            });
-
-            let html = '';
-            Object.entries(groups).forEach(([dateKey, items]) => {
-                const date = new Date(dateKey);
-                const isToday = date.toDateString() === new Date().toDateString();
-                const label = isToday
-                    ? 'TODAY'
-                    : date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase();
-
-                html += `<div class="date-group-header">${label}</div>`;
-
-                items.sort((a, b) => new Date(a.startTime) - new Date(b.startTime))
-                    .forEach(s => {
-                        const start = new Date(s.startTime);
-                        const end = new Date(s.endTime);
-                        const startStr = start.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-                        const endStr = end.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-                        const availPct = s.totalSeats > 0 ? (s.availableSeats / s.totalSeats) * 100 : 0;
-                        const hallTypeBadge = getHallTypeBadge(s.hallType);
-
-                        html += `
-                        <div class="showtime-card" onclick="selectShowtime('${s.id}')" id="card-${s.id}">
-                            <img class="showtime-poster" src="${s.moviePoster || ''}"
-                                 onerror="this.style.display='none'" alt="${s.movieTitle}" />
-                            <div style="flex:1; min-width:0;">
-                                <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px; margin-bottom:6px;">
-                                    <div>
-                                        <div style="font-size:14px; font-weight:600; margin-bottom:2px;">${s.movieTitle}</div>
-                                        <div style="font-size:12px; color:var(--muted);">${s.hallName} ${hallTypeBadge} • ${s.movieLanguage}</div>
-                                    </div>
-                                    <div style="text-align:right; flex-shrink:0;">
-                                        <div class="time-badge">${startStr}</div>
-                                        <div style="font-size:10px; color:var(--muted); margin-top:2px;">ends ${endStr}</div>
-                                    </div>
-                                </div>
-                                <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
-                                    <div style="display:flex; gap:10px; font-size:12px; color:var(--muted);">
-                                        <span style="color:#60a5fa;">Std ₹${s.priceStandard}</span>
-                                        <span style="color:#c084fc;">Prem ₹${s.pricePremium}</span>
-                                        <span style="color:#facc15;">VIP ₹${s.priceVIP}</span>
-                                    </div>
-                                    <span class="badge ${s.isActive ? 'badge-active' : 'badge-inactive'}">
-                                        ${s.isActive ? 'Active' : 'Inactive'}
-                                    </span>
-                                </div>
-                                <div style="display:flex; align-items:center; gap:8px;">
-                                    <div style="font-size:11px; color:var(--muted);">${s.availableSeats}/${s.totalSeats} seats</div>
-                                    <div class="seat-bar" style="flex:1;">
-                                        <div class="seat-bar-fill" style="width:${availPct}%;
-                                            background:${availPct > 50 ? '#22c55e' : availPct > 20 ? '#f59e0b' : '#ef4444'}">
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>`;
-                    });
-            });
-
-            list.innerHTML = html;
-        }
-
-        function getHallTypeBadge(type) {
-            if (type === 'TwoD' || type === 0) return '<span class="badge badge-2d" style="font-size:10px;">2D</span>';
-            if (type === 'ThreeD' || type === 1) return '<span class="badge badge-3d" style="font-size:10px;">3D</span>';
-            return '<span class="badge badge-imax" style="font-size:10px;">IMAX</span>';
-        }
-
-        // ── Movie Options ─────────────────────────────────────
-        function renderMovieOptions(movies) {
-            const container = document.getElementById('movieOptions');
-            if (!movies.length) {
-                container.innerHTML = `<div style="font-size:13px; color:var(--muted); padding:10px;">No movies found</div>`;
-                return;
-            }
-            container.innerHTML = movies.map(m => `
-                <div class="movie-option" onclick="selectMovie('${m.id}', '${m.title.replace(/'/g,"\\'")}', ${m.durationTime})"
-                     id="movie-opt-${m.id}">
-                    <img src="${m.posterUrl || ''}" style="width:32px; height:44px; object-fit:cover; border-radius:4px;"
-                         onerror="this.style.display='none'" />
-                    <div>
-                        <div style="font-size:13px; font-weight:600;">${m.title}</div>
-                        <div style="font-size:11px; color:var(--muted);">${m.durationTime} min • ${m.language} • ${m.genre.split(',')[0]}</div>
+function renderShowtimes(showtimes){
+    const list=document.getElementById('showtimeList');
+    if(!showtimes.length){list.innerHTML=`<div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🎬</div><div class="text-base font-medium mb-1">No showtimes found</div><div class="text-sm">Click "+ Add Showtime" to schedule a movie</div></div>`;return;}
+    const groups={};showtimes.forEach(s=>{const dk=new Date(s.startTime).toDateString();if(!groups[dk])groups[dk]=[];groups[dk].push(s);});
+    let html='';
+    Object.entries(groups).forEach(([dk,items])=>{
+        const date=new Date(dk);const isToday=date.toDateString()===new Date().toDateString();
+        const label=(isToday?'TODAY':date.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}).toUpperCase());
+        html+=`<div class="text-xs font-bold text-[#888] tracking-widest py-3 flex items-center gap-3">${label}<div class="flex-1 h-px bg-[#2a2a2a]"></div></div>`;
+        items.sort((a,b)=>new Date(a.startTime)-new Date(b.startTime)).forEach(s=>{
+            const startStr=formatTime12(s.startTime);const endStr=formatTime12(s.endTime);
+            const pct=s.totalSeats>0?(s.availableSeats/s.totalSeats)*100:0;
+            const barColor=pct>50?'#22c55e':pct>20?'#f59e0b':'#ef4444';
+            html+=`<div class="fade-in bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 mb-3 flex gap-4 items-start cursor-pointer hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-all" onclick="selectShowtime('${s.id}')" id="card-${s.id}">
+                <img src="${s.moviePoster||''}" onerror="this.style.display='none'" class="w-12 h-16 rounded-lg object-cover flex-shrink-0 bg-[#222]" />
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-start justify-between gap-2 mb-1.5">
+                        <div><div class="font-semibold text-sm mb-0.5">${s.movieTitle}</div><div class="text-xs text-[#888]">${s.hallName} ${hallTypeBadge(s.hallType)} • ${s.movieLanguage}</div></div>
+                        <div class="text-right flex-shrink-0"><div class="brand text-lg text-[#E50914]">${startStr}</div><div class="text-xs text-[#555]">ends ${endStr}</div></div>
                     </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
+                        <div class="flex flex-wrap gap-3 text-xs"><span class="text-blue-400">Std ₹${s.priceStandard}</span><span class="text-purple-400">Prem ₹${s.pricePremium}</span><span class="text-yellow-400">VIP ₹${s.priceVIP}</span></div>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full border ${s.isActive?'text-green-400 bg-green-400/10 border-green-400/20':'text-[#888] bg-[#888]/10 border-[#888]/20'}">${s.isActive?'Active':'Inactive'}</span>
+                    </div>
+                    <div class="flex items-center gap-2"><div class="text-xs text-[#888]">${s.availableSeats}/${s.totalSeats}</div><div class="flex-1 h-1 rounded-full bg-[#242424] overflow-hidden"><div style="width:${pct}%;background:${barColor};" class="h-full rounded-full transition-all"></div></div></div>
                 </div>
-            `).join('');
-        }
-
-        function filterMovieOptions(query) {
-            const filtered = query
-                ? allMovies.filter(m => m.title.toLowerCase().includes(query.toLowerCase()))
-                : allMovies;
-            renderMovieOptions(filtered);
-        }
-
-        function selectMovie(id, title, duration) {
-            document.getElementById('fMovieId').value = id;
-            document.getElementById('movieSearch').value = title;
-            selectedMovieDuration = duration;
-            document.querySelectorAll('.movie-option').forEach(o => o.classList.remove('selected-movie'));
-            document.getElementById(`movie-opt-${id}`)?.classList.add('selected-movie');
-            document.getElementById('movieOptions').innerHTML = '';
-            updateEndTimePreview();
-        }
-
-        function updateEndTimePreview() {
-            const date = document.getElementById('fDate').value;
-            const time = document.getElementById('fTime').value;
-            if (!date || !time || !selectedMovieDuration) {
-                document.getElementById('endTimePreview').style.display = 'none';
-                return;
-            }
-            const start = new Date(`${date}T${time}`);
-            const end = new Date(start.getTime() + selectedMovieDuration * 60000);
-            document.getElementById('endTimeVal').textContent =
-                end.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-            document.getElementById('endTimePreview').style.display = 'block';
-        }
-
-        function updateEditEndTimePreview() {
-            const date = document.getElementById('eDate').value;
-            const time = document.getElementById('eTime').value;
-            if (!date || !time || !editMovieDuration) return;
-            const start = new Date(`${date}T${time}`);
-            const end = new Date(start.getTime() + editMovieDuration * 60000);
-            document.getElementById('editEndTimeVal').textContent =
-                end.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-            document.getElementById('editEndTimePreview').style.display = 'block';
-        }
-
-        // ── Panel Controls ────────────────────────────────────
-        function openAddPanel() {
-            isEditMode = false; editingId = null;
-            clearAddForm();
-            document.getElementById('panelTitle').textContent = 'Add Showtime';
-            document.getElementById('panelSubtitle').textContent = 'Schedule a movie in a hall';
-            document.getElementById('saveBtn').textContent = 'Create Showtime';
-            document.getElementById('addForm').style.display = 'block';
-            document.getElementById('editForm').style.display = 'none';
-            renderMovieOptions(allMovies);
-            document.getElementById('slidePanel').classList.add('open');
-            document.getElementById('overlay').classList.add('show');
-        }
-
-        function selectShowtime(id) {
-            const s = allShowtimes.find(x => x.id === id);
-            if (!s) return;
-
-            isEditMode = true; editingId = s.id;
-            editMovieDuration = s.movieDurationTime;
-
-            document.querySelectorAll('.showtime-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById(`card-${id}`)?.classList.add('selected');
-
-            document.getElementById('panelTitle').textContent = s.movieTitle;
-            document.getElementById('panelSubtitle').textContent = 'Edit showtime details';
-            document.getElementById('saveBtn').textContent = 'Update Showtime';
-            document.getElementById('addForm').style.display = 'none';
-            document.getElementById('editForm').style.display = 'block';
-            document.getElementById('deleteConfirm').style.display = 'none';
-
-            // Fill movie info card
-            const start = new Date(s.startTime);
-            document.getElementById('editMovieInfo').innerHTML = `
-                <div style="display:flex; gap:12px; align-items:center;">
-                    <img src="${s.moviePoster}" style="width:36px; height:50px; object-fit:cover; border-radius:4px;"
-                         onerror="this.style.display='none'" />
-                    <div>
-                        <div style="font-size:14px; font-weight:600;">${s.movieTitle}</div>
-                        <div style="font-size:12px; color:var(--muted);">${s.hallName} • ${s.movieLanguage} • ${s.movieDurationTime} min</div>
-                    </div>
-                </div>`;
-
-            // Fill form
-            document.getElementById('eDate').value = start.toISOString().split('T')[0];
-            document.getElementById('eTime').value =
-                start.toTimeString().slice(0,5);
-            document.getElementById('ePriceStandard').value = s.priceStandard;
-            document.getElementById('ePricePremium').value = s.pricePremium;
-            document.getElementById('ePriceVIP').value = s.priceVIP;
-            document.getElementById('eIsActive').value = s.isActive.toString();
-            updateEditEndTimePreview();
-
-            document.getElementById('slidePanel').classList.add('open');
-            document.getElementById('overlay').classList.add('show');
-        }
-
-        function closePanel() {
-            document.getElementById('slidePanel').classList.remove('open');
-            document.getElementById('overlay').classList.remove('show');
-            document.querySelectorAll('.showtime-card').forEach(c => c.classList.remove('selected'));
-            editingId = null; isEditMode = false;
-        }
-
-        function clearAddForm() {
-            document.getElementById('fMovieId').value = '';
-            document.getElementById('movieSearch').value = '';
-            document.getElementById('fHallId').value = '';
-            document.getElementById('fDate').value = '';
-            document.getElementById('fTime').value = '';
-            document.getElementById('fPriceStandard').value = '';
-            document.getElementById('fPricePremium').value = '';
-            document.getElementById('fPriceVIP').value = '';
-            document.getElementById('endTimePreview').style.display = 'none';
-            document.getElementById('formError').style.display = 'none';
-            document.getElementById('formSuccess').style.display = 'none';
-            selectedMovieDuration = 0;
-        }
-
-        function toggleDelete() {
-            const box = document.getElementById('deleteConfirm');
-            box.style.display = box.style.display === 'none' ? 'block' : 'none';
-        }
-
-        // ── Save ──────────────────────────────────────────────
-        async function saveShowtime() {
-            if (isEditMode) await updateShowtime();
-            else await createShowtime();
-        }
-
-        async function createShowtime() {
-            const movieId = document.getElementById('fMovieId').value;
-            const hallId = document.getElementById('fHallId').value;
-            const date = document.getElementById('fDate').value;
-            const time = document.getElementById('fTime').value;
-            const priceStandard = parseFloat(document.getElementById('fPriceStandard').value);
-            const pricePremium = parseFloat(document.getElementById('fPricePremium').value);
-            const priceVIP = parseFloat(document.getElementById('fPriceVIP').value);
-
-            if (!movieId) { showError('Please select a movie'); return; }
-            if (!hallId) { showError('Please select a hall'); return; }
-            if (!date || !time) { showError('Please set date and time'); return; }
-            if (!priceStandard || !pricePremium || !priceVIP) { showError('Please set all prices'); return; }
-
-            const startTime = `${date}T${time}:00`;
-
-            await submitShowtime('POST', '/api/showtimes', {
-                movieId, hallId, startTime, priceStandard, pricePremium, priceVIP
-            });
-        }
-
-        async function updateShowtime() {
-            const date = document.getElementById('eDate').value;
-            const time = document.getElementById('eTime').value;
-
-            if (!date || !time) { showError('Please set date and time'); return; }
-
-            const startTime = `${date}T${time}:00`;
-
-            await submitShowtime('PUT', `/api/showtimes/${editingId}`, {
-                startTime,
-                priceStandard: parseFloat(document.getElementById('ePriceStandard').value),
-                pricePremium: parseFloat(document.getElementById('ePricePremium').value),
-                priceVIP: parseFloat(document.getElementById('ePriceVIP').value),
-                isActive: document.getElementById('eIsActive').value === 'true'
-            });
-        }
-
-        async function submitShowtime(method, url, data) {
-    const btn = document.getElementById('saveBtn');
-    btn.disabled = true;
-    btn.textContent = method === 'POST' ? 'Creating...' : 'Updating...';
-    document.getElementById('formError').style.display = 'none';
-
-    try {
-        const res = await fetch(url, {
-            method, headers: authHeaders(), body: JSON.stringify(data)
+            </div>`;
         });
-        const result = await res.json();
-
-        if (result.success) {
-            const message = isEditMode ? 'Showtime updated!' : 'Showtime created!';
-            showToast(message, 'success');
-            document.getElementById('formSuccess').textContent = message;
-            document.getElementById('formSuccess').style.display = 'block';
-            await loadShowtimes();
-            setTimeout(closePanel, 1500);
-        } else {
-            showToast(result.message || 'Failed', 'error');
-            showError(result.message || 'Failed');
-        }
-    } catch (error) {
-        showToast('Something went wrong', 'error');
-        showError('Something went wrong');
-    } finally {
-        btn.disabled = false;
-        btn.textContent = isEditMode ? 'Update Showtime' : 'Create Showtime';
-    }
+    });
+    list.innerHTML=html;
 }
 
-        async function deleteShowtime() {
-    if (!editingId) {
-        showToast('No showtime selected', 'error');
-        return;
-    }
-
-    const btn = document.querySelector('#deleteConfirm button.cbtn');
-    if (btn) {
-        btn.disabled = true;
-        btn.textContent = 'Deleting...';
-    }
-
-    try {
-        const res = await fetch(`/api/showtimes/${editingId}`, {
-            method: 'DELETE', 
-            headers: authHeaders()
-        });
-
-        const result = await res.json();
-
-        if (result.success) {
-            showToast('Showtime deleted successfully!', 'success');
-            document.getElementById('formSuccess').textContent = 'Showtime deleted successfully!';
-            document.getElementById('formSuccess').style.display = 'block';
-            await loadShowtimes();
-            setTimeout(closePanel, 1500);
-        } else {
-            showToast(result.message || 'Failed to delete showtime', 'error');
-            showError(result.message || 'Failed to delete showtime');
-        }
-    } catch (error) {
-        showToast('Failed to delete: ' + error.message, 'error');
-        showError('Failed to delete: ' + error.message);
-    } finally {
-        if (btn) {
-            btn.disabled = false;
-            btn.textContent = 'Confirm Delete';
-        }
-    }
+function renderMovieOptions(movies){
+    const c=document.getElementById('movieOptions');
+    if(!movies.length){c.innerHTML=`<div class="text-sm text-[#888] p-3">No movies found</div>`;return;}
+    c.innerHTML=movies.map(m=>`<div class="movie-option" onclick="selectMovie('${m.id}','${m.title.replace(/'/g,"\\'")}',${m.durationTime})" id="movie-opt-${m.id}">
+        <img src="${m.posterUrl||''}" style="width:32px;height:44px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'" />
+        <div><div class="text-sm font-semibold">${m.title}</div><div class="text-xs text-[#888]">${m.durationTime} min • ${m.language} • ${(m.genre||'').split(',')[0]}</div></div>
+    </div>`).join('');
 }
 
-function showError(msg) {
-    const el = document.getElementById('formError');
-    el.textContent = msg;
-    el.style.display = 'block';
+function filterMovieOptions(q){renderMovieOptions(q?allMovies.filter(m=>m.title.toLowerCase().includes(q.toLowerCase())):allMovies);}
+
+function selectMovie(id,title,duration){
+    document.getElementById('fMovieId').value=id;document.getElementById('movieSearch').value=title;selectedMovieDuration=duration;
+    document.querySelectorAll('.movie-option').forEach(o=>o.classList.remove('selected-movie'));
+    document.getElementById(`movie-opt-${id}`)?.classList.add('selected-movie');
+    document.getElementById('movieOptions').innerHTML='';updateEndTimePreview();
 }
 
-function showToast(message, type = 'info') {
-    const container = document.getElementById('toastContainer');
-    
-    const icons = {
-        success: '✓',
-        error: '✕',
-        info: 'ℹ'
-    };
-
-    const toast = document.createElement('div');
-    toast.className = `toast toast-${type}`;
-    toast.innerHTML = `
-        <div class="toast-icon">${icons[type]}</div>
-        <div>${message}</div>
-    `;
-
-    container.appendChild(toast);
-
-    // Auto-remove after 4 seconds
-    setTimeout(() => {
-        toast.classList.add('removing');
-        setTimeout(() => toast.remove(), 300);
-    }, 4000);
+function updateEndTimePreview(){
+    const date=document.getElementById('fDate').value;const time=document.getElementById('fTime').value;
+    if(!date||!time||!selectedMovieDuration){document.getElementById('endTimePreview').classList.add('hidden');return;}
+    const end=new Date(`${date}T${time}`);end.setMinutes(end.getMinutes()+selectedMovieDuration);
+    document.getElementById('endTimeVal').textContent=end.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+    document.getElementById('endTimePreview').classList.remove('hidden');
 }
 
-        function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
+function updateEditEndTimePreview(){
+    const date=document.getElementById('eDate').value;const time=document.getElementById('eTime').value;
+    if(!date||!time||!editMovieDuration)return;
+    const end=new Date(`${date}T${time}`);end.setMinutes(end.getMinutes()+editMovieDuration);
+    document.getElementById('editEndTimeVal').textContent=end.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+    document.getElementById('editEndTimePreview').classList.remove('hidden');
+}
 
-        // Set default date to today
-        document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
+function openAddPanel(){
+    isEditMode=false;editingId=null;clearAddForm();
+    document.getElementById('panelTitle').textContent='Add Showtime';document.getElementById('panelSubtitle').textContent='Schedule a movie in a hall';
+    document.getElementById('saveBtn').textContent='Create Showtime';
+    document.getElementById('addForm').classList.remove('hidden');document.getElementById('editForm').classList.add('hidden');
+    renderMovieOptions(allMovies);openPanelUI();
+}
 
-        init();
-    </script>
+function selectShowtime(id){
+    const s=allShowtimes.find(x=>x.id===id);if(!s)return;
+    isEditMode=true;editingId=s.id;editMovieDuration=s.movieDurationTime;
+    document.querySelectorAll('[id^="card-"]').forEach(c=>c.classList.remove('border-[#E50914]','bg-[#E50914]/5'));
+    document.getElementById(`card-${id}`)?.classList.add('border-[#E50914]','bg-[#E50914]/5');
+    document.getElementById('panelTitle').textContent=s.movieTitle;document.getElementById('panelSubtitle').textContent='Edit showtime details';
+    document.getElementById('saveBtn').textContent='Update Showtime';
+    document.getElementById('addForm').classList.add('hidden');document.getElementById('editForm').classList.remove('hidden');
+    document.getElementById('deleteConfirm').classList.add('hidden');
+    document.getElementById('editMovieInfo').innerHTML=`<div class="flex gap-3 items-center"><img src="${s.moviePoster}" style="width:36px;height:50px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'" /><div><div class="text-sm font-semibold">${s.movieTitle}</div><div class="text-xs text-[#888]">${s.hallName} • ${s.movieLanguage} • ${s.movieDurationTime} min</div></div></div>`;
+    const start=new Date(s.startTime);
+    document.getElementById('eDate').value=start.toISOString().split('T')[0];
+    document.getElementById('eTime').value=start.toTimeString().slice(0,5);
+    document.getElementById('ePriceStandard').value=s.priceStandard;document.getElementById('ePricePremium').value=s.pricePremium;document.getElementById('ePriceVIP').value=s.priceVIP;
+    document.getElementById('eIsActive').value=s.isActive.toString();
+    updateEditEndTimePreview();openPanelUI();
+}
+
+function openPanelUI(){
+    document.getElementById('slidePanel').classList.add('open');
+    const ov=document.getElementById('overlay');ov.classList.remove('opacity-0','pointer-events-none');ov.classList.add('opacity-100');
+}
+
+function closePanel(){
+    document.getElementById('slidePanel').classList.remove('open');
+    const ov=document.getElementById('overlay');ov.classList.add('opacity-0','pointer-events-none');ov.classList.remove('opacity-100');
+    document.querySelectorAll('[id^="card-"]').forEach(c=>c.classList.remove('border-[#E50914]','bg-[#E50914]/5'));
+    editingId=null;isEditMode=false;
+}
+
+function clearAddForm(){
+    document.getElementById('fMovieId').value='';document.getElementById('movieSearch').value='';document.getElementById('fHallId').value='';
+    document.getElementById('fDate').value='';document.getElementById('fTime').value='';
+    document.getElementById('fPriceStandard').value='';document.getElementById('fPricePremium').value='';document.getElementById('fPriceVIP').value='';
+    document.getElementById('endTimePreview').classList.add('hidden');
+    document.getElementById('formError').classList.add('hidden');document.getElementById('formSuccess').classList.add('hidden');
+    selectedMovieDuration=0;
+}
+
+function toggleDelete(){document.getElementById('deleteConfirm').classList.toggle('hidden');}
+function showError(msg){const el=document.getElementById('formError');el.textContent=msg;el.classList.remove('hidden');}
+
+async function saveShowtime(){if(isEditMode)await updateShowtime();else await createShowtime();}
+
+async function createShowtime(){
+    const movieId=document.getElementById('fMovieId').value;const hallId=document.getElementById('fHallId').value;
+    const date=document.getElementById('fDate').value;const time=document.getElementById('fTime').value;
+    const ps=parseFloat(document.getElementById('fPriceStandard').value);const pp=parseFloat(document.getElementById('fPricePremium').value);const pv=parseFloat(document.getElementById('fPriceVIP').value);
+    if(!movieId){showError('Please select a movie');showToast('Please select a movie','error');return;}
+    if(!hallId){showError('Please select a hall');showToast('Please select a hall','error');return;}
+    if(!date||!time){showError('Please set date and time');showToast('Please set date and time','error');return;}
+    if(!ps||!pp||!pv){showError('Please set all prices');showToast('Please set all prices','error');return;}
+    await submitShowtime('POST','/api/showtimes',{movieId,hallId,startTime:`${date}T${time}:00`,priceStandard:ps,pricePremium:pp,priceVIP:pv});
+}
+
+async function updateShowtime(){
+    const date=document.getElementById('eDate').value;const time=document.getElementById('eTime').value;
+    if(!date||!time){showError('Please set date and time');showToast('Please set date and time','error');return;}
+    await submitShowtime('PUT',`/api/showtimes/${editingId}`,{startTime:`${date}T${time}:00`,priceStandard:parseFloat(document.getElementById('ePriceStandard').value),pricePremium:parseFloat(document.getElementById('ePricePremium').value),priceVIP:parseFloat(document.getElementById('ePriceVIP').value),isActive:document.getElementById('eIsActive').value==='true'});
+}
+
+async function submitShowtime(method,url,data){
+    const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent=method==='POST'?'Creating...':'Updating...';document.getElementById('formError').classList.add('hidden');
+    try{
+        const res=await fetch(url,{method,headers:authHeaders(),body:JSON.stringify(data)});const result=await res.json();
+        if(result.success){showToast(isEditMode?'✅ Showtime updated!':'✅ Showtime created!','success');document.getElementById('formSuccess').textContent=isEditMode?'Showtime updated!':'Showtime created!';document.getElementById('formSuccess').classList.remove('hidden');await loadShowtimes();setTimeout(closePanel,1000);}
+        else{showError(result.message||'Failed');showToast(result.message||'Failed','error');}
+    }catch{showError('Something went wrong');showToast('Something went wrong','error');}
+    finally{btn.disabled=false;btn.textContent=isEditMode?'Update Showtime':'Create Showtime';}
+}
+
+async function deleteShowtime(){
+    if(!editingId)return;
+    try{const res=await fetch(`/api/showtimes/${editingId}`,{method:'DELETE',headers:authHeaders()});const result=await res.json();
+        if(result.success){showToast('🗑 Showtime deleted','info');await loadShowtimes();closePanel();}
+        else showToast(result.message||'Failed to delete','error');
+    }catch{showToast('Failed to delete showtime','error');}
+}
+
+document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
+init();
+</script>
 </body>
 </html>

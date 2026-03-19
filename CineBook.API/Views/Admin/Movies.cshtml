@@ -9,735 +9,444 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CineBook Admin — Movies</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --red: #E50914;
-            --red-dark: #b20710;
-            --bg: #0a0a0a;
-            --surface: #141414;
-            --surface2: #1e1e1e;
-            --surface3: #242424;
-            --border: #2a2a2a;
-            --text: #ffffff;
-            --muted: #888888;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background: var(--bg); color: var(--text);
-            font-family: 'DM Sans', sans-serif;
-            min-height: 100vh; overflow-x: hidden;
-        }
-        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
-
-        /* Navbar */
-        .navbar {
-            position: fixed; top: 0; left: 0; right: 0; height: 56px;
-            background: rgba(10,10,10,0.97);
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center;
-            padding: 0 24px; gap: 16px; z-index: 200;
-            backdrop-filter: blur(8px);
-        }
-
-        /* Sidebar */
-        .sidebar {
-            position: fixed; left: 0; top: 56px; bottom: 0;
-            width: 220px; background: var(--surface);
-            border-right: 1px solid var(--border);
-            padding: 20px 12px; z-index: 100;
-            display: flex; flex-direction: column; gap: 4px;
-        }
-
-        .nav-item {
-            display: flex; align-items: center; gap: 10px;
-            padding: 10px 12px; border-radius: 6px;
-            font-size: 14px; font-weight: 500; color: var(--muted);
-            cursor: pointer; transition: all 0.2s;
-            text-decoration: none; border: none; background: none;
-            width: 100%; text-align: left;
-        }
-        .nav-item:hover { background: var(--surface2); color: var(--text); }
-        .nav-item.active { background: rgba(229,9,20,0.12); color: var(--red); }
-
-        /* Main */
-        .main {
-            margin-left: 220px;
-            padding-top: 56px;
-            min-height: 100vh;
-            display: flex;
-        }
-
-        /* Left panel - movie list */
-        .list-panel {
-            flex: 1;
-            padding: 24px;
-            overflow-y: auto;
-            max-height: calc(100vh - 56px);
-        }
-
-        /* Right slide panel */
-        .slide-panel {
-            width: 480px;
-            background: var(--surface);
-            border-left: 1px solid var(--border);
-            position: fixed;
-            right: -480px;
-            top: 56px;
-            bottom: 0;
-            transition: right 0.35s cubic-bezier(0.4, 0, 0.2, 1);
-            z-index: 150;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .slide-panel.open { right: 0; }
-
-        .panel-header {
-            padding: 20px 24px;
-            border-bottom: 1px solid var(--border);
-            display: flex; align-items: center;
-            justify-content: space-between;
-            flex-shrink: 0;
-        }
-
-        .panel-body {
-            flex: 1;
-            overflow-y: auto;
-            padding: 24px;
-        }
-
-        .panel-footer {
-            padding: 16px 24px;
-            border-top: 1px solid var(--border);
-            display: flex; gap: 12px;
-            flex-shrink: 0;
-        }
-
-        /* Overlay */
-        .overlay {
-            position: fixed; inset: 0;
-            background: rgba(0,0,0,0.6);
-            z-index: 140;
-            opacity: 0; pointer-events: none;
-            transition: opacity 0.3s;
-        }
-        .overlay.show { opacity: 1; pointer-events: all; }
-
-        /* Input */
+        body { font-family:'DM Sans',sans-serif; }
+        .brand { font-family:'Bebas Neue',sans-serif; letter-spacing:0.05em; }
         .cinput {
-            width: 100%; background: var(--surface2);
-            border: 1px solid var(--border); border-radius: 6px;
-            padding: 11px 14px; color: var(--text);
-            font-family: 'DM Sans', sans-serif; font-size: 14px;
-            transition: border-color 0.2s, box-shadow 0.2s; outline: none;
+            width:100%; background:#1e1e1e; border:1px solid #2a2a2a; border-radius:8px;
+            padding:10px 14px; color:#fff; font-family:'DM Sans',sans-serif; font-size:14px; outline:none;
+            transition:border-color 0.2s,box-shadow 0.2s;
         }
-        .cinput:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(229,9,20,0.12); }
-        .cinput::placeholder { color: var(--muted); }
-
-        select.cinput option { background: var(--surface2); }
-
-        textarea.cinput { resize: vertical; min-height: 80px; }
-
-        /* Buttons */
-        .cbtn {
-            background: var(--red); color: white;
-            font-family: 'DM Sans', sans-serif; font-weight: 600;
-            font-size: 14px; padding: 10px 20px;
-            border: none; border-radius: 6px;
-            cursor: pointer; transition: background 0.2s;
-            white-space: nowrap;
-        }
-        .cbtn:hover { background: var(--red-dark); }
-        .cbtn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .cbtn-outline {
-            background: transparent; color: var(--muted);
-            font-family: 'DM Sans', sans-serif; font-weight: 500;
-            font-size: 14px; padding: 10px 20px;
-            border: 1px solid var(--border); border-radius: 6px;
-            cursor: pointer; transition: all 0.2s; flex: 1;
-        }
-        .cbtn-outline:hover { border-color: #555; color: white; }
-
-        .cbtn-full { flex: 2; }
-
-        /* Label */
-        label {
-            display: block; font-size: 12px; font-weight: 500;
-            color: #999; margin-bottom: 5px; letter-spacing: 0.02em;
-        }
-
-        /* Movie card in list */
-        .movie-card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 10px;
-            padding: 16px;
-            display: flex; gap: 14px;
-            cursor: pointer;
-            transition: border-color 0.2s, background 0.2s;
-            margin-bottom: 10px;
-        }
-        .movie-card:hover { border-color: #3a3a3a; background: var(--surface2); }
-        .movie-card.selected { border-color: var(--red); background: rgba(229,9,20,0.05); }
-
-        .movie-poster {
-            width: 52px; height: 72px; border-radius: 6px;
-            object-fit: cover; background: var(--surface3);
-            flex-shrink: 0; display: flex; align-items: center;
-            justify-content: center; font-size: 22px;
-        }
-
-        /* Status badge */
-        .status-badge {
-            display: inline-flex; align-items: center;
-            padding: 2px 8px; border-radius: 20px;
-            font-size: 11px; font-weight: 600; letter-spacing: 0.04em;
-        }
-        .status-NowShowing { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
-        .status-ComingSoon { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
-        .status-Archived { background: rgba(100,100,100,0.15); color: #888; border: 1px solid rgba(100,100,100,0.2); }
-
-        /* Search bar */
-        .search-bar {
-            position: relative; margin-bottom: 20px;
-        }
-        .search-bar input { padding-left: 38px; }
-        .search-icon {
-            position: absolute; left: 12px; top: 50%;
-            transform: translateY(-50%); color: var(--muted); font-size: 16px;
-        }
-
-        /* Empty state */
-        .empty {
-            text-align: center; padding: 60px 20px; color: var(--muted);
-        }
-
-        /* Alert */
-        .alert {
-            border-radius: 6px; padding: 10px 14px;
-            font-size: 13px; display: none; margin-bottom: 14px;
-        }
-        .alert-error { background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.3); color: #ff6b6b; }
-        .alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; }
-
-        /* Delete confirm */
-        .delete-confirm {
-            background: rgba(229,9,20,0.08);
-            border: 1px solid rgba(229,9,20,0.2);
-            border-radius: 8px; padding: 16px;
-            margin-top: 16px; display: none;
-        }
-
-        /* Form grid */
-        .form-grid {
-            display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
-        }
-        .form-full { grid-column: 1 / -1; }
-
-        @@keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .movie-card { animation: fadeIn 0.3s ease forwards; }
-
-        /* Stats */
-        .stat-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 8px; padding: 16px 20px;
-            display: flex; align-items: center; gap: 14px;
-        }
+        .cinput:focus { border-color:#E50914; box-shadow:0 0 0 3px rgba(229,9,20,0.12); }
+        .cinput::placeholder { color:#555; }
+        select.cinput option { background:#1e1e1e; }
+        textarea.cinput { resize:vertical; min-height:80px; }
+        /* Toast */
+        #toast-container { position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none; }
+        .toast { pointer-events:all;min-width:280px;max-width:340px;background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,0.6);animation:toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;font-size:14px;color:#fff; }
+        .toast.removing { animation:toastOut 0.25s ease forwards; }
+        .toast-success { border-left:3px solid #22c55e; }
+        .toast-error   { border-left:3px solid #E50914; }
+        .toast-info    { border-left:3px solid #3b82f6; }
+        @@keyframes toastIn  { from{opacity:0;transform:translateX(100px);}to{opacity:1;transform:translateX(0);} }
+        @@keyframes toastOut { from{opacity:1;transform:translateX(0);}to{opacity:0;transform:translateX(100px);} }
+        @@keyframes fadeIn   { from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);} }
+        .fade-in { animation:fadeIn 0.3s ease forwards; }
+        /* Slide panel */
+        .slide-panel { transform:translateX(100%); transition:transform 0.35s cubic-bezier(0.4,0,0.2,1); }
+        .slide-panel.open { transform:translateX(0); }
+        /* Mobile sidebar */
+        .sidebar-overlay { display:none; position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:80; }
+        .sidebar-overlay.show { display:block; }
+        @@keyframes spin { to{transform:rotate(360deg);} }
+        .spinner { width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle; }
     </style>
 </head>
-<body>
+<body class="bg-[#0a0a0a] text-white min-h-screen">
 
-    <!-- Navbar -->
-    <nav class="navbar">
-        <span class="brand" style="font-size:22px; color:var(--red);">CINEBOOK</span>
-        <span style="font-size:12px; color:var(--border); margin:0 4px;">|</span>
-        <span style="font-size:13px; color:var(--muted);">Admin Panel</span>
-        <div style="flex:1;"></div>
-        <span id="adminName" style="font-size:13px; color:var(--muted);"></span>
-        <button onclick="logout()" style="background:none; border:1px solid var(--border); color:var(--muted); font-family:'DM Sans',sans-serif; font-size:13px; padding:6px 14px; border-radius:6px; cursor:pointer;">
-            Sign Out
-        </button>
-    </nav>
+<div id="toast-container"></div>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div style="font-size:11px; color:var(--muted); letter-spacing:0.1em; padding:4px 12px 12px;">MANAGE</div>
-        <a class="nav-item active" href="/Admin/Movies">🎬 Movies</a>
-        <a class="nav-item" href="/Admin/Approvals">🏟 Cinema Approvals</a>
-        <div style="flex:1;"></div>
-        <a class="nav-item" href="/Admin/Movies">🏠 Dashboard</a>
-    </aside>
+<!-- Navbar -->
+<nav class="fixed top-0 left-0 right-0 h-14 bg-[#0a0a0a]/95 border-b border-[#2a2a2a] flex items-center px-4 sm:px-6 gap-4 z-50 backdrop-blur-sm">
+    <!-- Mobile hamburger -->
+    <button id="sidebarToggle" onclick="toggleSidebar()" class="sm:hidden text-[#888] text-xl p-1">☰</button>
+    <span class="brand text-2xl text-[#E50914]">CINEBOOK</span>
+    <span class="hidden sm:block text-xs text-[#2a2a2a]">|</span>
+    <span class="hidden sm:block text-sm text-[#888]">Admin Panel</span>
+    <div class="flex-1"></div>
+    <span id="adminName" class="hidden sm:block text-sm text-[#888]"></span>
+    <button onclick="logout()" class="text-sm text-[#888] border border-[#2a2a2a] rounded-md px-3 py-1.5 hover:border-[#555] hover:text-white transition-all">Sign Out</button>
+</nav>
 
-    <!-- Main -->
-    <div class="main">
+<!-- Mobile Sidebar Overlay -->
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-        <!-- List Panel -->
-        <div class="list-panel">
+<!-- Sidebar -->
+<aside id="sidebar" class="fixed left-0 top-14 bottom-0 w-56 bg-[#141414] border-r border-[#2a2a2a] px-3 py-5 z-[100] flex flex-col gap-1
+                           -translate-x-full sm:translate-x-0 transition-transform duration-300">
+    <div class="text-xs text-[#555] tracking-widest px-3 pb-3">MANAGE</div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#E50914] bg-[#E50914]/10" href="/Admin/Movies">🎬 Movies</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Admin/Approvals">🏟 Cinema Approvals</a>
+    <div class="flex-1"></div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/">🏠 Home</a>
+</aside>
 
-            <!-- Header -->
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-                <div>
-                    <h1 style="font-size:22px; font-weight:700;">Movie Management</h1>
-                    <p style="font-size:13px; color:var(--muted); margin-top:2px;">Add, edit and manage movies</p>
-                </div>
-                <button class="cbtn" onclick="openPanel()">+ Add Movie</button>
+<!-- Main -->
+<div class="sm:ml-56 pt-14 flex min-h-screen">
+    <div class="flex-1 p-4 sm:p-6 overflow-y-auto max-h-[calc(100vh-56px]">
+
+        <!-- Header -->
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-xl font-bold">Movie Management</h1>
+                <p class="text-sm text-[#888] mt-0.5">Add, edit and manage movies</p>
             </div>
+            <button onclick="openPanel()" class="bg-[#E50914] hover:bg-[#b20710] text-white font-semibold text-sm px-5 py-2.5 rounded-lg transition-colors w-full sm:w-auto">+ Add Movie</button>
+        </div>
 
-            <!-- Stats -->
-            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px;">
-                <div class="stat-card">
-                    <div style="font-size:28px;">🎬</div>
-                    <div>
-                        <div style="font-size:22px; font-weight:700;" id="totalCount">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Total Movies</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div style="font-size:28px;">🟢</div>
-                    <div>
-                        <div style="font-size:22px; font-weight:700;" id="showingCount">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Now Showing</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div style="font-size:28px;">🔵</div>
-                    <div>
-                        <div style="font-size:22px; font-weight:700;" id="comingCount">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Coming Soon</div>
-                    </div>
-                </div>
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-3 mb-6">
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-3xl">🎬</div>
+                <div><div class="text-xl font-bold" id="totalCount">0</div><div class="text-xs text-[#888]">Total</div></div>
             </div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-3xl">🟢</div>
+                <div><div class="text-xl font-bold" id="showingCount">0</div><div class="text-xs text-[#888]">Showing</div></div>
+            </div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-3xl">🔵</div>
+                <div><div class="text-xl font-bold" id="comingCount">0</div><div class="text-xs text-[#888]">Coming</div></div>
+            </div>
+        </div>
 
-            <!-- Search + Filter -->
-            <div style="display:flex; gap:10px; margin-bottom:16px;">
-                <div class="search-bar" style="flex:1; margin-bottom:0;">
-                    <span class="search-icon">🔍</span>
-                    <input class="cinput" type="text" id="searchInput"
-                           placeholder="Search movies, directors, cast..."
-                           oninput="filterMovies()" />
-                </div>
-                <select class="cinput" id="statusFilter" onchange="filterMovies()"
-                        style="width:160px;">
-                    <option value="">All Status</option>
-                    <option value="NowShowing">Now Showing</option>
+        <!-- Search + Filter -->
+        <div class="flex flex-col sm:flex-row gap-3 mb-5">
+            <div class="relative flex-1">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#555]">🔍</span>
+                <input class="cinput pl-9" type="text" id="searchInput" placeholder="Search movies..." oninput="filterMovies()" />
+            </div>
+            <select class="cinput sm:w-44" id="statusFilter" onchange="filterMovies()">
+                <option value="">All Status</option>
+                <option value="NowShowing">Now Showing</option>
+                <option value="ComingSoon">Coming Soon</option>
+                <option value="Archived">Archived</option>
+            </select>
+        </div>
+
+        <!-- Movie List -->
+        <div id="movieList">
+            <div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🎬</div><div>Loading movies...</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Overlay -->
+<div class="fixed inset-0 bg-black/60 z-40 opacity-0 pointer-events-none transition-opacity duration-300" id="overlay" onclick="closePanel()"></div>
+
+<!-- Slide Panel -->
+<div class="slide-panel fixed right-0 top-14 bottom-0 w-full sm:w-[480px] bg-[#141414] border-l border-[#2a2a2a] z-50 flex flex-col" id="slidePanel">
+    <div class="p-5 border-b border-[#2a2a2a] flex items-center justify-between flex-shrink-0">
+        <div>
+            <div class="text-base font-semibold" id="panelTitle">Add Movie</div>
+            <div class="text-xs text-[#888] mt-0.5" id="panelSubtitle">Fill in the movie details</div>
+        </div>
+        <button onclick="closePanel()" class="text-[#888] hover:text-white text-2xl leading-none transition-colors">✕</button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-5">
+        <div id="formError" class="hidden bg-[#E50914]/10 border border-[#E50914]/30 text-[#ff6b6b] rounded-lg px-4 py-2.5 text-sm mb-4"></div>
+        <div id="formSuccess" class="hidden bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg px-4 py-2.5 text-sm mb-4"></div>
+
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Movie Title *</label>
+                <input class="cinput" type="text" id="fTitle" placeholder="e.g. Avengers: Endgame" />
+            </div>
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Description *</label>
+                <textarea class="cinput" id="fDescription" placeholder="Movie synopsis..."></textarea>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Language *</label>
+                <input class="cinput" type="text" id="fLanguage" placeholder="e.g. English, Hindi" />
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Genre *</label>
+                <input class="cinput" type="text" id="fGenre" placeholder="e.g. Action, Drama" />
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Certificate *</label>
+                <select class="cinput" id="fCertificate">
+                    <option value="">Select rating</option>
+                    <option value="U">U — Universal</option>
+                    <option value="UA">UA — Parental Guidance</option>
+                    <option value="A">A — Adults Only</option>
+                    <option value="S">S — Special</option>
+                </select>
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Director *</label>
+                <input class="cinput" type="text" id="fDirector" placeholder="Director name" />
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Duration (min) *</label>
+                <input class="cinput" type="number" id="fDuration" placeholder="e.g. 150" min="1" />
+            </div>
+            <div>
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Status *</label>
+                <select class="cinput" id="fStatus">
                     <option value="ComingSoon">Coming Soon</option>
+                    <option value="NowShowing">Now Showing</option>
                     <option value="Archived">Archived</option>
                 </select>
             </div>
-
-            <!-- Movie List -->
-            <div id="movieList">
-                <div class="empty">
-                    <div style="font-size:40px; margin-bottom:12px;">🎬</div>
-                    <div style="font-size:16px; font-weight:500;">Loading movies...</div>
-                </div>
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Cast *</label>
+                <input class="cinput" type="text" id="fCast" placeholder="e.g. Robert Downey Jr., Chris Evans" />
             </div>
-        </div>
-    </div>
-
-    <!-- Overlay -->
-    <div class="overlay" id="overlay" onclick="closePanel()"></div>
-
-    <!-- Slide Panel -->
-    <div class="slide-panel" id="slidePanel">
-
-        <div class="panel-header">
             <div>
-                <div style="font-size:17px; font-weight:600;" id="panelTitle">Add Movie</div>
-                <div style="font-size:12px; color:var(--muted); margin-top:2px;" id="panelSubtitle">Fill in the movie details</div>
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Release Date *</label>
+                <input class="cinput" type="date" id="fReleaseDate" />
             </div>
-            <button onclick="closePanel()"
-                style="background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer; line-height:1; padding:4px;">
-                ✕
-            </button>
-        </div>
-
-        <div class="panel-body">
-
-            <div class="alert alert-error" id="formError"></div>
-            <div class="alert alert-success" id="formSuccess"></div>
-
-            <div class="form-grid">
-                <div class="form-full">
-                    <label>Movie Title *</label>
-                    <input class="cinput" type="text" id="fTitle" placeholder="e.g. Avengers: Endgame" />
-                </div>
-
-                <div class="form-full">
-                    <label>Description *</label>
-                    <textarea class="cinput" id="fDescription" placeholder="Movie synopsis..."></textarea>
-                </div>
-
-                <div>
-                    <label>Language *</label>
-                    <input class="cinput" type="text" id="fLanguage" placeholder="e.g. English, Hindi" />
-                </div>
-
-                <div>
-                    <label>Genre *</label>
-                    <input class="cinput" type="text" id="fGenre" placeholder="e.g. Action, Drama" />
-                </div>
-
-                <div>
-                    <label>Certificate Rating *</label>
-                    <select class="cinput" id="fCertificate">
-                        <option value="">Select rating</option>
-                        <option value="U">U — Universal</option>
-                        <option value="UA">UA — Parental Guidance</option>
-                        <option value="A">A — Adults Only</option>
-                        <option value="S">S — Special</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label>Director *</label>
-                    <input class="cinput" type="text" id="fDirector" placeholder="Director name" />
-                </div>
-
-                <div>
-                    <label>Duration (minutes) *</label>
-                    <input class="cinput" type="number" id="fDuration" placeholder="e.g. 150" min="1" />
-                </div>
-
-                <div class="form-full">
-                    <label>Cast *</label>
-                    <input class="cinput" type="text" id="fCast" placeholder="e.g. Robert Downey Jr., Chris Evans" />
-                </div>
-
-                <div>
-                    <label>Release Date *</label>
-                    <input class="cinput" type="date" id="fReleaseDate" />
-                </div>
-
-                <div>
-                    <label>Status *</label>
-                    <select class="cinput" id="fStatus">
-                        <option value="ComingSoon">Coming Soon</option>
-                        <option value="NowShowing">Now Showing</option>
-                        <option value="Archived">Archived</option>
-                    </select>
-                </div>
-
-                <div class="form-full">
-                    <label>Poster URL *</label>
-                    <input class="cinput" type="url" id="fPosterUrl" placeholder="https://..." />
-                </div>
-
-                <div class="form-full">
-                    <label>Trailer URL</label>
-                    <input class="cinput" type="url" id="fTrailerUrl" placeholder="https://youtube.com/..." />
-                </div>
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Poster URL *</label>
+                <input class="cinput" type="url" id="fPosterUrl" placeholder="https://..." />
             </div>
-
-            <!-- Delete confirmation (shows only in edit mode) -->
-            <div class="delete-confirm" id="deleteConfirm">
-                <div style="font-size:14px; font-weight:600; color:#f87171; margin-bottom:8px;">⚠ Delete Movie</div>
-                <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">
-                    This will soft delete the movie. It won't appear to users but data is preserved.
-                </div>
-                <button class="cbtn" onclick="deleteMovie()"
-                    style="background:#dc2626; width:100%; font-size:13px; padding:10px;">
-                    Confirm Delete
-                </button>
+            <div class="sm:col-span-2">
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Trailer URL</label>
+                <input class="cinput" type="url" id="fTrailerUrl" placeholder="https://youtube.com/..." />
             </div>
         </div>
 
-        <div class="panel-footer">
-            <button class="cbtn-outline" onclick="closePanel()">Cancel</button>
-            <button class="cbtn cbtn-full" id="saveBtn" onclick="saveMovie()">
-                Save Movie
-            </button>
+        <!-- Delete confirm (edit mode) -->
+        <div id="deleteConfirm" class="hidden mt-5 bg-[#E50914]/8 border border-[#E50914]/20 rounded-xl p-4">
+            <div class="text-sm font-semibold text-[#f87171] mb-2">⚠ Delete Movie</div>
+            <div class="text-xs text-[#888] mb-3">This will soft delete the movie. Data is preserved.</div>
+            <button onclick="deleteMovie()" class="w-full bg-red-700 hover:bg-red-800 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors">Confirm Delete</button>
         </div>
     </div>
 
-    <script>
-        const token = localStorage.getItem('token');
-        if (!token) window.location.href = '/Auth/Login';
+    <div class="p-4 border-t border-[#2a2a2a] flex gap-3 flex-shrink-0">
+        <button onclick="closePanel()" class="flex-1 text-[#888] border border-[#2a2a2a] hover:border-[#555] hover:text-white rounded-lg py-2.5 text-sm font-medium transition-all">Cancel</button>
+        <button id="saveBtn" onclick="saveMovie()" class="flex-[2] bg-[#E50914] hover:bg-[#b20710] text-white font-semibold text-sm py-2.5 rounded-lg transition-colors">Save Movie</button>
+    </div>
+</div>
 
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
-        if (user.role !== 'Admin') window.location.href = '/Home/Index';
-        document.getElementById('adminName').textContent = user.fullName || 'Admin';
+<script>
+function showToast(message, type = 'info', duration = 4000) {
+    const icons = { success:'✓', error:'✕', info:'ℹ', warning:'⚠' };
+    const colors = { success:'#22c55e', error:'#E50914', info:'#3b82f6', warning:'#f59e0b' };
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">${icons[type]}</div><div style="flex:1;line-height:1.5;">${message}</div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:0;flex-shrink:0;">✕</button>`;
+    c.appendChild(t);
+    setTimeout(() => { t.classList.add('removing'); setTimeout(() => t.remove(), 250); }, duration);
+}
 
-        let allMovies = [];
-        let editingId = null;
+function toggleSidebar() {
+    const s = document.getElementById('sidebar');
+    const o = document.getElementById('sidebarOverlay');
+    const open = !s.classList.contains('-translate-x-full');
+    s.classList.toggle('-translate-x-full', open);
+    o.classList.toggle('show', !open);
+}
 
-        // Status mapping (string to integer)
-        const statusMap = {
-            'ComingSoon': 0,
-            'NowShowing': 1,
-            'Archived': 2
-        };
+const token = localStorage.getItem('token');
+if (!token) window.location.href = '/Auth/Login';
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+if (user.role !== 'Admin') window.location.href = '/Home/Index';
+document.getElementById('adminName').textContent = user.fullName || 'Admin';
 
-        // Reverse mapping (integer to string) ✅
-        const statusReverseMap = {
-            0: 'ComingSoon',
-            1: 'NowShowing',
-            2: 'Archived'
-        };
+let allMovies = [], editingId = null;
+const statusMap = { 'ComingSoon':0, 'NowShowing':1, 'Archived':2 };
+const statusReverseMap = { 0:'ComingSoon', 1:'NowShowing', 2:'Archived' };
+const statusLabels = { 'NowShowing':'Now Showing', 'ComingSoon':'Coming Soon', 'Archived':'Archived' };
+const statusColors = { 'NowShowing':'text-green-400 bg-green-400/10 border-green-400/20', 'ComingSoon':'text-blue-400 bg-blue-400/10 border-blue-400/20', 'Archived':'text-[#888] bg-[#888]/10 border-[#888]/20' };
 
-        function authHeaders() {
-            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+function authHeaders() { return { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` }; }
+
+async function loadMovies() {
+    try {
+        const res = await fetch('/api/movies', { headers: authHeaders() });
+        const data = await res.json();
+         if (data.success) {
+            // Convert numeric status to string
+            allMovies = data.data.map(m => ({
+                ...m,
+                status: statusReverseMap[m.status] || m.status  // Convert 0→ComingSoon, 1→NowShowing, 2→Archived
+            }));
+            updateStats();
+            renderMovies(allMovies);
         }
+    } catch { showToast('Failed to load movies', 'error'); }
+}
 
-        // ── Load Movies ───────────────────────────────────────
-        async function loadMovies() {
-            try {
-                const res = await fetch('/api/movies', { headers: authHeaders() });
-                const data = await res.json();
+function updateStats() {
+    document.getElementById('totalCount').textContent = allMovies.length;
+    document.getElementById('showingCount').textContent = allMovies.filter(m => m.status === 'NowShowing').length;
+    document.getElementById('comingCount').textContent = allMovies.filter(m => m.status === 'ComingSoon').length;
+}
 
-                if (data.success) {
-                    allMovies = data.data;
-                    updateStats();
-                    renderMovies(allMovies);
-                }
-            } catch {
-                document.getElementById('movieList').innerHTML =
-                    `<div class="empty"><div style="font-size:32px">⚠</div><div>Failed to load movies</div></div>`;
-            }
-        }
+function filterMovies() {
+    const s = document.getElementById('searchInput').value.toLowerCase();
+    const st = document.getElementById('statusFilter').value;
+    let f = allMovies;
+    if (s) f = f.filter(m => m.title.toLowerCase().includes(s) || m.director.toLowerCase().includes(s) || m.cast.toLowerCase().includes(s));
+    if (st) f = f.filter(m => m.status === st);
+    renderMovies(f);
+}
 
-        function updateStats() {
-            document.getElementById('totalCount').textContent = allMovies.length;
-            document.getElementById('showingCount').textContent =
-                allMovies.filter(m => m.status === 'NowShowing').length;
-            document.getElementById('comingCount').textContent =
-                allMovies.filter(m => m.status === 'ComingSoon').length;
-        }
-
-        function filterMovies() {
-            const search = document.getElementById('searchInput').value.toLowerCase();
-            const status = document.getElementById('statusFilter').value;
-
-            let filtered = allMovies;
-            if (search) filtered = filtered.filter(m =>
-                m.title.toLowerCase().includes(search) ||
-                m.director.toLowerCase().includes(search) ||
-                m.cast.toLowerCase().includes(search)
-            );
-            if (status) filtered = filtered.filter(m => m.status === status);
-
-            renderMovies(filtered);
-        }
-
-        function renderMovies(movies) {
-            const list = document.getElementById('movieList');
-
-            if (movies.length === 0) {
-                list.innerHTML = `
-                    <div class="empty">
-                        <div style="font-size:40px; margin-bottom:12px;">🎬</div>
-                        <div style="font-size:16px; font-weight:500; margin-bottom:6px;">No movies found</div>
-                        <div style="font-size:13px;">Add your first movie using the button above</div>
-                    </div>`;
-                return;
-            }
-
-            list.innerHTML = movies.map(m => `
-                <div class="movie-card" onclick="selectMovie('${m.id}')" id="card-${m.id}">
-                    <div class="movie-poster">
-                        ${m.posterUrl
-                            ? `<img src="${m.posterUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:6px;"
-                               onerror="this.parentElement.textContent='🎬'" />`
-                            : '🎬'}
-                    </div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="display:flex; align-items:flex-start; justify-content:space-between; gap:8px;">
-                            <div style="font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                                ${m.title}
-                            </div>
-                            <span class="status-badge status-${m.status}">${m.statusLabel}</span>
-                        </div>
-                        <div style="font-size:12px; color:var(--muted); margin-top:4px;">${m.director} • ${m.durationTime} min • ${m.certificateRating}</div>
-                        <div style="font-size:12px; color:var(--muted); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${m.genre}</div>
-                    </div>
+function renderMovies(movies) {
+    const list = document.getElementById('movieList');
+    if (!movies.length) {
+        list.innerHTML = `<div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🎬</div><div class="text-base font-medium mb-1">No movies found</div><div class="text-sm">Add your first movie above</div></div>`;
+        return;
+    }
+    list.innerHTML = movies.map(m => {
+        const s = m.status; const clr = statusColors[s] || statusColors.Archived;
+        return `<div class="fade-in bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 mb-3 flex gap-4 cursor-pointer hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-all" onclick="selectMovie('${m.id}')" id="card-${m.id}">
+            <div class="w-12 h-16 rounded-lg bg-[#222] flex-shrink-0 flex items-center justify-center overflow-hidden">
+                ${m.posterUrl ? `<img src="${m.posterUrl}" class="w-full h-full object-cover rounded-lg" onerror="this.parentElement.textContent='🎬'" />` : '🎬'}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-start justify-between gap-2 mb-1">
+                    <div class="font-semibold text-sm sm:text-base truncate">${m.title}</div>
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 ${clr}">${statusLabels[s] || s}</span>
                 </div>
-            `).join('');
+                <div class="text-xs text-[#888]">${m.director} • ${m.durationTime} min • ${m.certificateRating}</div>
+                <div class="text-xs text-[#555] mt-0.5 truncate">${m.genre}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+function openPanel(movie = null) {
+    clearForm(); editingId = null;
+    if (movie) {
+        editingId = movie.id;
+        document.getElementById('panelTitle').textContent = 'Edit Movie';
+        document.getElementById('panelSubtitle').textContent = 'Update movie details';
+        document.getElementById('saveBtn').textContent = 'Update Movie';
+        document.getElementById('deleteConfirm').classList.remove('hidden');
+        fillForm(movie);
+    } else {
+        document.getElementById('panelTitle').textContent = 'Add Movie';
+        document.getElementById('panelSubtitle').textContent = 'Fill in the movie details';
+        document.getElementById('saveBtn').textContent = 'Save Movie';
+        document.getElementById('deleteConfirm').classList.add('hidden');
+    }
+    document.getElementById('slidePanel').classList.add('open');
+    const ov = document.getElementById('overlay');
+    ov.classList.remove('opacity-0','pointer-events-none');
+    ov.classList.add('opacity-100');
+}
+
+function closePanel() {
+    document.getElementById('slidePanel').classList.remove('open');
+    const ov = document.getElementById('overlay');
+    ov.classList.add('opacity-0','pointer-events-none');
+    ov.classList.remove('opacity-100');
+    document.querySelectorAll('[id^="card-"]').forEach(c => c.classList.remove('border-[#E50914]','bg-[#E50914]/5'));
+    editingId = null;
+}
+
+function selectMovie(id) {
+    const m = allMovies.find(x => x.id === id);
+    if (!m) return;
+    document.querySelectorAll('[id^="card-"]').forEach(c => c.classList.remove('border-[#E50914]','bg-[#E50914]/5'));
+    document.getElementById(`card-${id}`)?.classList.add('border-[#E50914]','bg-[#E50914]/5');
+    openPanel(m);
+}
+
+function clearForm() {
+    ['fTitle','fDescription','fLanguage','fGenre','fDirector','fCast','fPosterUrl','fTrailerUrl'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('fCertificate').value = '';
+    document.getElementById('fStatus').value = 'ComingSoon';
+    document.getElementById('fDuration').value = '';
+    document.getElementById('fReleaseDate').value = '';
+    document.getElementById('formError').classList.add('hidden');
+    document.getElementById('formSuccess').classList.add('hidden');
+}
+
+function fillForm(m) {
+    document.getElementById('fTitle').value = m.title || '';
+    document.getElementById('fDescription').value = m.description || '';
+    document.getElementById('fLanguage').value = m.language || '';
+    document.getElementById('fGenre').value = m.genre || '';
+    document.getElementById('fCertificate').value = m.certificateRating || '';
+    document.getElementById('fDirector').value = m.director || '';
+    document.getElementById('fDuration').value = m.durationTime || '';
+    document.getElementById('fCast').value = m.cast || '';
+    document.getElementById('fStatus').value = statusReverseMap[m.status] || 'ComingSoon';
+    document.getElementById('fPosterUrl').value = m.posterUrl || '';
+    document.getElementById('fTrailerUrl').value = m.trailerUrl || '';
+    if (m.releaseDate) document.getElementById('fReleaseDate').value = new Date(m.releaseDate).toISOString().split('T')[0];
+}
+
+function getFormData() {
+    return {
+        title: document.getElementById('fTitle').value.trim(),
+        description: document.getElementById('fDescription').value.trim(),
+        language: document.getElementById('fLanguage').value.trim(),
+        genre: document.getElementById('fGenre').value.trim(),
+        certificateRating: document.getElementById('fCertificate').value,
+        director: document.getElementById('fDirector').value.trim(),
+        durationTime: parseInt(document.getElementById('fDuration').value),
+        cast: document.getElementById('fCast').value.trim(),
+        releaseDate: document.getElementById('fReleaseDate').value,
+        status: statusMap[document.getElementById('fStatus').value],
+        posterUrl: document.getElementById('fPosterUrl').value.trim(),
+        trailerUrl: document.getElementById('fTrailerUrl').value.trim() || null
+    };
+}
+
+function validate(d) {
+    if (!d.title) return 'Title is required';
+    if (!d.description) return 'Description is required';
+    if (!d.language) return 'Language is required';
+    if (!d.genre) return 'Genre is required';
+    if (!d.certificateRating) return 'Certificate rating is required';
+    if (!d.director) return 'Director is required';
+    if (!d.durationTime || d.durationTime < 1) return 'Valid duration required';
+    if (!d.cast) return 'Cast is required';
+    if (!d.releaseDate) return 'Release date is required';
+    if (!d.posterUrl) return 'Poster URL is required';
+    return null;
+}
+
+async function saveMovie() {
+    const data = getFormData();
+    const err = validate(data);
+    if (err) { showError(err); showToast(err, 'error'); return; }
+    document.getElementById('formError').classList.add('hidden');
+    const btn = document.getElementById('saveBtn');
+    btn.disabled = true; btn.textContent = editingId ? 'Updating...' : 'Saving...';
+    try {
+        const url = editingId ? `/api/movies/${editingId}` : '/api/movies';
+        const method = editingId ? 'PUT' : 'POST';
+        const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(data) });
+        const result = await res.json();
+        if (result.success) {
+            showToast(editingId ? '✅ Movie updated successfully!' : '✅ Movie added successfully!', 'success');
+            await loadMovies();
+            setTimeout(closePanel, 800);
+        } else {
+            showError(result.message || 'API Error');
+            showToast(result.message || 'Failed to save movie', 'error');
         }
+    } catch (e) {
+        showError('Network error: ' + e.message);
+        showToast('Network error. Please try again.', 'error');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = editingId ? 'Update Movie' : 'Save Movie';
+    }
+}
 
-        // ── Panel Controls ────────────────────────────────────
-        function openPanel(movie = null) {
-            clearForm();
-            editingId = null;
+async function deleteMovie() {
+    if (!editingId) return;
+    if (!confirm('Are you sure you want to delete this movie?')) return;
+    try {
+        const res = await fetch(`/api/movies/${editingId}`, { method:'DELETE', headers: authHeaders() });
+        const result = await res.json();
+        if (result.success) {
+            showToast('🗑 Movie deleted successfully', 'info');
+            await loadMovies();
+            closePanel();
+        } else { showToast(result.message || 'Failed to delete', 'error'); }
+    } catch { showToast('Failed to delete movie', 'error'); }
+}
 
-            if (movie) {
-                editingId = movie.id;
-                document.getElementById('panelTitle').textContent = 'Edit Movie';
-                document.getElementById('panelSubtitle').textContent = 'Update movie details';
-                document.getElementById('saveBtn').textContent = 'Update Movie';
-                document.getElementById('deleteConfirm').style.display = 'block';
-                fillForm(movie);
-            } else {
-                document.getElementById('panelTitle').textContent = 'Add Movie';
-                document.getElementById('panelSubtitle').textContent = 'Fill in the movie details';
-                document.getElementById('saveBtn').textContent = 'Save Movie';
-                document.getElementById('deleteConfirm').style.display = 'none';
-            }
+function showError(msg) {
+    const el = document.getElementById('formError');
+    el.textContent = msg; el.classList.remove('hidden');
+}
 
-            document.getElementById('slidePanel').classList.add('open');
-            document.getElementById('overlay').classList.add('show');
-        }
-
-        function closePanel() {
-            document.getElementById('slidePanel').classList.remove('open');
-            document.getElementById('overlay').classList.remove('show');
-            document.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
-            editingId = null;
-        }
-
-        function selectMovie(id) {
-            const movie = allMovies.find(m => m.id === id);
-            if (!movie) return;
-
-            document.querySelectorAll('.movie-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById(`card-${id}`)?.classList.add('selected');
-            openPanel(movie);
-        }
-
-        // ── Form Helpers ──────────────────────────────────────
-        function clearForm() {
-            ['fTitle','fDescription','fLanguage','fGenre','fCertificate','fDirector',
-             'fDuration','fCast','fPosterUrl','fTrailerUrl'].forEach(id => {
-                document.getElementById(id).value = '';
-            });
-            document.getElementById('fStatus').value = 'ComingSoon';
-            document.getElementById('fReleaseDate').value = '';
-            document.getElementById('formError').style.display = 'none';
-            document.getElementById('formSuccess').style.display = 'none';
-        }
-
-        function fillForm(m) {
-            document.getElementById('fTitle').value = m.title || '';
-            document.getElementById('fDescription').value = m.description || '';
-            document.getElementById('fLanguage').value = m.language || '';
-            document.getElementById('fGenre').value = m.genre || '';
-            document.getElementById('fCertificate').value = m.certificateRating || '';
-            document.getElementById('fDirector').value = m.director || '';
-            document.getElementById('fDuration').value = m.durationTime || '';
-            document.getElementById('fCast').value = m.cast || '';
-            // ✅ Convert integer status to string
-            document.getElementById('fStatus').value = statusReverseMap[m.status] || 'ComingSoon';
-            document.getElementById('fPosterUrl').value = m.posterUrl || '';
-            document.getElementById('fTrailerUrl').value = m.trailerUrl || '';
-            if (m.releaseDate) {
-                document.getElementById('fReleaseDate').value =
-                    new Date(m.releaseDate).toISOString().split('T')[0];
-            }
-        }
-
-        function getFormData() {
-            return {
-                title: document.getElementById('fTitle').value.trim(),
-                description: document.getElementById('fDescription').value.trim(),
-                language: document.getElementById('fLanguage').value.trim(),
-                genre: document.getElementById('fGenre').value.trim(),
-                certificateRating: document.getElementById('fCertificate').value,
-                director: document.getElementById('fDirector').value.trim(),
-                durationTime: parseInt(document.getElementById('fDuration').value),  
-                cast: document.getElementById('fCast').value.trim(),
-                releaseDate: document.getElementById('fReleaseDate').value,
-                status: statusMap[document.getElementById('fStatus').value],  // ✅ String to integer
-                posterUrl: document.getElementById('fPosterUrl').value.trim(),
-                trailerUrl: document.getElementById('fTrailerUrl').value.trim() || null
-            };
-        }
-
-        function validateForm(data) {
-            if (!data.title) return 'Title is required';
-            if (!data.description) return 'Description is required';
-            if (!data.language) return 'Language is required';
-            if (!data.genre) return 'Genre is required';
-            if (!data.certificateRating) return 'Certificate rating is required';
-            if (!data.director) return 'Director is required';
-            if (!data.durationTime || data.durationTime < 1) return 'Valid duration is required';
-            if (!data.cast) return 'Cast is required';
-            if (!data.releaseDate) return 'Release date is required';
-            if (!data.posterUrl) return 'Poster URL is required';
-            return null;
-        }
-
-        // ── Save Movie ────────────────────────────────────────
-        async function saveMovie() {
-            const data = getFormData();
-            const error = validateForm(data);
-
-            if (error) {
-                document.getElementById('formError').textContent = error;
-                document.getElementById('formError').style.display = 'block';
-                return;
-            }
-
-            document.getElementById('formError').style.display = 'none';
-            const btn = document.getElementById('saveBtn');
-            btn.disabled = true;
-            btn.textContent = editingId ? 'Updating...' : 'Saving...';
-
-            try {
-                const url = editingId ? `/api/movies/${editingId}` : '/api/movies';
-                const method = editingId ? 'PUT' : 'POST';
-
-                console.log('Sending data:', data); 
-                const res = await fetch(url, {
-                    method,
-                    headers: authHeaders(),
-                    body: JSON.stringify(data)
-                });
-
-                const result = await res.json();
-                console.log('API Response:', result);  
-
-                if (result.success) {
-                    document.getElementById('formSuccess').textContent =
-                        editingId ? 'Movie updated!' : 'Movie added!';
-                    document.getElementById('formSuccess').style.display = 'block';
-                    await loadMovies();
-                    setTimeout(closePanel, 1000);
-                } else {
-                    document.getElementById('formError').textContent = result.message || 'API Error';
-                    document.getElementById('formError').style.display = 'block';
-                }
-            } catch (err) {
-                document.getElementById('formError').textContent = 'Network error: ' + err.message;
-                document.getElementById('formError').style.display = 'block';
-                console.error('Save error:', err);
-            } finally {
-                btn.disabled = false;
-                btn.textContent = editingId ? 'Update Movie' : 'Save Movie';
-            }
-        }
-
-        // ── Delete Movie ──────────────────────────────────────
-        async function deleteMovie() {
-            if (!editingId) return;
-
-            try {
-                const res = await fetch(`/api/movies/${editingId}`, {
-                    method: 'DELETE',
-                    headers: authHeaders()
-                });
-
-                const result = await res.json();
-
-                if (result.success) {
-                    await loadMovies();
-                    closePanel();
-                }
-            } catch {
-                alert('Failed to delete movie');
-            }
-        }
-
-        function logout() {
-            localStorage.clear();
-            window.location.href = '/Auth/Login';
-        }
-
-        // Init
-        loadMovies();
-    </script>
+function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
+loadMovies();
+</script>
 </body>
 </html>

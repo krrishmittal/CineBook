@@ -30,11 +30,4 @@
     <ProjectReference Include="..\CineBook.Domain\CineBook.Domain.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Folder Include="Identity\" />
-    <Folder Include="BackgroundJobs\" />
-    <Folder Include="Repositories\" />
-    <Folder Include="Persistence\Configurations\" />
-  </ItemGroup>
-
 </Project>

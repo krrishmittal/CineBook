@@ -9,364 +9,187 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CineBook — Login</title>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,400&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --red: #E50914;
-            --red-dark: #b20710;
-            --bg: #0a0a0a;
-            --surface: #141414;
-            --surface2: #1e1e1e;
-            --border: #2a2a2a;
-            --text: #ffffff;
-            --muted: #888888;
-        }
-
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        body {
-            background-color: var(--bg);
-            color: var(--text);
-            font-family: 'DM Sans', sans-serif;
-            min-height: 100vh;
-            overflow-x: hidden;
-        }
-
-        .brand {
-            font-family: 'Bebas Neue', sans-serif;
-            letter-spacing: 0.05em;
-        }
-
-        /* Cinematic background */
-        .bg-cinematic {
-            position: fixed;
-            inset: 0;
-            z-index: 0;
-            background:
-                radial-gradient(ellipse 80% 60% at 70% 40%, rgba(229,9,20,0.12) 0%, transparent 70%),
-                radial-gradient(ellipse 60% 80% at 20% 80%, rgba(229,9,20,0.06) 0%, transparent 60%),
-                #0a0a0a;
-        }
-
-        /* Film strip decoration */
-        .film-strip {
-            position: fixed;
-            left: 0;
-            top: 0;
-            bottom: 0;
-            width: 48px;
-            background: #111;
-            border-right: 1px solid #1f1f1f;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            padding: 12px 0;
-            gap: 8px;
-            z-index: 1;
-        }
-
-        .film-hole {
-            width: 20px;
-            height: 14px;
-            background: #0a0a0a;
-            border-radius: 3px;
-            border: 1px solid #222;
-            flex-shrink: 0;
-        }
-
-        /* Input styling */
+        :root { --red: #E50914; --red-dark: #b20710; }
+        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
+        body { font-family: 'DM Sans', sans-serif; }
         .cinput {
-            width: 100%;
-            background: var(--surface2);
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            padding: 14px 16px;
-            color: var(--text);
-            font-family: 'DM Sans', sans-serif;
-            font-size: 15px;
+            width: 100%; background: #1e1e1e; border: 1px solid #2a2a2a;
+            border-radius: 8px; padding: 14px 16px; color: #fff;
+            font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
-            outline: none;
         }
-
-        .cinput:focus {
-            border-color: var(--red);
-            box-shadow: 0 0 0 3px rgba(229,9,20,0.15);
+        .cinput:focus { border-color: #E50914; box-shadow: 0 0 0 3px rgba(229,9,20,0.15); }
+        .cinput::placeholder { color: #555; }
+        /* Film strip holes */
+        .film-hole { width: 20px; height: 14px; background: #0a0a0a; border-radius: 3px; border: 1px solid #222; flex-shrink: 0; }
+        /* Toast */
+        #toast-container { position: fixed; top: 20px; right: 20px; z-index: 9999; display: flex; flex-direction: column; gap: 10px; pointer-events: none; }
+        .toast {
+            pointer-events: all; min-width: 280px; max-width: 360px;
+            background: #141414; border: 1px solid #2a2a2a; border-radius: 12px;
+            padding: 14px 18px; display: flex; align-items: flex-start; gap: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.6);
+            animation: slideIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;
+            font-family: 'DM Sans', sans-serif; font-size: 14px; color: #fff;
         }
-
-        .cinput::placeholder { color: var(--muted); }
-
-        /* Button */
-        .cbtn {
-            width: 100%;
-            background: var(--red);
-            color: white;
-            font-family: 'DM Sans', sans-serif;
-            font-weight: 600;
-            font-size: 15px;
-            padding: 14px;
-            border: none;
-            border-radius: 6px;
-            cursor: pointer;
-            letter-spacing: 0.03em;
-            transition: background 0.2s, transform 0.1s;
-            position: relative;
-            overflow: hidden;
-        }
-
-        .cbtn:hover { background: var(--red-dark); }
-        .cbtn:active { transform: scale(0.99); }
-
-        .cbtn::after {
-            content: '';
-            position: absolute;
-            inset: 0;
-            background: linear-gradient(to bottom, rgba(255,255,255,0.08), transparent);
-        }
-
-        /* Card */
-        .card {
-            background: var(--surface);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 40px;
-            width: 100%;
-            max-width: 420px;
-            position: relative;
-            z-index: 2;
-        }
-
-        /* Red accent line on card */
-        .card::before {
-            content: '';
-            position: absolute;
-            top: 0; left: 24px; right: 24px;
-            height: 2px;
-            background: var(--red);
-            border-radius: 0 0 4px 4px;
-        }
-
-        /* Divider */
-        .divider {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .divider::before,
-        .divider::after {
-            content: '';
-            flex: 1;
-            height: 1px;
-            background: var(--border);
-        }
-
-        /* Alert */
-        .alert {
-            background: rgba(229,9,20,0.1);
-            border: 1px solid rgba(229,9,20,0.3);
-            border-radius: 6px;
-            padding: 12px 16px;
-            font-size: 14px;
-            color: #ff6b6b;
-            display: none;
-        }
-
-        /* Label */
-        label {
-            display: block;
-            font-size: 13px;
-            font-weight: 500;
-            color: #aaa;
-            margin-bottom: 6px;
-            letter-spacing: 0.02em;
-        }
-
-        /* Loading spinner */
-        .spinner {
-            width: 18px;
-            height: 18px;
-            border: 2px solid rgba(255,255,255,0.3);
-            border-top-color: white;
-            border-radius: 50%;
-            animation: spin 0.7s linear infinite;
-            display: none;
-            margin: 0 auto;
-        }
-
+        .toast.removing { animation: slideOut 0.25s ease forwards; }
+        .toast-success { border-left: 3px solid #22c55e; }
+        .toast-error   { border-left: 3px solid #E50914; }
+        .toast-info    { border-left: 3px solid #3b82f6; }
+        .toast-warning { border-left: 3px solid #f59e0b; }
+        @@keyframes slideIn { from { opacity:0; transform:translateX(100px); } to { opacity:1; transform:translateX(0); } }
+        @@keyframes slideOut { from { opacity:1; transform:translateX(0); } to { opacity:0; transform:translateX(100px); } }
+        @@keyframes fadeUp { from { opacity:0; transform:translateY(24px); } to { opacity:1; transform:translateY(0); } }
+        .fade-up { animation: fadeUp 0.5s ease forwards; }
         @@keyframes spin { to { transform: rotate(360deg); } }
-
-        /* Fade in animation */
-        @@keyframes fadeUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to   { opacity: 1; transform: translateY(0); }
+        .spinner { width:18px; height:18px; border:2px solid rgba(255,255,255,0.3); border-top-color:white; border-radius:50%; animation:spin 0.7s linear infinite; }
+        /* Radial glow bg */
+        .bg-glow {
+            position: fixed; inset: 0; z-index: 0;
+            background: radial-gradient(ellipse 80% 60% at 70% 40%, rgba(229,9,20,0.12) 0%, transparent 70%),
+                        radial-gradient(ellipse 60% 80% at 20% 80%, rgba(229,9,20,0.06) 0%, transparent 60%), #0a0a0a;
         }
-
-        .card { animation: fadeUp 0.5s ease forwards; }
-
-        /* Password toggle */
-        .input-wrap { position: relative; }
-        .toggle-pw {
-            position: absolute;
-            right: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            background: none;
-            border: none;
-            color: var(--muted);
-            cursor: pointer;
-            padding: 0;
-            font-size: 18px;
-            line-height: 1;
-        }
-        .toggle-pw:hover { color: #ccc; }
     </style>
 </head>
-<body>
+<body class="bg-[#0a0a0a] min-h-screen overflow-x-hidden text-white">
 
-    <!-- Cinematic background -->
-    <div class="bg-cinematic"></div>
+<div class="bg-glow"></div>
 
-    <!-- Film strip left -->
-    <div class="film-strip">
-        @for (int i = 0; i < 40; i++)
-        {
-            <div class="film-hole"></div>
-        }
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<!-- Film strip (hidden on mobile) -->
+<div class="hidden sm:flex fixed left-0 top-0 bottom-0 w-12 bg-[#111] border-r border-[#1f1f1f] flex-col items-center py-3 gap-2 z-10">
+    @for (int i = 0; i < 40; i++) { <div class="film-hole"></div> }
+</div>
+
+<!-- Main -->
+<div class="relative z-10 min-h-screen flex flex-col items-center justify-center px-4 py-10 sm:ml-12">
+
+    <!-- Logo -->
+    <div class="mb-8 text-center fade-up">
+        <div class="brand text-5xl text-[#E50914] leading-none">CINEBOOK</div>
+        <div class="text-xs text-[#555] tracking-[0.15em] mt-1">YOUR SEAT AWAITS</div>
     </div>
 
-    <!-- Main content -->
-    <div style="margin-left: 48px; min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 40px 20px; position: relative; z-index: 2;">
+    <!-- Card -->
+    <div class="fade-up w-full max-w-md bg-[#141414] border border-[#2a2a2a] rounded-2xl p-8 sm:p-10 relative" style="animation-delay:0.1s">
+        <!-- Red accent line -->
+        <div class="absolute top-0 left-6 right-6 h-0.5 bg-[#E50914] rounded-b-sm"></div>
 
-        <!-- Logo -->
-        <div style="margin-bottom: 32px; text-align: center;">
-            <div class="brand" style="font-size: 42px; color: var(--red); line-height: 1;">CINEBOOK</div>
-            <div style="font-size: 12px; color: var(--muted); letter-spacing: 0.15em; margin-top: 2px;">YOUR SEAT AWAITS</div>
+        <h2 class="text-2xl font-semibold mb-1">Welcome back</h2>
+        <p class="text-sm text-[#888] mb-7">Sign in to continue booking</p>
+
+        <form id="loginForm" class="flex flex-col gap-5">
+            <div>
+                <label class="block text-sm font-medium text-[#aaa] mb-1.5 tracking-wide">Username or Phone</label>
+                <input class="cinput" type="text" id="userNameOrPhone" placeholder="Enter username or phone number" required />
+            </div>
+
+            <div>
+                <div class="flex justify-between items-center mb-1.5">
+                    <label class="text-sm font-medium text-[#aaa] tracking-wide">Password</label>
+                    <a href="/Auth/ForgotPassword" class="text-sm text-[#E50914] hover:opacity-80 transition-opacity">Forgot password?</a>
+                </div>
+                <div class="relative">
+                    <input class="cinput pr-12" type="password" id="password" placeholder="Enter your password" required />
+                    <button type="button" onclick="togglePassword()" class="absolute right-4 top-1/2 -translate-y-1/2 text-[#555] hover:text-[#aaa] transition-colors text-lg leading-none">👁</button>
+                </div>
+            </div>
+
+            <button type="submit" id="submitBtn"
+                class="w-full bg-[#E50914] hover:bg-[#b20710] text-white font-semibold text-base py-3.5 rounded-lg transition-all duration-200 flex items-center justify-center gap-2 mt-1">
+                <span id="btnText">Sign In</span>
+                <div class="spinner hidden" id="spinner"></div>
+            </button>
+        </form>
+
+        <div class="flex items-center gap-3 my-6 text-sm text-[#555]">
+            <div class="flex-1 h-px bg-[#2a2a2a]"></div>or<div class="flex-1 h-px bg-[#2a2a2a]"></div>
         </div>
 
-        <!-- Card -->
-        <div class="card">
-            <h2 style="font-size: 22px; font-weight: 600; margin-bottom: 6px;">Welcome back</h2>
-            <p style="font-size: 14px; color: var(--muted); margin-bottom: 28px;">Sign in to continue booking</p>
-
-            <!-- Error alert -->
-            <div class="alert" id="errorAlert"></div>
-
-            <!-- Form -->
-            <form id="loginForm" style="display: flex; flex-direction: column; gap: 18px; margin-top: 8px;">
-
-                <div>
-                    <label>Username or Phone</label>
-                    <input class="cinput" type="text" id="userNameOrPhone"
-                           placeholder="Enter username or phone number" required />
-                </div>
-
-                <div>
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
-                        <label style="margin-bottom: 0;">Password</label>
-                        <a href="/Auth/ForgotPassword"
-                           style="font-size: 13px; color: var(--red); text-decoration: none;">
-                            Forgot password?
-                        </a>
-                    </div>
-                    <div class="input-wrap">
-                        <input class="cinput" type="password" id="password"
-                               placeholder="Enter your password" required style="padding-right: 44px;" />
-                        <button type="button" class="toggle-pw" onclick="togglePassword()">👁</button>
-                    </div>
-                </div>
-
-                <button type="submit" class="cbtn" id="submitBtn">
-                    <span id="btnText">Sign In</span>
-                    <div class="spinner" id="spinner"></div>
-                </button>
-
-            </form>
-
-            <!-- Divider -->
-            <div class="divider" style="margin: 24px 0;">or</div>
-
-            <!-- Register link -->
-            <p style="text-align: center; font-size: 14px; color: var(--muted);">
-                New to CineBook?
-                <a href="/Auth/Register"
-                   style="color: var(--red); text-decoration: none; font-weight: 500;">
-                    Create an account
-                </a>
-            </p>
-        </div>
-
-        <!-- Footer -->
-        <p style="margin-top: 32px; font-size: 12px; color: #444;">
-            © 2026 CineBook. All rights reserved.
+        <p class="text-center text-sm text-[#888]">
+            New to CineBook?
+            <a href="/Auth/Register" class="text-[#E50914] font-medium hover:opacity-80 transition-opacity ml-1">Create an account</a>
         </p>
     </div>
 
-    <script>
-        function togglePassword() {
-            const pw = document.getElementById('password');
-            pw.type = pw.type === 'password' ? 'text' : 'password';
-        }
+    <p class="mt-8 text-xs text-[#333]">© 2026 CineBook. All rights reserved.</p>
+</div>
 
-        function showError(msg) {
-            const el = document.getElementById('errorAlert');
-            el.textContent = msg;
-            el.style.display = 'block';
-        }
+<script>
+// ── Toast System ─────────────────────────────────────────
+function showToast(message, type = 'info', duration = 4000) {
+    const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
+    const colors = { success: '#22c55e', error: '#E50914', info: '#3b82f6', warning: '#f59e0b' };
+    const container = document.getElementById('toast-container');
+    const toast = document.createElement('div');
+    toast.className = `toast toast-${type}`;
+    toast.innerHTML = `
+        <div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}40;
+                    display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">
+            ${icons[type]}
+        </div>
+        <div style="flex:1;line-height:1.4;">${message}</div>
+        <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:16px;padding:0;line-height:1;">✕</button>`;
+    container.appendChild(toast);
+    setTimeout(() => { toast.classList.add('removing'); setTimeout(() => toast.remove(), 250); }, duration);
+}
 
-        function hideError() {
-            document.getElementById('errorAlert').style.display = 'none';
-        }
+function togglePassword() {
+    const pw = document.getElementById('password');
+    pw.type = pw.type === 'password' ? 'text' : 'password';
+}
 
-        function setLoading(loading) {
-            document.getElementById('btnText').style.display = loading ? 'none' : 'block';
-            document.getElementById('spinner').style.display = loading ? 'block' : 'none';
-            document.getElementById('submitBtn').disabled = loading;
-        }
+function setLoading(loading) {
+    document.getElementById('btnText').style.display = loading ? 'none' : 'block';
+    document.getElementById('spinner').style.display = loading ? 'block' : 'none';
+    document.getElementById('submitBtn').disabled = loading;
+}
 
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            hideError();
-            setLoading(true);
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+    setLoading(true);
 
-            const payload = {
-                userNameorPhone: document.getElementById('userNameOrPhone').value.trim(),
-                password: document.getElementById('password').value
-            };
+    const payload = {
+        userNameorPhone: document.getElementById('userNameOrPhone').value.trim(),
+        password: document.getElementById('password').value
+    };
 
-            try {
-                const res = await fetch('/api/Auth/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const data = await res.json();
-
-                if (data.success) {
-                    localStorage.setItem('token', data.data.token);
-                    localStorage.setItem('refreshToken', data.data.refreshToken);
-                    localStorage.setItem('user', JSON.stringify({
-                        userId: data.data.userId,
-                        fullName: data.data.fullName,
-                        role: data.data.role
-                    }));
-
-                    // Redirect based on role
-                    const role = data.data.role;
-                    if (role === 'Admin') window.location.href = '/Admin/Movies';
-                    else if (role === 'CinemaManager') window.location.href = '/Manager/Cinema';
-                    else window.location.href = '/';
-                } else {
-                    showError(data.message || 'Login failed. Please try again.');
-                }
-            } catch (err) {
-                showError('Something went wrong. Please try again.');
-            } finally {
-                setLoading(false);
-            }
+    try {
+        const res = await fetch('/api/Auth/login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
         });
-    </script>
+        const data = await res.json();
+
+        if (data.success) {
+            localStorage.setItem('token', data.data.token);
+            localStorage.setItem('refreshToken', data.data.refreshToken);
+            localStorage.setItem('user', JSON.stringify({
+                userId: data.data.userId,
+                fullName: data.data.fullName,
+                role: data.data.role
+            }));
+            showToast('Login successful! Redirecting...', 'success', 2000);
+            setTimeout(() => {
+                const role = data.data.role;
+                if (role === 'Admin') window.location.href = '/Admin/Movies';
+                else if (role === 'CinemaManager') window.location.href = '/Manager/Cinema';
+                else window.location.href = '/';
+            }, 800);
+        } else {
+            showToast(data.message || 'Login failed. Please check your credentials.', 'error');
+        }
+    } catch {
+        showToast('Network error. Please try again.', 'error');
+    } finally {
+        setLoading(false);
+    }
+});
+</script>
 </body>
 </html>

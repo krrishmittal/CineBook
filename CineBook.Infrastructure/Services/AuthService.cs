@@ -190,7 +190,7 @@ namespace CineBook.Infrastructure.Services
             await _userManager.UpdateAsync(user);
 
             // Send OTP via SMS
-            var smsSent = await _smsService.SendSmsAsync(user.PhoneNumber,otp);
+            var smsSent = await _smsService.SendSmsAsync(user.PhoneNumber, otp);
 
             if (!smsSent)
             {

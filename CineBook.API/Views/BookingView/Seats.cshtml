@@ -8,697 +8,621 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CineBook — Select Seats</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- SignalR -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/microsoft-signalr/8.0.0/signalr.min.js"></script>
     <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --red: #E50914; --red-dark: #b20710;
-            --bg: #080808; --surface: #111111;
-            --surface2: #191919; --surface3: #222222;
-            --border: #282828; --text: #f5f5f5;
-            --muted: #777777; --muted2: #555555;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: 'Outfit', sans-serif; min-height: 100vh; }
+        body { font-family: 'Outfit', sans-serif; }
         .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.06em; }
 
-        /* Navbar */
-        .navbar {
-            position: fixed; top: 0; left: 0; right: 0; height: 56px; z-index: 100;
-            background: rgba(8,8,8,0.97); border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; padding: 0 24px; gap: 16px;
-        }
+        /* ── Toast ── */
+        #toast-container { position:fixed; top:20px; right:20px; z-index:9999; display:flex; flex-direction:column; gap:10px; pointer-events:none; }
+        .toast { pointer-events:all; min-width:260px; max-width:340px; background:#141414; border:1px solid #2a2a2a; border-radius:12px; padding:14px 18px; display:flex; align-items:flex-start; gap:12px; box-shadow:0 8px 32px rgba(0,0,0,.6); animation:tIn .35s cubic-bezier(.34,1.56,.64,1) forwards; font-size:14px; color:#fff; }
+        .toast.removing { animation:tOut .25s ease forwards; }
+        .toast-success { border-left:3px solid #22c55e; }
+        .toast-error   { border-left:3px solid #E50914; }
+        .toast-warning { border-left:3px solid #f59e0b; }
+        .toast-info    { border-left:3px solid #3b82f6; }
+        @@keyframes tIn  { from{opacity:0;transform:translateX(100px)} to{opacity:1;transform:translateX(0)} }
+        @@keyframes tOut { from{opacity:1;transform:translateX(0)} to{opacity:0;transform:translateX(100px)} }
 
-        /* Layout */
-        .page { padding-top: 56px; display: flex; min-height: 100vh; }
-
-        /* Left — Seat Map */
-        .seat-area {
-            flex: 1; padding: 24px; overflow-y: auto;
-            max-height: calc(100vh - 56px);
-        }
-
-        /* Right — Booking Summary */
-        .summary-panel {
-            width: 320px; background: var(--surface);
-            border-left: 1px solid var(--border);
-            position: sticky; top: 56px; height: calc(100vh - 56px);
-            display: flex; flex-direction: column; overflow: hidden;
-            flex-shrink: 0;
-        }
-
-        /* Showtime info bar */
-        .showtime-bar {
-            background: var(--surface2); border-bottom: 1px solid var(--border);
-            padding: 16px 24px; margin-bottom: 24px;
-            display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
-        }
-
-        /* Screen */
-        .screen-wrap { text-align: center; margin-bottom: 32px; }
-        .screen {
-            width: 60%; margin: 0 auto;
-            height: 8px; border-radius: 4px;
-            background: linear-gradient(to right, transparent, #888, transparent);
-            position: relative;
-        }
-        .screen::after {
-            content: 'SCREEN'; position: absolute; top: 12px; left: 50%;
-            transform: translateX(-50%); font-size: 10px; color: #555;
-            letter-spacing: 0.12em; font-weight: 600;
-        }
-
-        /* Seat grid */
-        .seat-section { margin-bottom: 24px; }
-        .seat-section-label {
-            font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
-            padding: 6px 12px; border-radius: 4px; margin-bottom: 12px;
-            display: inline-block;
-        }
-        .label-standard { background: rgba(59,130,246,0.15); color: #60a5fa; }
-        .label-premium { background: rgba(168,85,247,0.15); color: #c084fc; }
-        .label-vip { background: rgba(245,158,11,0.15); color: #facc15; }
-
-        .seat-row {
-            display: flex; align-items: center; gap: 5px;
-            margin-bottom: 6px; justify-content: center;
-        }
-        .row-label {
-            width: 22px; font-size: 12px; color: var(--muted2);
-            text-align: center; flex-shrink: 0; font-weight: 600;
-        }
-        .seat-gap { width: 16px; }
-
-        /* Seat */
+        /* ── Seat styles — match original exactly ── */
         .seat {
-            width: 32px; height: 28px; border-radius: 4px 4px 2px 2px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 9px; font-weight: 600; cursor: pointer;
-            transition: all 0.15s; position: relative; border: 1px solid transparent;
-            flex-shrink: 0;
+            width:32px; height:28px; border-radius:4px 4px 2px 2px;
+            display:flex; align-items:center; justify-content:center;
+            font-size:9px; font-weight:600; cursor:pointer;
+            transition:all 0.15s; border:1px solid transparent;
+            flex-shrink:0; user-select:none; position:relative;
         }
-        .seat:hover:not(.seat-booked):not(.seat-locked) { transform: scale(1.15); z-index: 1; }
+        .seat:hover:not(.seat-booked):not(.seat-locked) { transform:scale(1.15); z-index:1; }
 
-        .seat-available-standard { background: rgba(59,130,246,0.25); border-color: rgba(59,130,246,0.5); color: #93c5fd; }
-        .seat-available-standard:hover { background: rgba(59,130,246,0.5); }
+        .seat-std  { background:rgba(59,130,246,.25); border-color:rgba(59,130,246,.5);  color:#93c5fd; }
+        .seat-prem { background:rgba(168,85,247,.25); border-color:rgba(168,85,247,.5); color:#d8b4fe; }
+        .seat-vip  { background:rgba(245,158,11,.25); border-color:rgba(245,158,11,.5); color:#fcd34d; }
 
-        .seat-available-premium { background: rgba(168,85,247,0.25); border-color: rgba(168,85,247,0.5); color: #d8b4fe; }
-        .seat-available-premium:hover { background: rgba(168,85,247,0.5); }
+        .seat-std:hover  { background:rgba(59,130,246,.5); }
+        .seat-prem:hover { background:rgba(168,85,247,.5); }
+        .seat-vip:hover  { background:rgba(245,158,11,.5); }
 
-        .seat-available-vip { background: rgba(245,158,11,0.25); border-color: rgba(245,158,11,0.5); color: #fcd34d; }
-        .seat-available-vip:hover { background: rgba(245,158,11,0.5); }
+        /* Selected */
+        .seat-selected { transform:scale(1.1); box-shadow:0 0 0 2px white; }
+        .seat-selected.seat-std { background:#3b82f6; border-color:#3b82f6; color:white; }
+        .seat-selected.seat-prem { background:#a855f7; border-color:#a855f7; color:white; }
+        .seat-selected.seat-vip { background:#f59e0b; border-color:#f59e0b; color:white; }
 
-        .seat-selected { transform: scale(1.1); box-shadow: 0 0 0 2px white; }
-        .seat-selected.seat-available-standard { background: #3b82f6; border-color: #3b82f6; color: white; }
-        .seat-selected.seat-available-premium { background: #a855f7; border-color: #a855f7; color: white; }
-        .seat-selected.seat-available-vip { background: #f59e0b; border-color: #f59e0b; color: white; }
+        .seat-booked  { background:#222222; border-color:#333; color:#444; cursor:not-allowed; }
+        .seat-locked  { background:rgba(239,68,68,.15); border-color:rgba(239,68,68,.3); color:#f87171; cursor:not-allowed; }
+        .seat-mylock  { background:rgba(34,197,94,.2);  border-color:rgba(34,197,94,.5);  color:#4ade80; cursor:pointer; }
 
-        .seat-booked { background: var(--surface3); border-color: #333; color: #444; cursor: not-allowed; }
-        .seat-locked { background: rgba(239,68,68,0.15); border-color: rgba(239,68,68,0.3); color: #f87171; cursor: not-allowed; }
-        .seat-my-lock { background: rgba(34,197,94,0.2); border-color: rgba(34,197,94,0.5); color: #4ade80; cursor: pointer; }
+        /* ── Seat row ── */
+        .seat-row { display:flex; align-items:center; gap:5px; margin-bottom:6px; justify-content:center; }
+        .row-label { width:22px; font-size:12px; color:#555555; text-align:center; flex-shrink:0; font-weight:600; }
 
-        /* Legend */
-        .legend {
-            display: flex; gap: 16px; flex-wrap: wrap; justify-content: center;
-            margin-bottom: 24px; padding: 12px 20px;
-            background: var(--surface); border: 1px solid var(--border); border-radius: 8px;
-        }
-        .legend-item { display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); }
-        .legend-seat {
-            width: 18px; height: 16px; border-radius: 3px 3px 1px 1px; border: 1px solid;
-        }
+        /* ── Seat map — horizontal scroll for wide halls ── */
+        .seat-map-wrap { overflow-x:auto; padding-bottom:8px; }
+        .seat-map-inner { display:inline-block; min-width:100%; }
 
-        /* Summary Panel */
-        .summary-header { padding: 20px; border-bottom: 1px solid var(--border); flex-shrink: 0; }
-        .summary-body { flex: 1; overflow-y: auto; padding: 20px; }
-        .summary-footer { padding: 16px 20px; border-top: 1px solid var(--border); flex-shrink: 0; }
-
-        /* Selected seat tag */
-        .seat-tag {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: var(--surface2); border: 1px solid var(--border);
-            border-radius: 6px; padding: 6px 10px; font-size: 13px; font-weight: 600;
-            margin: 3px;
-        }
-        .seat-tag-remove { cursor: pointer; color: var(--muted); font-size: 14px; line-height: 1; }
-        .seat-tag-remove:hover { color: var(--red); }
-
-        /* Price breakdown */
-        .price-row {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 8px 0; font-size: 13px;
-            border-bottom: 1px solid var(--border);
-        }
-        .price-row:last-child { border-bottom: none; }
-        .price-total {
-            display: flex; justify-content: space-between; align-items: center;
-            padding: 12px 0; font-size: 16px; font-weight: 700;
+        /* ── Summary panel — sticky right sidebar (desktop) ── */
+        .summary-panel {
+            width:320px; flex-shrink:0;
+            background:#111111; border-left:1px solid #282828;
+            position:sticky; top:56px;
+            height:calc(100vh - 56px);
+            display:flex; flex-direction:column; overflow:hidden;
         }
 
-        .cbtn {
-            width: 100%; background: var(--red); color: white;
-            font-family: 'Outfit', sans-serif; font-weight: 700;
-            font-size: 15px; padding: 14px; border: none; border-radius: 8px;
-            cursor: pointer; transition: all 0.2s;
+        /* ── Mobile: hide sidebar, show fixed bottom bar ── */
+        @@media (max-width:767px) {
+            .summary-panel { display:none; }
+            .mobile-footer { display:flex !important; }
+            body { padding-bottom:72px; }
         }
-        .cbtn:hover { background: var(--red-dark); }
-        .cbtn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* Booking success modal */
-        .success-modal {
-            display: none; position: fixed; inset: 0; z-index: 500;
-            background: rgba(0,0,0,0.9); backdrop-filter: blur(8px);
-            align-items: center; justify-content: center;
-        }
-        .success-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 16px; padding: 32px; max-width: 460px; width: 90%;
-            text-align: center;
+        .mobile-footer {
+            display:none;
+            position:fixed; bottom:0; left:0; right:0;
+            background:#111111; border-top:1px solid #282828;
+            z-index:100; padding:12px 16px;
+            align-items:center; gap:12px;
         }
 
-        .badge-hall {
-            display: inline-flex; padding: 2px 8px; border-radius: 4px;
-            font-size: 11px; font-weight: 700;
-        }
-        .badge-2d { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.3); }
-        .badge-3d { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.3); }
-        .badge-imax { background: rgba(234,179,8,0.15); color: #facc15; border: 1px solid rgba(234,179,8,0.3); }
+        /* ── Price rows ── */
+        .price-row { display:flex; justify-content:space-between; align-items:center; padding:8px 0; font-size:13px; border-bottom:1px solid #1e1e1e; }
+        .price-row:last-child { border-bottom:none; }
 
-        .timer-badge {
-            display: inline-flex; align-items: center; gap: 6px;
-            background: rgba(251,191,36,0.1); border: 1px solid rgba(251,191,36,0.3);
-            color: #fbbf24; font-size: 13px; font-weight: 600;
-            padding: 6px 12px; border-radius: 20px;
-        }
+        /* ── Badges ── */
+        .badge-2d   { background:rgba(59,130,246,.15); color:#60a5fa; border:1px solid rgba(59,130,246,.3); }
+        .badge-3d   { background:rgba(168,85,247,.15); color:#c084fc; border:1px solid rgba(168,85,247,.3); }
+        .badge-imax { background:rgba(234,179,8,.15);  color:#facc15; border:1px solid rgba(234,179,8,.3);  }
 
-        @@keyframes pulse {
-            0%, 100% { opacity: 1; }
-            50% { opacity: 0.5; }
-        }
-        .pulse { animation: pulse 2s infinite; }
+        /* ── Timer ── */
+        .timer-badge { display:inline-flex; align-items:center; gap:6px; background:rgba(251,191,36,.1); border:1px solid rgba(251,191,36,.3); color:#fbbf24; font-size:13px; font-weight:600; padding:6px 12px; border-radius:20px; }
+        @@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+        .pulse { animation:pulse 2s infinite; }
+
+        @@keyframes spin { to{transform:rotate(360deg)} }
+        .spinner { width:16px; height:16px; border:2px solid rgba(255,255,255,.3); border-top-color:white; border-radius:50%; animation:spin .7s linear infinite; display:inline-block; }
     </style>
 </head>
-<body>
+<body class="bg-[#080808] text-[#f5f5f5] min-h-screen">
 
-    <!-- Navbar -->
-    <nav class="navbar">
-        <button onclick="history.back()" style="background:none; border:none; color:var(--muted); font-size:20px; cursor:pointer; padding:4px;">←</button>
-        <span class="brand" style="font-size:20px; color:var(--red);">CINEBOOK</span>
-        <span style="font-size:12px; color:var(--border);">|</span>
-        <span style="font-size:13px; color:var(--muted);" id="navMovieTitle">Select Seats</span>
-        <div style="flex:1;"></div>
-        <!-- Lock timer -->
-        <div class="timer-badge" id="lockTimer" style="display:none;">
-            ⏱ <span id="timerDisplay">10:00</span>
-        </div>
-    </nav>
+<div id="toast-container"></div>
 
-    <div class="page">
+<!-- ── Navbar ── -->
+<nav class="fixed top-0 left-0 right-0 h-14 z-50 bg-[#080808]/97 border-b border-[#282828] flex items-center px-4 sm:px-6 gap-3 backdrop-blur-xl">
+    <button onclick="history.back()" class="text-[#888] hover:text-white text-xl p-1 transition-colors flex-shrink-0">←</button>
+    <span class="brand text-xl text-[#E50914]">CINEBOOK</span>
+    <span class="hidden sm:block text-xs text-[#282828]">|</span>
+    <span class="hidden sm:block text-sm text-[#888] truncate" id="navMovieTitle">Select Seats</span>
+    <div class="flex-1"></div>
+    <div class="timer-badge hidden" id="lockTimer">⏱ <span id="timerDisplay" class="pulse">10:00</span></div>
+</nav>
 
-        <!-- Seat Area -->
-        <div class="seat-area">
+<!-- ── Main layout: seat area + summary sidebar ── -->
+<div class="flex pt-14 min-h-screen">
 
-            <!-- Showtime Info Bar -->
-            <div class="showtime-bar" id="showtimeBar">
-                <div style="font-size:13px; color:var(--muted);">Loading...</div>
-            </div>
+    <!-- Seat area -->
+    <div class="flex-1 p-4 sm:p-6 overflow-y-auto" style="max-height:calc(100vh - 56px);">
 
-            <!-- Legend -->
-            <div class="legend">
-                <div class="legend-item">
-                    <div class="legend-seat" style="background:rgba(59,130,246,0.25);border-color:rgba(59,130,246,0.5);"></div>
-                    Standard
-                </div>
-                <div class="legend-item">
-                    <div class="legend-seat" style="background:rgba(168,85,247,0.25);border-color:rgba(168,85,247,0.5);"></div>
-                    Premium
-                </div>
-                <div class="legend-item">
-                    <div class="legend-seat" style="background:rgba(245,158,11,0.25);border-color:rgba(245,158,11,0.5);"></div>
-                    VIP
-                </div>
-                <div class="legend-item">
-                    <div class="legend-seat" style="background:var(--surface3);border-color:#333;"></div>
-                    Booked
-                </div>
-                <div class="legend-item">
-                    <div class="legend-seat" style="background:rgba(239,68,68,0.15);border-color:rgba(239,68,68,0.3);"></div>
-                    Locked
-                </div>
-                <div class="legend-item">
-                    <div class="legend-seat" style="background:#3b82f6;border-color:#3b82f6;"></div>
-                    Selected
-                </div>
-            </div>
-
-            <!-- Screen -->
-            <div class="screen-wrap">
-                <div class="screen"></div>
-            </div>
-
-            <!-- Seat Grid -->
-            <div id="seatGrid" style="display:inline-block; min-width:100%;">
-                <div style="text-align:center; padding:40px; color:var(--muted);">Loading seats...</div>
-            </div>
-
+        <!-- Showtime info bar -->
+        <div class="bg-[#191919] border border-[#282828] rounded-xl px-5 py-4 mb-6 flex flex-wrap items-center gap-4 sm:gap-6" id="showtimeBar">
+            <div class="text-sm text-[#777]">Loading...</div>
         </div>
 
-        <!-- Summary Panel -->
-        <div class="summary-panel">
-            <div class="summary-header">
-                <div style="font-size:16px; font-weight:700; margin-bottom:4px;" id="summaryTitle">Select Seats</div>
-                <div style="font-size:12px; color:var(--muted);" id="summarySubtitle">Tap seats to select</div>
-            </div>
+        <!-- Legend -->
+        <div class="flex flex-wrap gap-4 justify-center bg-[#111] border border-[#282828] rounded-xl px-5 py-3 mb-6 text-xs text-[#777]">
+            <div class="flex items-center gap-2"><div class="w-5 h-4 rounded-sm" style="background:rgba(59,130,246,.25);border:1px solid rgba(59,130,246,.5)"></div>Standard</div>
+            <div class="flex items-center gap-2"><div class="w-5 h-4 rounded-sm" style="background:rgba(168,85,247,.25);border:1px solid rgba(168,85,247,.5)"></div>Premium</div>
+            <div class="flex items-center gap-2"><div class="w-5 h-4 rounded-sm" style="background:rgba(245,158,11,.25);border:1px solid rgba(245,158,11,.5)"></div>VIP</div>
+            <div class="flex items-center gap-2"><div class="w-5 h-4 rounded-sm" style="background:#222;border:1px solid #333"></div>Booked</div>
+            <div class="flex items-center gap-2"><div class="w-5 h-4 rounded-sm" style="background:rgba(239,68,68,.15);border:1px solid rgba(239,68,68,.3)"></div>Locked</div>
+            <div class="flex items-center gap-2"><div class="w-5 h-4 rounded-sm bg-blue-500 border border-blue-500"></div>Selected</div>
+        </div>
 
-            <div class="summary-body">
+        <!-- Screen -->
+        <div class="text-center mb-8">
+            <div class="w-3/5 sm:w-2/5 mx-auto h-2 rounded-full" style="background:linear-gradient(to right,transparent,#888,transparent)"></div>
+            <div class="text-xs text-[#444] tracking-widest mt-2 font-semibold">SCREEN</div>
+        </div>
 
-                <!-- Selected seats -->
-                <div style="margin-bottom:20px;">
-                    <div style="font-size:12px; font-weight:600; color:var(--muted); letter-spacing:0.06em; margin-bottom:10px;">SELECTED SEATS</div>
-                    <div id="selectedSeatTags">
-                        <div style="font-size:13px; color:var(--muted2);">No seats selected</div>
-                    </div>
-                </div>
-
-                <!-- Price breakdown -->
-                <div id="priceBreakdown" style="display:none;">
-                    <div style="font-size:12px; font-weight:600; color:var(--muted); letter-spacing:0.06em; margin-bottom:10px;">PRICE BREAKDOWN</div>
-                    <div id="priceRows"></div>
-                    <div class="price-total">
-                        <span>Total</span>
-                        <span style="color:var(--red);" id="totalAmount">₹0</span>
-                    </div>
-                </div>
-
-                <!-- Seat type prices reference -->
-                <div style="margin-top:16px; padding:12px; background:var(--surface2); border-radius:8px;" id="priceRef">
-                    <div style="font-size:12px; font-weight:600; color:var(--muted); letter-spacing:0.06em; margin-bottom:8px;">TICKET PRICES</div>
-                    <div id="priceRefContent"></div>
-                </div>
-
-            </div>
-
-            <div class="summary-footer">
-                <button class="cbtn" id="proceedBtn" onclick="proceedToBooking()" disabled>
-                    Select seats to continue
-                </button>
+        <!-- Seat grid -->
+        <div class="seat-map-wrap">
+            <div class="seat-map-inner" id="seatGrid">
+                <div class="text-center py-16 text-[#555]">Loading seats...</div>
             </div>
         </div>
     </div>
 
-    <!-- Booking Success Modal -->
-    <div class="success-modal" id="successModal">
-        <div class="success-card">
-            <div style="font-size:60px; margin-bottom:16px;">🎉</div>
-            <div style="font-size:24px; font-weight:700; margin-bottom:8px;">Booking Confirmed!</div>
-            <div style="font-size:14px; color:var(--muted); margin-bottom:20px;">Your tickets have been booked successfully</div>
+    <!-- ── Summary panel (desktop right sidebar) ── -->
+    <div class="summary-panel">
+        <div class="px-5 py-5 border-b border-[#282828] flex-shrink-0">
+            <div class="text-base font-bold" id="summaryTitle">Select Seats</div>
+            <div class="text-xs text-[#777] mt-0.5" id="summarySubtitle">Tap seats to select</div>
+        </div>
 
-            <div style="background:var(--surface2); border:1px solid var(--border); border-radius:10px; padding:16px; margin-bottom:20px; text-align:left;">
-                <div style="font-size:12px; color:var(--muted); margin-bottom:4px;">BOOKING REFERENCE</div>
-                <div style="font-size:20px; font-weight:700; color:var(--red); letter-spacing:0.1em;" id="bookingRef">--</div>
-                <div style="margin-top:12px; font-size:13px; color:var(--muted);" id="bookingDetails"></div>
+        <div class="flex-1 overflow-y-auto px-5 py-5">
+            <!-- Selected seats -->
+            <div class="mb-5">
+                <div class="text-xs font-bold text-[#777] tracking-widest mb-3">SELECTED SEATS</div>
+                <div id="selectedSeatTags"><div class="text-sm text-[#444]">No seats selected</div></div>
             </div>
 
-            <div style="display:flex; gap:10px;">
-                <button onclick="window.location.href='/Bookings'" style="flex:1; background:var(--surface2); color:var(--text); font-family:'Outfit',sans-serif; font-weight:600; font-size:14px; padding:12px; border:1px solid var(--border); border-radius:8px; cursor:pointer;">
-                    My Bookings
-                </button>
-                <button onclick="window.location.href='/'" style="flex:1; background:var(--red); color:white; font-family:'Outfit',sans-serif; font-weight:600; font-size:14px; padding:12px; border:none; border-radius:8px; cursor:pointer;">
-                    Home
-                </button>
+            <!-- Price breakdown -->
+            <div id="priceBreakdown" class="hidden mb-5">
+                <div class="text-xs font-bold text-[#777] tracking-widest mb-3">PRICE BREAKDOWN</div>
+                <div id="priceRows"></div>
+                <div class="flex justify-between items-center font-bold text-base pt-3 mt-1 border-t border-[#1e1e1e]">
+                    <span>Total</span>
+                    <span class="text-[#E50914]" id="totalAmount">₹0</span>
+                </div>
+            </div>
+
+            <!-- Ticket prices reference -->
+            <div class="bg-[#191919] rounded-xl px-4 py-4">
+                <div class="text-xs font-bold text-[#777] tracking-widest mb-3">TICKET PRICES</div>
+                <div id="priceRefContent"></div>
             </div>
         </div>
+
+        <div class="px-5 py-4 border-t border-[#282828] flex-shrink-0">
+            <button id="proceedBtn" onclick="proceedToBooking()" disabled
+                class="w-full bg-[#E50914] hover:bg-[#b20710] text-white font-bold text-sm py-4 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                <span id="proceedBtnText">Select seats to continue</span>
+                <div class="spinner hidden" id="proceedSpinner"></div>
+            </button>
+        </div>
     </div>
+</div>
 
-    <script>
-        const token = localStorage.getItem('token');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+<!-- ── Mobile bottom bar ── -->
+<div class="mobile-footer" id="mobileFooter">
+    <div class="flex-1 min-w-0">
+        <div class="text-sm font-semibold truncate" id="mobileSeatInfo">No seats selected</div>
+        <div class="text-xs text-[#777]" id="mobilePriceInfo"></div>
+    </div>
+    <button id="mobileProceedBtn" onclick="proceedToBooking()" disabled
+        class="bg-[#E50914] hover:bg-[#b20710] text-white font-bold text-sm px-6 py-3 rounded-xl transition-all disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2 flex-shrink-0">
+        <span id="mobileBtnText">Book Now</span>
+        <div class="spinner hidden" id="mobileSpinner"></div>
+    </button>
+</div>
 
-        if (!token) window.location.href = '/Auth/Login';
+<script>
+// ── Toast ────────────────────────────────────────────
+function showToast(msg, type = 'info', duration = 4000) {
+    const icons  = { success:'✓', error:'✕', info:'ℹ', warning:'⚠' };
+    const colors = { success:'#22c55e', error:'#E50914', info:'#3b82f6', warning:'#f59e0b' };
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">${icons[type]}</div><div style="flex:1;line-height:1.5;">${msg}</div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:0;">✕</button>`;
+    c.appendChild(t);
+    setTimeout(() => { t.classList.add('removing'); setTimeout(() => t.remove(), 250); }, duration);
+}
 
-        const params = new URLSearchParams(window.location.search);
-        const showtimeId = params.get('showtimeId');
-        const movieId = params.get('movieId');
+// ── Auth / params ────────────────────────────────────
+const token = localStorage.getItem('token');
+if (!token) window.location.href = '/Auth/Login';
+const params     = new URLSearchParams(window.location.search);
+const showtimeId = params.get('showtimeId');
+const movieId    = params.get('movieId');
+if (!showtimeId) window.location.href = '/';
+function authHeaders() { return { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` }; }
 
-        if (!showtimeId) window.location.href = '/';
+// ── State ────────────────────────────────────────────
+let layout = null, selectedSeats = [], lockTimerInterval = null, lockSecondsLeft = 600;
 
-        function authHeaders() {
-            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-        }
+// ── SignalR Real-time Seat Sync ───────────────────────
+let connection = null;
 
-        let layout = null;
-        let selectedSeats = []; // { seatId, row, seatNumber, seatType, price }
-        let lockTimerInterval = null;
-        let lockSecondsLeft = 600; // 10 min
+async function connectSignalR() {
+    connection = new signalR.HubConnectionBuilder()
+        .withUrl('/hubs/seats', {
+            accessTokenFactory: () => token
+        })
+        .withAutomaticReconnect()
+        .build();
 
-        // ── Load Seat Layout ──────────────────────────────────
-        async function loadLayout() {
-            try {
-                const res = await fetch(`/api/bookings/seat-layout/${showtimeId}`, {
-                    headers: authHeaders()
-                });
-                const data = await res.json();
+    // ── Someone locked seats ─────────────────────────
+    connection.on('SeatsLocked', (data) => {
+        const { seatIds, lockedByUserId } = data;
+        const myUserId = JSON.parse(localStorage.getItem('user') || '{}').userId;
 
-                if (data.success) {
-                    layout = data.data;
-                    renderShowtimeBar();
-                    renderSeatGrid();
-                    renderPriceRef();
-                } else {
-                    document.getElementById('seatGrid').innerHTML =
-                        `<div style="text-align:center;padding:40px;color:#f87171;">${data.message}</div>`;
-                }
-            } catch {
-                document.getElementById('seatGrid').innerHTML =
-                    `<div style="text-align:center;padding:40px;color:#f87171;">Failed to load seats</div>`;
-            }
-        }
+        seatIds.forEach(seatId => {
+            // Don't update your own seats
+            if (lockedByUserId === myUserId) return;
 
-        function renderShowtimeBar() {
-            const start = new Date(layout.startTime);
-            const time = start.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
-            const date = start.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' });
-            const hallBadge = layout.hallType === 'TwoD' || layout.hallType === 0
-                ? '<span class="badge-hall badge-2d">2D</span>'
-                : layout.hallType === 'ThreeD' || layout.hallType === 1
-                ? '<span class="badge-hall badge-3d">3D</span>'
-                : '<span class="badge-hall badge-imax">IMAX</span>';
-
-            document.getElementById('navMovieTitle').textContent = layout.movieTitle;
-            document.getElementById('summaryTitle').textContent = layout.movieTitle;
-            document.getElementById('summarySubtitle').textContent = `${time} • ${layout.hallName}`;
-
-            document.getElementById('showtimeBar').innerHTML = `
-                <div>
-                    <div style="font-size:15px; font-weight:700;">${layout.movieTitle}</div>
-                    <div style="font-size:12px; color:var(--muted); margin-top:2px;">${layout.cinemaName}</div>
-                </div>
-                <div style="display:flex; align-items:center; gap:8px;">
-                    ${hallBadge}
-                    <span style="font-size:13px; color:var(--muted);">${layout.hallName}</span>
-                </div>
-                <div style="font-size:13px; font-weight:600;">📅 ${date}</div>
-                <div style="font-size:16px; font-weight:700; color:var(--red);">⏰ ${time}</div>`;
-        }
-
-        function renderSeatGrid() {
-            // Group seats by row
-            const rows = {};
-            layout.seats.forEach(s => {
-                if (!rows[s.row]) rows[s.row] = [];
-                rows[s.row].push(s);
-            });
-
-            // Group rows by seat type
-            const standardRows = [], premiumRows = [], vipRows = [];
-            Object.entries(rows).forEach(([row, seats]) => {
-                const type = seats[0].seatType;
-                if (type === 'Standard' || type == 0) standardRows.push([row, seats]);
-                else if (type === 'Premium' || type == 1) premiumRows.push([row, seats]);
-                else vipRows.push([row, seats]);
-            });
-
-            let html = '';
-
-            if (standardRows.length) {
-                html += `<div class="seat-section">
-                    <div><span class="seat-section-label label-standard">STANDARD — ₹${layout.priceStandard}</span></div>
-                    ${renderRows(standardRows)}
-                </div>`;
-            }
-            if (premiumRows.length) {
-                html += `<div class="seat-section">
-                    <div><span class="seat-section-label label-premium">PREMIUM — ₹${layout.pricePremium}</span></div>
-                    ${renderRows(premiumRows)}
-                </div>`;
-            }
-            if (vipRows.length) {
-                html += `<div class="seat-section">
-                    <div><span class="seat-section-label label-vip">VIP — ₹${layout.priceVIP}</span></div>
-                    ${renderRows(vipRows)}
-                </div>`;
-            }
-
-            document.getElementById('seatGrid').innerHTML = html;
-        }
-
-        function renderRows(rowEntries) {
-            return rowEntries.map(([rowLabel, seats]) => {
-                const mid = Math.floor(seats.length / 2);
-                return `
-                    <div class="seat-row">
-                        <div class="row-label">${rowLabel}</div>
-                        ${seats.slice(0, mid).map(s => renderSeat(s)).join('')}
-                        <div class="seat-gap"></div>
-                        ${seats.slice(mid).map(s => renderSeat(s)).join('')}
-                    </div>`;
-            }).join('');
-        }
-
-        function renderSeat(s) {
-            const isSelected = selectedSeats.some(sel => sel.seatId === s.seatId);
-            let cls = '';
-            let title = `${s.row}${s.seatNumber}`;
-
-            if (s.status === 'Booked') {
-                cls = 'seat-booked';
-            } else if (s.status === 'Locked' && !s.isMyLock) {
-                cls = 'seat-locked';
-            } else if (s.isMyLock) {
-                cls = 'seat-my-lock';
-            } else {
-                const typeStr = (s.seatType === 'Standard' || s.seatType == 0) ? 'standard'
-                              : (s.seatType === 'Premium' || s.seatType == 1) ? 'premium' : 'vip';
-                cls = `seat-available-${typeStr}`;
-            }
-
-            if (isSelected) cls += ' seat-selected';
-
-            const clickable = s.status === 'Available' || s.isMyLock;
-
-            return `<div class="seat ${cls}"
-                onclick="${clickable ? `toggleSeat('${s.seatId}','${s.row}',${s.seatNumber},'${s.seatType}',${s.price})` : ''}"
-                title="${title} — ₹${s.price}"
-                id="seat-${s.seatId}">
-                ${s.seatNumber}
-            </div>`;
-        }
-
-        // ── Seat Toggle ───────────────────────────────────────
-        function toggleSeat(seatId, row, seatNumber, seatType, price) {
-            const idx = selectedSeats.findIndex(s => s.seatId === seatId);
-
-            if (idx >= 0) {
-                selectedSeats.splice(idx, 1);
-                document.getElementById(`seat-${seatId}`)?.classList.remove('seat-selected');
-            } else {
-                if (selectedSeats.length >= 10) {
-                    alert('Maximum 10 seats per booking'); return;
-                }
-                selectedSeats.push({ seatId, row, seatNumber, seatType, price });
-                document.getElementById(`seat-${seatId}`)?.classList.add('seat-selected');
-            }
-
-            updateSummary();
-        }
-
-        function removeSeat(seatId) {
+            // Remove from selected if someone else locked it
             const idx = selectedSeats.findIndex(s => s.seatId === seatId);
             if (idx >= 0) {
                 selectedSeats.splice(idx, 1);
-                document.getElementById(`seat-${seatId}`)?.classList.remove('seat-selected');
                 updateSummary();
-            }
-        }
-
-        // ── Summary ───────────────────────────────────────────
-        function updateSummary() {
-            const tagsEl = document.getElementById('selectedSeatTags');
-            const priceEl = document.getElementById('priceBreakdown');
-            const btn = document.getElementById('proceedBtn');
-
-            if (!selectedSeats.length) {
-                tagsEl.innerHTML = `<div style="font-size:13px; color:var(--muted2);">No seats selected</div>`;
-                priceEl.style.display = 'none';
-                btn.disabled = true;
-                btn.textContent = 'Select seats to continue';
-                return;
+                showToast('⚠️ One of your selected seats was just taken!', 'warning', 5000);
             }
 
-            // Tags
-            tagsEl.innerHTML = selectedSeats.map(s => {
-                const color = (s.seatType === 'Standard' || s.seatType == 0) ? '#60a5fa'
-                            : (s.seatType === 'Premium' || s.seatType == 1) ? '#c084fc' : '#facc15';
-                return `<span class="seat-tag">
-                    <span style="color:${color}; font-size:14px;">●</span>
-                    ${s.row}${s.seatNumber}
-                    <span class="seat-tag-remove" onclick="removeSeat('${s.seatId}')">✕</span>
-                </span>`;
-            }).join('');
+            // Update seat UI to locked
+            const seatEl = document.getElementById(`seat-${seatId}`);
+            if (seatEl) {
+                seatEl.className = 'seat seat-locked';
+                seatEl.onclick = null;
+                seatEl.title = 'Locked by another user';
+            }
 
-            // Price breakdown
-            const subTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
-            const convenienceFee = Math.round(subTotal * 0.02 * 100) / 100;
-            const total = subTotal + convenienceFee;
+            // Update layout data
+            const seat = layout?.seats?.find(s => s.seatId === seatId);
+            if (seat) {
+                seat.status = 'Locked';
+                seat.isMyLock = false;
+            }
+        });
+    });
 
-            // Group by type
-            const groups = {};
-            selectedSeats.forEach(s => {
-                const typeLabel = (s.seatType === 'Standard' || s.seatType == 0) ? 'Standard'
-                                : (s.seatType === 'Premium' || s.seatType == 1) ? 'Premium' : 'VIP';
-                if (!groups[typeLabel]) groups[typeLabel] = { count: 0, total: 0 };
-                groups[typeLabel].count++;
-                groups[typeLabel].total += s.price;
-            });
+    // ── Someone booked seats (confirmed) ─────────────
+    connection.on('SeatsBooked', (data) => {
+        const { seatIds } = data;
 
-            document.getElementById('priceRows').innerHTML =
-                Object.entries(groups).map(([type, g]) => `
-                    <div class="price-row">
-                        <span>${type} × ${g.count}</span>
-                        <span>₹${Math.round(g.total)}</span>
-                    </div>`).join('') +
-                `<div class="price-row">
-                    <span style="color:var(--muted);">Convenience Fee</span>
-                    <span style="color:var(--muted);">₹${convenienceFee.toFixed(2)}</span>
-                </div>`;
+        (seatIds || []).forEach(s => {
+            const seatId = s.seatId || s;
 
-            document.getElementById('totalAmount').textContent = `₹${total.toFixed(0)}`;
-            priceEl.style.display = 'block';
-
-            btn.disabled = false;
-            btn.textContent = `Pay ₹${total.toFixed(0)} for ${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''}`;
-        }
-
-        function renderPriceRef() {
-            document.getElementById('priceRefContent').innerHTML = `
-                <div style="display:flex; flex-direction:column; gap:6px;">
-                    <div style="display:flex; justify-content:space-between; font-size:13px;">
-                        <span style="color:#60a5fa;">● Standard</span>
-                        <span style="font-weight:600;">₹${layout.priceStandard}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:13px;">
-                        <span style="color:#c084fc;">● Premium</span>
-                        <span style="font-weight:600;">₹${layout.pricePremium}</span>
-                    </div>
-                    <div style="display:flex; justify-content:space-between; font-size:13px;">
-                        <span style="color:#facc15;">● VIP</span>
-                        <span style="font-weight:600;">₹${layout.priceVIP}</span>
-                    </div>
-                </div>`;
-        }
-
-        // ── Proceed to Booking ────────────────────────────────
-        async function proceedToBooking() {
-            if (!selectedSeats.length) return;
-
-            const btn = document.getElementById('proceedBtn');
-            btn.disabled = true;
-            btn.textContent = 'Locking seats...';
-
-            try {
-                // Step 1 — Initiate booking (lock seats)
-                const initRes = await fetch('/api/bookings/initiate', {
-                    method: 'POST',
-                    headers: authHeaders(),
-                    body: JSON.stringify({
-                        showtimeId: showtimeId,
-                        seatIds: selectedSeats.map(s => s.seatId)
-                    })
-                });
-
-                const initData = await initRes.json();
-
-                if (!initData.success) {
-                    alert(initData.message || 'Failed to lock seats');
-                    btn.disabled = false;
-                    updateSummary();
-                    await loadLayout();
-                    return;
-                }
-
-                const bookingId = initData.data.id;
-                startLockTimer();
-
-                // Step 2 — Create Stripe Checkout Session
-                btn.textContent = 'Redirecting to payment...';
-
-                const sessionRes = await fetch('/api/checkout/create-session', {
-                    method: 'POST',
-                    headers: authHeaders(),
-                    body: JSON.stringify({ bookingId })
-                });
-
-                const sessionData = await sessionRes.json();
-
-                if (!sessionData.success) {
-                    alert(sessionData.message || 'Payment setup failed');
-                    btn.disabled = false;
-                    updateSummary();
-                    return;
-                }
-
-                // Step 3 — Redirect to Stripe Checkout
-                window.location.href = sessionData.url;
-
-            } catch {
-                alert('Something went wrong');
-                btn.disabled = false;
+            // Remove from selected if it got booked by someone else
+            const idx = selectedSeats.findIndex(sel => sel.seatId === seatId);
+            if (idx >= 0) {
+                selectedSeats.splice(idx, 1);
                 updateSummary();
+                showToast('❌ A seat you selected has been booked by someone else!', 'error', 5000);
             }
+
+            // Update seat UI to booked
+            const seatEl = document.getElementById(`seat-${seatId}`);
+            if (seatEl) {
+                seatEl.className = 'seat seat-booked';
+                seatEl.onclick = null;
+                seatEl.title = 'Booked';
+            }
+
+            // Update layout data
+            const seat = layout?.seats?.find(s => s.seatId === seatId);
+            if (seat) seat.status = 'Booked';
+        });
+    });
+
+    // ── Someone released seats (cancelled/expired) ────
+    connection.on('SeatsReleased', async (data) => {
+        // Reload entire layout to show fresh availability
+        showToast('🔄 Seat availability updated', 'info', 2000);
+        await loadLayout();
+    });
+
+    // ── Connection events ────────────────────────────
+    connection.onreconnecting(() => {
+        showToast('Reconnecting...', 'warning', 2000);
+    });
+
+    connection.onreconnected(() => {
+        showToast('Reconnected ✓', 'success', 2000);
+        // Rejoin the showtime group after reconnect
+        connection.invoke('JoinShowtime', showtimeId).catch(console.error);
+    });
+
+    try {
+        await connection.start();
+        // Join this showtime's group
+        await connection.invoke('JoinShowtime', showtimeId);
+        console.log('✅ SignalR connected to showtime:', showtimeId);
+    } catch (err) {
+        console.error('SignalR connection failed:', err);
+        // Don't block user — app works without realtime too
+    }
+}
+
+// Disconnect when leaving page
+window.addEventListener('beforeunload', () => {
+    if (connection) {
+        connection.invoke('LeaveShowtime', showtimeId).catch(() => {});
+        connection.stop();
+    }
+});
+
+// Connect SignalR after layout loads
+loadLayout().then(() => connectSignalR());
+
+// ── Load layout ──────────────────────────────────────
+async function loadLayout() {
+    try {
+        const res  = await fetch(`/api/bookings/seat-layout/${showtimeId}`, { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success) {
+            layout = data.data;
+            renderShowtimeBar();
+            renderSeatGrid();
+            renderPriceRef();
+        } else {
+            document.getElementById('seatGrid').innerHTML = `<div class="text-center py-16 text-red-400">${data.message}</div>`;
+            showToast(data.message || 'Failed to load seats', 'error');
+        }
+    } catch {
+        document.getElementById('seatGrid').innerHTML = `<div class="text-center py-16 text-red-400">Failed to load seats</div>`;
+        showToast('Failed to load seat layout', 'error');
+    }
+}
+
+// ── Showtime bar ─────────────────────────────────────
+function renderShowtimeBar() {
+    const start = new Date(layout.startTime);
+    const time  = start.toLocaleTimeString('en-IN', { hour:'2-digit', minute:'2-digit', hour12:true });
+    const date  = start.toLocaleDateString('en-IN', { weekday:'long', day:'numeric', month:'long' });
+    const hallBadge =
+        (layout.hallType === 'TwoD'   || layout.hallType === 0) ? '<span class="text-xs font-bold px-2 py-0.5 rounded badge-2d">2D</span>'   :
+        (layout.hallType === 'ThreeD' || layout.hallType === 1) ? '<span class="text-xs font-bold px-2 py-0.5 rounded badge-3d">3D</span>'  :
+                                                                   '<span class="text-xs font-bold px-2 py-0.5 rounded badge-imax">IMAX</span>';
+    document.getElementById('navMovieTitle').textContent      = layout.movieTitle;
+    document.getElementById('summaryTitle').textContent       = layout.movieTitle;
+    document.getElementById('summarySubtitle').textContent    = `${time} • ${layout.hallName}`;
+    document.getElementById('showtimeBar').innerHTML = `
+        <div>
+            <div class="font-bold text-sm sm:text-base">${layout.movieTitle}</div>
+            <div class="text-xs text-[#777] mt-0.5">${layout.cinemaName}</div>
+        </div>
+        <div class="flex items-center gap-2">${hallBadge} <span class="text-sm text-[#777]">${layout.hallName}</span></div>
+        <div class="text-sm font-semibold">📅 ${date}</div>
+        <div class="text-base font-bold text-[#E50914]">⏰ ${time}</div>`;
+}
+
+// ── Seat grid ────────────────────────────────────────
+function renderSeatGrid() {
+    const rows = {};
+    layout.seats.forEach(s => { if (!rows[s.row]) rows[s.row] = []; rows[s.row].push(s); });
+
+    const stdRows = [], premRows = [], vipRows = [];
+    Object.entries(rows).forEach(([row, seats]) => {
+        const t = seats[0].seatType;
+        if      (t === 'Standard' || t == 0) stdRows.push([row, seats]);
+        else if (t === 'Premium'  || t == 1) premRows.push([row, seats]);
+        else                                  vipRows.push([row, seats]);
+    });
+
+    let html = '';
+    if (stdRows.length)  html += buildSection('STANDARD', layout.priceStandard, 'text-blue-400 bg-blue-400/10 border border-blue-400/20',     stdRows);
+    if (premRows.length) html += buildSection('PREMIUM',  layout.pricePremium,  'text-purple-400 bg-purple-400/10 border border-purple-400/20', premRows);
+    if (vipRows.length)  html += buildSection('VIP',      layout.priceVIP,      'text-yellow-400 bg-yellow-400/10 border border-yellow-400/20', vipRows);
+
+    document.getElementById('seatGrid').innerHTML = html;
+}
+
+function buildSection(label, price, cls, rowEntries) {
+    return `<div class="mb-7">
+        <div class="mb-3"><span class="text-xs font-bold tracking-widest px-3 py-1 rounded-full ${cls}">${label} — ₹${price}</span></div>
+        ${buildRows(rowEntries)}
+    </div>`;
+}
+
+function buildRows(rowEntries) {
+    return rowEntries.map(([rowLabel, seats]) => {
+        const mid = Math.floor(seats.length / 2);
+        return `<div class="seat-row">
+            <div class="row-label">${rowLabel}</div>
+            ${seats.slice(0, mid).map(buildSeat).join('')}
+            <div style="width:16px;flex-shrink:0;"></div>
+            ${seats.slice(mid).map(buildSeat).join('')}
+        </div>`;
+    }).join('');
+}
+
+function getSeatClass(s) {
+    if (s.status === 'Booked')                        return 'seat-booked';
+    if (s.status === 'Locked' && !s.isMyLock)         return 'seat-locked';
+    if (s.isMyLock)                                   return 'seat-mylock';
+    if (s.seatType === 'Standard' || s.seatType == 0) return 'seat-std';
+    if (s.seatType === 'Premium'  || s.seatType == 1) return 'seat-prem';
+    return 'seat-vip';
+}
+
+function buildSeat(s) {
+    const isSelected = selectedSeats.some(sel => sel.seatId === s.seatId);
+    const base       = getSeatClass(s);
+    const selCls     = isSelected ? ' seat-selected' : '';
+    const clickable  = s.status === 'Available' || s.isMyLock;
+    return `<div class="seat ${base}${selCls}"
+        id="seat-${s.seatId}"
+        ${clickable ? `onclick="toggleSeat('${s.seatId}','${s.row}',${s.seatNumber},'${s.seatType}',${s.price})"` : ''}
+        title="${s.row}${s.seatNumber} — ₹${s.price}">
+        ${s.seatNumber}
+    </div>`;
+}
+
+// ── Toggle seat ──────────────────────────────────────
+function toggleSeat(seatId, row, seatNumber, seatType, price) {
+    const idx = selectedSeats.findIndex(s => s.seatId === seatId);
+    if (idx >= 0) {
+        selectedSeats.splice(idx, 1);
+        document.getElementById(`seat-${seatId}`)?.classList.remove('seat-selected');
+    } else {
+        if (selectedSeats.length >= 10) { showToast('Maximum 10 seats per booking', 'warning'); return; }
+        selectedSeats.push({ seatId, row, seatNumber, seatType, price });
+        document.getElementById(`seat-${seatId}`)?.classList.add('seat-selected');
+    }
+    updateSummary();
+}
+
+function removeSeat(seatId) {
+    const idx = selectedSeats.findIndex(s => s.seatId === seatId);
+    if (idx >= 0) {
+        selectedSeats.splice(idx, 1);
+        document.getElementById(`seat-${seatId}`)?.classList.remove('seat-selected');
+        updateSummary();
+    }
+}
+
+// ── Summary ──────────────────────────────────────────
+function seatColor(t) {
+    return (t === 'Standard' || t == 0) ? '#60a5fa' : (t === 'Premium' || t == 1) ? '#c084fc' : '#facc15';
+}
+
+function updateSummary() {
+    const btn     = document.getElementById('proceedBtn');
+    const btnText = document.getElementById('proceedBtnText');
+    const mBtn    = document.getElementById('mobileProceedBtn');
+    const mText   = document.getElementById('mobileBtnText');
+
+    if (!selectedSeats.length) {
+        document.getElementById('selectedSeatTags').innerHTML = `<div class="text-sm text-[#444]">No seats selected</div>`;
+        document.getElementById('priceBreakdown').classList.add('hidden');
+        btn.disabled = true;  btnText.textContent = 'Select seats to continue';
+        mBtn.disabled = true; mText.textContent   = 'Book Now';
+        document.getElementById('mobileSeatInfo').textContent  = 'No seats selected';
+        document.getElementById('mobilePriceInfo').textContent = '';
+        return;
+    }
+
+    // Seat tags
+    document.getElementById('selectedSeatTags').innerHTML = selectedSeats.map(s => `
+        <span class="inline-flex items-center gap-1.5 bg-[#191919] border border-[#282828] rounded-lg px-2.5 py-1 text-sm font-semibold mr-1 mb-1">
+            <span style="color:${seatColor(s.seatType)};font-size:14px;">●</span>
+            ${s.row}${s.seatNumber}
+            <button onclick="removeSeat('${s.seatId}')" class="text-[#555] hover:text-[#E50914] transition-colors text-base leading-none ml-0.5">✕</button>
+        </span>`).join('');
+
+    // Price calc
+    const subTotal = selectedSeats.reduce((sum, s) => sum + s.price, 0);
+    const fee      = Math.round(subTotal * 0.02 * 100) / 100;
+    const total    = subTotal + fee;
+
+    // Group by type
+    const groups = {};
+    selectedSeats.forEach(s => {
+        const label = (s.seatType === 'Standard' || s.seatType == 0) ? 'Standard'
+                    : (s.seatType === 'Premium'  || s.seatType == 1) ? 'Premium' : 'VIP';
+        if (!groups[label]) groups[label] = { count:0, total:0 };
+        groups[label].count++; groups[label].total += s.price;
+    });
+
+    document.getElementById('priceRows').innerHTML =
+        Object.entries(groups).map(([type, g]) =>
+            `<div class="price-row"><span>${type} × ${g.count}</span><span>₹${Math.round(g.total)}</span></div>`
+        ).join('') +
+        `<div class="price-row"><span class="text-[#777]">Convenience Fee</span><span class="text-[#777]">₹${fee.toFixed(2)}</span></div>`;
+
+    document.getElementById('totalAmount').textContent = `₹${total.toFixed(0)}`;
+    document.getElementById('priceBreakdown').classList.remove('hidden');
+
+    const payLabel = `Pay ₹${total.toFixed(0)} for ${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''}`;
+    btn.disabled  = false; btnText.textContent = payLabel;
+    mBtn.disabled = false; mText.textContent   = `₹${total.toFixed(0)}`;
+    document.getElementById('mobileSeatInfo').textContent  = `${selectedSeats.length} seat${selectedSeats.length > 1 ? 's' : ''} selected`;
+    document.getElementById('mobilePriceInfo').textContent = `Total ₹${total.toFixed(0)} (incl. convenience fee)`;
+}
+
+// ── Price reference ──────────────────────────────────
+function renderPriceRef() {
+    document.getElementById('priceRefContent').innerHTML = `
+        <div class="space-y-2.5 text-sm">
+            <div class="flex justify-between"><span class="text-blue-400">● Standard</span><span class="font-semibold">₹${layout.priceStandard}</span></div>
+            <div class="flex justify-between"><span class="text-purple-400">● Premium</span><span class="font-semibold">₹${layout.pricePremium}</span></div>
+            <div class="flex justify-between"><span class="text-yellow-400">● VIP</span><span class="font-semibold">₹${layout.priceVIP}</span></div>
+        </div>`;
+}
+
+// ── Proceed to booking ───────────────────────────────
+async function proceedToBooking() {
+    if (!selectedSeats.length) return;
+
+    // Disable both desktop + mobile buttons
+    const btn   = document.getElementById('proceedBtn');
+    const mBtn  = document.getElementById('mobileProceedBtn');
+    const spin  = document.getElementById('proceedSpinner');
+    const mSpin = document.getElementById('mobileSpinner');
+    btn.disabled = true; mBtn.disabled = true;
+    document.getElementById('proceedBtnText').classList.add('hidden');  spin.classList.remove('hidden');
+    document.getElementById('mobileBtnText').classList.add('hidden');   mSpin.classList.remove('hidden');
+
+    showToast('Locking your seats...', 'info', 3000);
+
+    try {
+        // Step 1 — Initiate booking (lock seats)
+        const initRes  = await fetch('/api/bookings/initiate', {
+            method: 'POST', headers: authHeaders(),
+            body: JSON.stringify({ showtimeId, seatIds: selectedSeats.map(s => s.seatId) })
+        });
+        const initData = await initRes.json();
+
+        if (!initData.success) {
+            showToast(initData.message || 'Failed to lock seats — they may have just been taken', 'error', 5000);
+            btn.disabled = false; mBtn.disabled = false;
+            document.getElementById('proceedBtnText').classList.remove('hidden'); spin.classList.add('hidden');
+            document.getElementById('mobileBtnText').classList.remove('hidden');  mSpin.classList.add('hidden');
+            selectedSeats = []; updateSummary(); await loadLayout();
+            return;
         }
 
-        function startLockTimer() {
-            document.getElementById('lockTimer').style.display = 'flex';
-            lockSecondsLeft = 600;
+        startLockTimer();
+        showToast('Seats locked! Redirecting to payment...', 'success', 2500);
+        document.getElementById('proceedBtnText').classList.remove('hidden');
+        document.getElementById('proceedBtnText').textContent = 'Redirecting...';
+        spin.classList.add('hidden');
 
-            lockTimerInterval = setInterval(() => {
-                lockSecondsLeft--;
-                const mins = Math.floor(lockSecondsLeft / 60);
-                const secs = lockSecondsLeft % 60;
-                document.getElementById('timerDisplay').textContent =
-                    `${mins}:${secs.toString().padStart(2, '0')}`;
+        // Step 2 — Create Stripe Checkout Session
+        const sessionRes  = await fetch('/api/checkout/create-session', {
+            method: 'POST', headers: authHeaders(),
+            body: JSON.stringify({ bookingId: initData.data.id })
+        });
+        const sessionData = await sessionRes.json();
 
-                if (lockSecondsLeft <= 0) {
-                    clearInterval(lockTimerInterval);
-                    alert('Seat lock expired! Please select seats again.');
-                    selectedSeats = [];
-                    loadLayout();
-                    updateSummary();
-                    document.getElementById('lockTimer').style.display = 'none';
-                }
-            }, 1000);
+        if (!sessionData.success) {
+            showToast(sessionData.message || 'Payment setup failed', 'error');
+            btn.disabled = false; mBtn.disabled = false; updateSummary();
+            return;
         }
 
-        function showSuccess(booking) {
-            const start = new Date(booking.showtimeStart);
-            const bookedAt = new Date(booking.bookedAt);  // ✅ Parse booking date/time
-    
-            document.getElementById('bookingRef').textContent = booking.bookingReference;
-            
-            // ✅ Format booking date and time separately
-            const formattedDate = bookedAt.toLocaleDateString('en-IN', {
-                day: 'numeric',
-                month: 'short',
-                year: 'numeric'
-            });  
-            const formattedTime = bookedAt.toLocaleTimeString('en-IN', {
-                hour: '2-digit',
-                minute: '2-digit',
-                hour12: true
-            });
-                        // ✅ Display booking details with formatted time at the topme
-            document.getElementById('bookingDetails').innerHTML = `
-                <div style="font-size:12px; color:var(--muted); margin-bottom:8px;">${formattedDate}, ${formattedTime}</div>
-                <div style="margin-bottom:6px;">🎬 ${booking.movieTitle}</div>
-                <div style="margin-bottom:6px;">🏟 ${booking.cinemaName} • ${booking.hallName}</div>
-                <div style="margin-bottom:6px;">📅 ${start.toLocaleDateString('en-IN', {weekday:'long', day:'numeric', month:'long'})}</div>
-                <div style="margin-bottom:6px;">⏰ ${start.toLocaleTimeString('en-IN', {hour:'2-digit', minute:'2-digit', hour12:true})}</div>
-                <div style="margin-bottom:6px;">🪑 ${booking.seats.map(s => `${s.row}${s.seatNumber}`).join(', ')}</div>
-                <div style="margin-top:10px; font-size:16px; font-weight:700; color:var(--red);">Total: ₹${booking.totalAmount}</div>`;
+        // Step 3 — Redirect to Stripe
+        window.location.href = sessionData.url;
 
-            document.getElementById('successModal').style.display = 'flex';
+    } catch {
+        showToast('Something went wrong. Please try again.', 'error');
+        btn.disabled = false; mBtn.disabled = false;
+        document.getElementById('proceedBtnText').classList.remove('hidden'); spin.classList.add('hidden');
+        document.getElementById('mobileBtnText').classList.remove('hidden');  mSpin.classList.add('hidden');
+        updateSummary();
+    }
+}
+
+// ── Lock timer ───────────────────────────────────────
+function startLockTimer() {
+    document.getElementById('lockTimer').classList.remove('hidden');
+    lockSecondsLeft = 600;
+    lockTimerInterval = setInterval(() => {
+        lockSecondsLeft--;
+        const m = Math.floor(lockSecondsLeft / 60);
+        const s = lockSecondsLeft % 60;
+        document.getElementById('timerDisplay').textContent = `${m}:${s.toString().padStart(2, '0')}`;
+        if (lockSecondsLeft <= 0) {
+            clearInterval(lockTimerInterval);
+            showToast('Seat lock expired! Please select seats again.', 'error', 5000);
+            selectedSeats = []; loadLayout(); updateSummary();
+            document.getElementById('lockTimer').classList.add('hidden');
         }
+    }, 1000);
+}
 
-        loadLayout();
-    </script>
+</script>
 </body>
 </html>

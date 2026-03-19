@@ -5,6 +5,7 @@ namespace CineBook.Application.DTOs.Responses
     public class BookingResponse
     {
         public Guid Id { get; set; }
+        public Guid? ShowtimeId { get; set; }
         public string UserName { get; set; }
         public string BookingReference { get; set; }
         public string MovieTitle { get; set; }

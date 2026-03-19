@@ -8,469 +8,181 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CineBook — Refunds</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --red: #E50914; --red-dark: #b20710;
-            --bg: #0a0a0a; --surface: #141414;
-            --surface2: #1e1e1e; --surface3: #242424;
-            --border: #2a2a2a; --text: #ffffff; --muted: #888888;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; }
-        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
-
-        .navbar {
-            position: fixed; top: 0; left: 0; right: 0; height: 56px;
-            background: rgba(10,10,10,0.97); border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; padding: 0 24px; gap: 16px; z-index: 200;
-        }
-        .sidebar {
-            position: fixed; left: 0; top: 56px; bottom: 0; width: 220px;
-            background: var(--surface); border-right: 1px solid var(--border);
-            padding: 20px 12px; z-index: 100; display: flex; flex-direction: column; gap: 4px;
-        }
-        .nav-item {
-            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-            border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--muted);
-            cursor: pointer; transition: all 0.2s; text-decoration: none;
-            border: none; background: none; width: 100%;
-        }
-        .nav-item:hover { background: var(--surface2); color: var(--text); }
-        .nav-item.active { background: rgba(229,9,20,0.12); color: var(--red); }
-
-        .main { margin-left: 220px; padding-top: 56px; min-height: 100vh; }
-        .content { padding: 24px; }
-
-        .stat-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 10px; padding: 20px;
-            display: flex; align-items: center; gap: 16px;
-        }
-
-        .cinput {
-            background: var(--surface2); border: 1px solid var(--border);
-            border-radius: 6px; padding: 9px 14px; color: var(--text);
-            font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
-            transition: border-color 0.2s;
-        }
-        .cinput:focus { border-color: var(--red); }
-
-        /* Filter tabs */
-        .filter-tab {
-            padding: 7px 16px; border-radius: 20px; font-size: 13px; font-weight: 500;
-            border: 1px solid var(--border); background: var(--surface);
-            color: var(--muted); cursor: pointer; transition: all 0.2s;
-        }
-        .filter-tab:hover { border-color: #444; color: var(--text); }
-        .filter-tab.active { background: var(--red); border-color: var(--red); color: white; }
-
-        /* Refund card */
-        .refund-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 12px; padding: 20px; margin-bottom: 12px;
-            transition: all 0.2s;
-        }
-        .refund-card:hover { border-color: #3a3a3a; }
-        .refund-card.pending { border-left: 3px solid #f87171; }
-        .refund-card.processed { border-left: 3px solid #4ade80; opacity: 0.8; }
-
-        .badge {
-            display: inline-flex; align-items: center; padding: 3px 10px;
-            border-radius: 20px; font-size: 11px; font-weight: 600;
-        }
-        .badge-pending-refund {
-            background: rgba(248,113,113,0.15); color: #f87171;
-            border: 1px solid rgba(248,113,113,0.3);
-        }
-        .badge-processed {
-            background: rgba(34,197,94,0.15); color: #4ade80;
-            border: 1px solid rgba(34,197,94,0.2);
-        }
-
-        .seat-tag {
-            display: inline-flex; align-items: center; gap: 3px;
-            background: var(--surface3); border: 1px solid var(--border);
-            padding: 2px 7px; border-radius: 4px; font-size: 11px; font-weight: 600; margin: 1px;
-        }
-
-        .refund-btn {
-            background: rgba(34,197,94,0.1); color: #4ade80;
-            font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 13px;
-            padding: 9px 20px; border: 1px solid rgba(34,197,94,0.3);
-            border-radius: 8px; cursor: pointer; transition: all 0.2s;
-        }
-        .refund-btn:hover { background: rgba(34,197,94,0.2); }
-        .refund-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-
-        /* Note input */
-        .note-wrap {
-            display: none; margin-top: 12px;
-            background: var(--surface2); border: 1px solid var(--border);
-            border-radius: 8px; padding: 14px;
-        }
-        .note-wrap.show { display: block; }
-
-        .empty { text-align: center; padding: 80px 20px; color: var(--muted); }
-
-        .movie-poster-sm {
-            width: 36px; height: 50px; border-radius: 4px;
-            object-fit: cover; background: var(--surface3); flex-shrink: 0;
-        }
-
-        @@keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .refund-card { animation: fadeIn 0.3s ease forwards; }
+        body{font-family:'DM Sans',sans-serif;}.brand{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;}
+        .cinput{width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s;}
+        .cinput:focus{border-color:#E50914;}
+        textarea.cinput{resize:none;min-height:70px;}
+        .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:80;}
+        .sidebar-overlay.show{display:block;}
+        #toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+        .toast{pointer-events:all;min-width:260px;max-width:340px;background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.6);animation:tIn .35s cubic-bezier(.34,1.56,.64,1) forwards;font-size:14px;color:#fff;}
+        .toast.removing{animation:tOut .25s ease forwards;}
+        .toast-success{border-left:3px solid #22c55e;}.toast-error{border-left:3px solid #E50914;}.toast-info{border-left:3px solid #3b82f6;}
+        @@keyframes tIn{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
+        @@keyframes tOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(100px)}}
+        @@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .fade-in{animation:fadeIn .3s ease forwards;}
     </style>
 </head>
-<body>
+<body class="bg-[#0a0a0a] text-white min-h-screen">
+<div id="toast-container"></div>
 
-    <nav class="navbar">
-        <span class="brand" style="font-size:22px; color:var(--red);">CINEBOOK</span>
-        <span style="font-size:12px; color:var(--border);">|</span>
-        <span style="font-size:13px; color:var(--muted);">Cinema Manager</span>
-        <div style="flex:1;"></div>
-        <span id="managerName" style="font-size:13px; color:var(--muted);"></span>
-        <button onclick="logout()" style="background:none; border:1px solid var(--border); color:var(--muted); font-family:'DM Sans',sans-serif; font-size:13px; padding:6px 14px; border-radius:6px; cursor:pointer;">Sign Out</button>
-    </nav>
+<nav class="fixed top-0 left-0 right-0 h-14 bg-[#0a0a0a]/95 border-b border-[#2a2a2a] flex items-center px-4 sm:px-6 gap-4 z-50 backdrop-blur-sm">
+    <button onclick="toggleSidebar()" class="sm:hidden text-[#888] text-xl p-1">☰</button>
+    <span class="brand text-2xl text-[#E50914]">CINEBOOK</span>
+    <span class="hidden sm:block text-xs text-[#2a2a2a]">|</span>
+    <span class="hidden sm:block text-sm text-[#888]">Cinema Manager</span>
+    <div class="flex-1"></div>
+    <span id="managerName" class="hidden sm:block text-sm text-[#888]"></span>
+    <button onclick="logout()" class="text-sm text-[#888] border border-[#2a2a2a] rounded-md px-3 py-1.5 hover:border-[#555] hover:text-white transition-all">Sign Out</button>
+</nav>
 
-    <aside class="sidebar">
-        <div style="font-size:11px; color:var(--muted); letter-spacing:0.1em; padding:4px 12px 12px;">MANAGE</div>
-        <a class="nav-item" href="/Manager/Cinema">🏟 My Cinema</a>
-        <a class="nav-item" href="/Manager/Halls">🪑 Halls</a>
-        <a class="nav-item" href="/Manager/Showtimes">🎬 Showtimes</a>
-        <a class="nav-item" href="/Booking/CinemaBookings">📋 Bookings</a>
-        <a class="nav-item active" href="/Booking/Refunds">↩ Refunds</a>
-        <div style="flex:1;"></div>
-        <a class="nav-item" href="/Manager/Cinema">🏠 Dashboard</a>
-    </aside>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<aside id="sidebar" class="fixed left-0 top-14 bottom-0 w-56 bg-[#141414] border-r border-[#2a2a2a] px-3 py-5 z-[100] flex flex-col gap-1 -translate-x-full sm:translate-x-0 transition-transform duration-300">
+    <div class="text-xs text-[#555] tracking-widest px-3 pb-3">MANAGE</div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Manager/Cinema">🏟 My Cinema</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Manager/Halls">🪑 Halls</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Manager/Showtimes">🎬 Showtimes</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Booking/CinemaBookings">📋 Bookings</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#E50914] bg-[#E50914]/10" href="/Booking/Refunds">↩ Refunds</a>
+    <div class="flex-1"></div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/">🏠 Dashboard</a>
+</aside>
 
-    <div class="main">
-        <div class="content">
+<div class="sm:ml-56 pt-14 min-h-screen">
+    <div class="p-4 sm:p-6">
 
-            <!-- Header -->
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:24px;">
-                <div>
-                    <h1 style="font-size:22px; font-weight:700;">Refunds</h1>
-                    <p style="font-size:13px; color:var(--muted); margin-top:2px;">
-                        Manage cancelled booking refunds
-                    </p>
-                </div>
-                <a href="/Booking/CinemaBookings"
-                   style="font-size:13px; color:var(--muted); text-decoration:none; display:flex; align-items:center; gap:6px;">
-                    ← Back to Bookings
-                </a>
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div>
+                <h1 class="text-xl font-bold">Refunds</h1>
+                <p class="text-sm text-[#888] mt-0.5">Manage cancelled booking refunds</p>
             </div>
+            <a href="/Booking/CinemaBookings" class="text-sm text-[#888] hover:text-white transition-colors flex items-center gap-1">← Back to Bookings</a>
+        </div>
 
-            <!-- Stats -->
-            <div style="display:grid; grid-template-columns:repeat(4,1fr); gap:12px; margin-bottom:24px;">
-                <div class="stat-card">
-                    <div style="font-size:32px;">↩</div>
-                    <div>
-                        <div style="font-size:26px; font-weight:700;" id="totalCancelled">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Total Cancelled</div>
-                    </div>
-                </div>
-                <div class="stat-card" style="border-color:rgba(248,113,113,0.3);">
-                    <div style="font-size:32px;">⏳</div>
-                    <div>
-                        <div style="font-size:26px; font-weight:700; color:#f87171;" id="pendingRefunds">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Pending Refunds</div>
-                    </div>
-                </div>
-                <div class="stat-card" style="border-color:rgba(34,197,94,0.3);">
-                    <div style="font-size:32px;">✅</div>
-                    <div>
-                        <div style="font-size:26px; font-weight:700; color:#4ade80;" id="processedRefunds">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Processed</div>
-                    </div>
-                </div>
-                <div class="stat-card" style="border-color:rgba(248,113,113,0.2); background:rgba(248,113,113,0.05);">
-                    <div style="font-size:32px;">💸</div>
-                    <div>
-                        <div style="font-size:26px; font-weight:700; color:#f87171;" id="totalRefundAmount">₹0</div>
-                        <div style="font-size:12px; color:var(--muted);">Total Refund Amount</div>
-                    </div>
-                </div>
-            </div>
+        <!-- Stats -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">↩</div><div><div class="text-xl font-bold" id="totalCancelled">0</div><div class="text-xs text-[#888]">Total Cancelled</div></div></div>
+            <div class="bg-[#141414] border border-red-400/20 rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">⏳</div><div><div class="text-xl font-bold text-red-400" id="pendingRefunds">0</div><div class="text-xs text-[#888]">Pending</div></div></div>
+            <div class="bg-[#141414] border border-green-400/20 rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">✅</div><div><div class="text-xl font-bold text-green-400" id="processedRefunds">0</div><div class="text-xs text-[#888]">Processed</div></div></div>
+            <div class="bg-red-400/5 border border-red-400/15 rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">💸</div><div><div class="text-xl font-bold text-red-400" id="totalRefundAmount">₹0</div><div class="text-xs text-[#888]">Pending Amount</div></div></div>
+        </div>
 
-            <!-- Filter tabs -->
-            <div style="display:flex; gap:8px; margin-bottom:20px;">
-                <div class="filter-tab active" onclick="setFilter('all', this)">All</div>
-                <div class="filter-tab" onclick="setFilter('pending', this)">⏳ Pending Refund</div>
-                <div class="filter-tab" onclick="setFilter('processed', this)">✅ Processed</div>
-            </div>
+        <!-- Filter tabs -->
+        <div class="flex gap-2 mb-5 flex-wrap">
+            <button class="filter-tab px-4 py-1.5 rounded-full text-sm font-medium bg-[#E50914] text-white border border-[#E50914]" onclick="setFilter('all',this)">All</button>
+            <button class="filter-tab px-4 py-1.5 rounded-full text-sm font-medium text-[#888] border border-[#2a2a2a] bg-[#141414] hover:border-[#444] hover:text-white transition-all" onclick="setFilter('pending',this)">⏳ Pending Refund</button>
+            <button class="filter-tab px-4 py-1.5 rounded-full text-sm font-medium text-[#888] border border-[#2a2a2a] bg-[#141414] hover:border-[#444] hover:text-white transition-all" onclick="setFilter('processed',this)">✅ Processed</button>
+        </div>
 
-            <!-- Refunds List -->
-            <div id="refundsList">
-                <div style="text-align:center; padding:40px; color:var(--muted);">Loading...</div>
-            </div>
-
+        <div id="refundsList">
+            <div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">↩</div><div>Loading refunds...</div></div>
         </div>
     </div>
+</div>
 
-    <script>
-        const token = localStorage.getItem('token');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+<script>
+function showToast(msg,type='info',duration=4000){const icons={success:'✓',error:'✕',info:'ℹ',warning:'⚠'};const colors={success:'#22c55e',error:'#E50914',info:'#3b82f6',warning:'#f59e0b'};const c=document.getElementById('toast-container');const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">${icons[type]}</div><div style="flex:1;line-height:1.5;">${msg}</div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:0;">✕</button>`;c.appendChild(t);setTimeout(()=>{t.classList.add('removing');setTimeout(()=>t.remove(),250);},duration);}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('-translate-x-full');document.getElementById('sidebarOverlay').classList.toggle('show');}
+function logout(){localStorage.clear();window.location.href='/Auth/Login';}
+const token=localStorage.getItem('token');const user=JSON.parse(localStorage.getItem('user')||'{}');
+if(!token)window.location.href='/Auth/Login';if(user.role!=='CinemaManager')window.location.href='/';
+document.getElementById('managerName').textContent=user.fullName||'Manager';
+function authHeaders(){return{'Content-Type':'application/json','Authorization':`Bearer ${token}`};}
 
-        if (!token) window.location.href = '/Auth/Login';
-        if (user.role !== 'CinemaManager') window.location.href = '/';
+let allRefunds=[],currentFilter='all';
 
-        document.getElementById('managerName').textContent = user.fullName || 'Manager';
+async function loadRefunds(){
+    try{const res=await fetch('/api/bookings/cinema/cancelled',{headers:authHeaders()});const data=await res.json();
+        if(data.success){allRefunds=data.data;updateStats();renderRefunds(allRefunds);}
+        else{document.getElementById('refundsList').innerHTML=`<div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">✅</div><div>No cancelled bookings found</div></div>`;}
+    }catch{showToast('Failed to load refunds','error');}
+}
 
-        function authHeaders() {
-            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-        }
+function updateStats(){
+    const pending=allRefunds.filter(r=>!r.refundProcessed);const processed=allRefunds.filter(r=>r.refundProcessed);const totalAmt=pending.reduce((s,r)=>s+r.totalAmount,0);
+    document.getElementById('totalCancelled').textContent=allRefunds.length;document.getElementById('pendingRefunds').textContent=pending.length;
+    document.getElementById('processedRefunds').textContent=processed.length;document.getElementById('totalRefundAmount').textContent=`₹${totalAmt.toLocaleString('en-IN')}`;
+}
 
-        let allRefunds = [];
-        let currentFilter = 'all';
+function setFilter(f,el){
+    currentFilter=f;document.querySelectorAll('.filter-tab').forEach(t=>{t.classList.remove('bg-[#E50914]','text-white','border-[#E50914]');t.classList.add('text-[#888]','border-[#2a2a2a]','bg-[#141414]');});
+    el.classList.add('bg-[#E50914]','text-white','border-[#E50914]');el.classList.remove('text-[#888]','border-[#2a2a2a]','bg-[#141414]');
+    let filtered=allRefunds;
+    if(f==='pending')filtered=allRefunds.filter(r=>!r.refundProcessed);else if(f==='processed')filtered=allRefunds.filter(r=>r.refundProcessed);
+    renderRefunds(filtered);
+}
 
-        // ── Load Cancelled Bookings ───────────────────────────
-        async function loadRefunds() {
-            try {
-                const res = await fetch('/api/bookings/cinema/cancelled', { headers: authHeaders() });
-                const data = await res.json();
+function seatTag(s){const color=(s.seatType==='Standard'||s.seatType===0)?'#60a5fa':(s.seatType==='Premium'||s.seatType===1)?'#c084fc':'#facc15';return`<span style="display:inline-flex;align-items:center;gap:3px;background:#222;border:1px solid #2a2a2a;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;margin:1px;"><span style="color:${color}">●</span>${s.row}${s.seatNumber}</span>`;}
 
-                if (data.success) {
-                    allRefunds = data.data;
-                    updateStats();
-                    renderRefunds(allRefunds);
-                } else {
-                    showEmpty('No cancelled bookings found');
-                }
-            } catch {
-                showEmpty('Failed to load refunds');
-            }
-        }
+function fmtIST(isoStr){if(!isoStr)return'';const d=isoStr.split('T');const datePart=d[0]||'';const timePart=d[1]?.substring(0,5)||'';const[h,m]=(timePart||'').split(':');const hour=parseInt(h);const ampm=hour>=12?'pm':'am';const h12=hour%12||12;const[yr,mo,dy]=(datePart||'').split('-');const dateStr=datePart?new Date(parseInt(yr),parseInt(mo)-1,parseInt(dy)).toLocaleDateString('en-IN',{day:'numeric',month:'short'}):'';return`${dateStr} • ${h12}:${m} ${ampm}`;}
 
-        function updateStats() {
-            const pending = allRefunds.filter(r => !r.refundProcessed);
-            const processed = allRefunds.filter(r => r.refundProcessed);
-            const totalAmt = pending.reduce((s, r) => s + r.totalAmount, 0);
-
-            document.getElementById('totalCancelled').textContent = allRefunds.length;
-            document.getElementById('pendingRefunds').textContent = pending.length;
-            document.getElementById('processedRefunds').textContent = processed.length;
-            document.getElementById('totalRefundAmount').textContent =
-                `₹${totalAmt.toLocaleString('en-IN')}`;
-        }
-
-        function setFilter(filter, el) {
-            currentFilter = filter;
-            document.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
-            el.classList.add('active');
-
-            let filtered = allRefunds;
-            if (filter === 'pending') filtered = allRefunds.filter(r => !r.refundProcessed);
-            else if (filter === 'processed') filtered = allRefunds.filter(r => r.refundProcessed);
-
-            renderRefunds(filtered);
-        }
-
-        function renderRefunds(refunds) {
-            const list = document.getElementById('refundsList');
-
-            if (!refunds.length) {
-                list.innerHTML = `
-                    <div class="empty">
-                        <div style="font-size:60px; margin-bottom:16px;">✅</div>
-                        <div style="font-size:18px; font-weight:600; margin-bottom:8px;">
-                            ${currentFilter === 'pending' ? 'No pending refunds!' : 'No refunds found'}
+function renderRefunds(refunds){
+    const list=document.getElementById('refundsList');
+    if(!refunds.length){list.innerHTML=`<div class="text-center py-16 text-[#555]"><div class="text-5xl mb-4">✅</div><div class="text-base font-semibold mb-1">${currentFilter==='pending'?'No pending refunds!':'No refunds found'}</div><div class="text-sm">${currentFilter==='pending'?'All cancelled bookings have been processed.':'No cancelled bookings yet.'}</div></div>`;return;}
+    list.innerHTML=refunds.map(r=>{
+        const isProcessed=r.refundProcessed;
+        const seats=(r.seats||[]).map(s=>seatTag(s)).join('');
+        return`<div class="fade-in bg-[#141414] border border-[#2a2a2a] ${isProcessed?'border-l-green-500':'border-l-red-500'} border-l-4 rounded-2xl p-5 mb-4">
+            <div class="flex flex-col sm:flex-row sm:items-start gap-4">
+                <img src="${r.moviePoster||''}" onerror="this.style.display='none'" class="w-10 h-14 rounded-lg object-cover flex-shrink-0 bg-[#222]" />
+                <div class="flex-1 min-w-0">
+                    <!-- Header row -->
+                    <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 mb-3">
+                        <div>
+                            <div class="font-bold text-base mb-0.5">${r.movieTitle}</div>
+                            <div class="text-xs text-[#888]">🏟 ${r.cinemaName} • ${r.hallName} • 📅 ${new Date(r.showtimeStart).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'})}</div>
                         </div>
-                        <div style="font-size:13px;">
-                            ${currentFilter === 'pending' ? 'All cancelled bookings have been processed.' : 'No cancelled bookings yet.'}
-                        </div>
-                    </div>`;
-                return;
-            }
-
-            list.innerHTML = refunds.map(r => {
-                const start = new Date(r.showtimeStart);
-                const bookedAt = new Date(r.bookedAt);
-                const isProcessed = r.refundProcessed;
-
-                const seatTags = (r.seats || []).map(s => {
-                    const color = (s.seatType === 'Standard' || s.seatType === 0) ? '#60a5fa'
-                                : (s.seatType === 'Premium' || s.seatType === 1) ? '#c084fc' : '#facc15';
-                    return `<span class="seat-tag"><span style="color:${color}">●</span>${s.row}${s.seatNumber}</span>`;
-                }).join('');
-
-                return `
-                <div class="refund-card ${isProcessed ? 'processed' : 'pending'}" id="card-${r.id}">
-                    <div style="display:flex; gap:14px; align-items:flex-start;">
-
-                        <!-- Poster -->
-                        <img class="movie-poster-sm" src="${r.moviePoster || ''}"
-                             onerror="this.style.display='none'" />
-
-                        <!-- Main Info -->
-                        <div style="flex:1; min-width:0;">
-                            <div style="display:flex; align-items:center; justify-content:space-between; gap:10px; margin-bottom:8px;">
-                                <div>
-                                    <div style="font-size:15px; font-weight:700; margin-bottom:2px;">${r.movieTitle}</div>
-                                    <div style="font-size:12px; color:var(--muted);">
-                                        🏟 ${r.cinemaName} • ${r.hallName} •
-                                        📅 ${start.toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'})}
-                                    </div>
-                                </div>
-                                <span class="badge ${isProcessed ? 'badge-processed' : 'badge-pending-refund'}">
-                                    ${isProcessed ? '✅ Refund Processed' : '⏳ Pending Refund'}
-                                </span>
-                            </div>
-
-                            <!-- Booking ref + customer -->
-                            <div style="display:flex; gap:20px; margin-bottom:10px; flex-wrap:wrap;">
-                                <div>
-                                    <div style="font-size:10px; color:var(--muted); letter-spacing:0.06em;">BOOKING REF</div>
-                                    <div style="font-size:13px; font-weight:700; color:var(--red);">${r.bookingReference}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size:10px; color:var(--muted); letter-spacing:0.06em;">CUSTOMER</div>
-                                    <div style="font-size:13px; font-weight:600;">${r.userName || 'User'}</div>
-                                </div>
-                                <div>
-                                    <div style="font-size:10px; color:var(--muted); letter-spacing:0.06em;">BOOKED AT</div>
-                                    <div style="font-size:13px; color:var(--muted);">
-        ${(() => {
-            // ✅ API already converted to IST - just parse the ISO string directly
-            const d = r.bookedAt?.split('T');
-            const datePart = d?.[0] ?? '';
-            const timePart = d?.[1]?.substring(0,5) ?? '';
-            const [h, m] = timePart.split(':');
-            const hour = parseInt(h);
-            const ampm = hour >= 12 ? 'pm' : 'am';
-            const hour12 = hour % 12 || 12;
-            const [yr, mo, dy] = datePart.split('-');
-            const dateStr = datePart ? new Date(parseInt(yr), parseInt(mo)-1, parseInt(dy))
-                .toLocaleDateString('en-IN', {day:'numeric', month:'short'}) : '';
-            return `${dateStr} • ${hour12}:${m} ${ampm}`;
-        })()}
-                                    </div>
-                                </div>
-                                <div>
-                                    <div style="font-size:10px; color:var(--muted); letter-spacing:0.06em;">SEATS</div>
-                                    <div style="display:flex; flex-wrap:wrap; gap:2px; margin-top:2px;">${seatTags}</div>
-                                </div>
-                            </div>
-
-                            <!-- Amount + Action -->
-                            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;">
-                                <div style="background:var(--surface2); border:1px solid var(--border);
-                                            border-radius:8px; padding:10px 16px;">
-                                    <div style="font-size:10px; color:var(--muted); letter-spacing:0.06em; margin-bottom:2px;">REFUND AMOUNT</div>
-                                    <div style="font-size:20px; font-weight:700; color:#f87171;">₹${r.totalAmount}</div>
-                                    <div style="font-size:11px; color:var(--muted);">
-                                        Subtotal ₹${r.subTotal} + Fee ₹${r.convenienceFee}
-                                    </div>
-                                </div>
-
-                                ${isProcessed ? `
-                                    <div style="text-align:right;">
-                                        <div style="font-size:12px; color:#4ade80; font-weight:600;">✅ Refund Processed</div>
-                                        <div style="font-size:11px; color:var(--muted); margin-top:2px;">
-                                            ${r.refundedAt ? (() => {
-                                                // ✅ API already converted to IST - just parse the ISO string directly
-                                                const d = r.refundedAt?.split('T');
-                                                const datePart = d?.[0] ?? '';
-                                                const timePart = d?.[1]?.substring(0,5) ?? '';
-                                                const [h, m] = timePart.split(':');
-                                                const hour = parseInt(h);
-                                                const ampm = hour >= 12 ? 'pm' : 'am';
-                                                const hour12 = hour % 12 || 12;
-                                                const [yr, mo, dy] = datePart.split('-');
-                                                const dateStr = datePart ? new Date(parseInt(yr), parseInt(mo)-1, parseInt(dy))
-                                                    .toLocaleDateString('en-IN', {day:'numeric', month:'short', year:'numeric'}) : '';
-                                                return `${dateStr}, ${hour12}:${m} ${ampm}`;
-                                            })() : ''}
-                                        </div>
-                                        ${r.refundNote ? `<div style="font-size:11px; color:var(--muted); margin-top:2px;">Note: ${r.refundNote}</div>` : ''}
-                                    </div>
-                                ` : `
-                                    <div>
-                                        <button class="refund-btn" onclick="toggleNoteBox('${r.id}')">
-                                            ↩ Mark as Refunded
-                                        </button>
-                                    </div>
-                                `}
-                            </div>
-
-                            <!-- Note Box (hidden by default) -->
-                            ${!isProcessed ? `
-                            <div class="note-wrap" id="note-${r.id}">
-                                <div style="font-size:12px; font-weight:600; color:var(--muted); margin-bottom:8px;">
-                                    ADD REFUND NOTE (optional)
-                                </div>
-                                <textarea id="noteText-${r.id}"
-                                    placeholder="e.g. Refunded via UPI to customer's account..."
-                                    style="width:100%; background:var(--surface3); border:1px solid var(--border);
-                                           border-radius:6px; padding:10px; color:var(--text);
-                                           font-family:'DM Sans',sans-serif; font-size:13px;
-                                           outline:none; resize:none; height:70px;"></textarea>
-                                <div style="display:flex; gap:8px; margin-top:10px;">
-                                    <button onclick="processRefund('${r.id}')"
-                                        style="background:#4ade80; color:#000; font-family:'DM Sans',sans-serif;
-                                               font-weight:700; font-size:13px; padding:9px 20px;
-                                               border:none; border-radius:6px; cursor:pointer;">
-                                        ✅ Confirm Refund
-                                    </button>
-                                    <button onclick="toggleNoteBox('${r.id}')"
-                                        style="background:none; border:1px solid var(--border); color:var(--muted);
-                                               font-family:'DM Sans',sans-serif; font-size:13px; padding:9px 16px;
-                                               border-radius:6px; cursor:pointer;">
-                                        Cancel
-                                    </button>
-                                </div>
-                            </div>
-                            ` : ''}
-                        </div>
+                        <span class="text-xs font-bold px-3 py-1 rounded-full border w-fit flex-shrink-0 ${isProcessed?'text-green-400 bg-green-400/10 border-green-400/20':'text-red-400 bg-red-400/10 border-red-400/20'}">${isProcessed?'✅ Refund Processed':'⏳ Pending Refund'}</span>
                     </div>
-                </div>`;
-            }).join('');
-        }
+                    <!-- Info grid -->
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-4">
+                        <div><div class="text-xs text-[#888] mb-0.5">BOOKING REF</div><div class="text-sm font-bold text-[#E50914]">${r.bookingReference}</div></div>
+                        <div><div class="text-xs text-[#888] mb-0.5">CUSTOMER</div><div class="text-sm font-semibold">${r.userName||'User'}</div></div>
+                        <div><div class="text-xs text-[#888] mb-0.5">BOOKED AT</div><div class="text-xs text-[#888]">${fmtIST(r.bookedAt)}</div></div>
+                        <div><div class="text-xs text-[#888] mb-1">SEATS</div><div class="flex flex-wrap gap-0.5">${seats}</div></div>
+                    </div>
+                    <!-- Amount + action -->
+                    <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                        <div class="bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl px-4 py-3">
+                            <div class="text-xs text-[#888] mb-1">REFUND AMOUNT</div>
+                            <div class="text-xl font-bold text-red-400">₹${r.totalAmount}</div>
+                            <div class="text-xs text-[#888]">Subtotal ₹${r.subTotal} + Fee ₹${r.convenienceFee}</div>
+                        </div>
+                        ${isProcessed?`<div class="text-right"><div class="text-sm font-semibold text-green-400">✅ Refund Processed</div><div class="text-xs text-[#888] mt-0.5">${fmtIST(r.refundedAt)}</div>${r.refundNote?`<div class="text-xs text-[#555] mt-0.5">Note: ${r.refundNote}</div>`:''}</div>`
+                        :`<button onclick="toggleNoteBox('${r.id}')" class="text-green-400 border border-green-400/30 bg-green-400/5 hover:bg-green-400/12 font-semibold text-sm px-5 py-2.5 rounded-xl transition-all">↩ Mark as Refunded</button>`}
+                    </div>
+                    <!-- Note box (hidden) -->
+                    ${!isProcessed?`<div id="note-${r.id}" class="hidden mt-4 bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl p-4">
+                        <div class="text-xs font-bold text-[#888] tracking-widest mb-3">ADD REFUND NOTE (optional)</div>
+                        <textarea id="noteText-${r.id}" class="cinput text-sm" placeholder="e.g. Refunded via UPI to customer's account..."></textarea>
+                        <div class="flex gap-2 mt-3">
+                            <button onclick="processRefund('${r.id}')" class="bg-green-600 hover:bg-green-700 text-black font-bold text-sm px-5 py-2 rounded-lg transition-colors">✅ Confirm Refund</button>
+                            <button onclick="toggleNoteBox('${r.id}')" class="text-[#888] border border-[#2a2a2a] text-sm px-4 py-2 rounded-lg hover:border-[#555] transition-all">Cancel</button>
+                        </div>
+                    </div>`:``}
+                </div>
+            </div>
+        </div>`;
+    }).join('');
+}
 
-        function toggleNoteBox(id) {
-            const box = document.getElementById(`note-${id}`);
-            box.classList.toggle('show');
-        }
+function toggleNoteBox(id){document.getElementById(`note-${id}`)?.classList.toggle('hidden');}
 
-        async function processRefund(bookingId) {
-            const note = document.getElementById(`noteText-${bookingId}`)?.value?.trim();
+async function processRefund(bookingId){
+    const note=document.getElementById(`noteText-${bookingId}`)?.value?.trim();
+    try{
+        const res=await fetch(`/api/bookings/${bookingId}/refund`,{method:'PUT',headers:authHeaders(),body:JSON.stringify({note:note||null})});
+        const data=await res.json();
+        if(data.success){showToast('✅ Refund marked as processed!','success');await loadRefunds();}
+        else showToast(data.message||'Failed to process refund','error');
+    }catch{showToast('Something went wrong','error');}
+}
 
-            try {
-                const res = await fetch(`/api/bookings/${bookingId}/refund`, {
-                    method: 'PUT',
-                    headers: authHeaders(),
-                    body: JSON.stringify({ note: note || null })
-                });
-
-                const data = await res.json();
-
-                if (data.success) {
-                    await loadRefunds();
-                    // Switch to show processed if needed
-                    if (currentFilter === 'pending') setFilter('all',
-                        document.querySelector('.filter-tab'));
-                } else {
-                    alert(data.message || 'Failed to process refund');
-                }
-            } catch {
-                alert('Something went wrong');
-            }
-        }
-
-        function showEmpty(msg) {
-            document.getElementById('refundsList').innerHTML = `
-                <div class="empty">
-                    <div style="font-size:60px; margin-bottom:16px;">↩</div>
-                    <div style="font-size:18px; font-weight:600;">${msg}</div>
-                </div>`;
-        }
-
-        function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
-
-        loadRefunds();
-    </script>
+loadRefunds();
+</script>
 </body>
 </html>

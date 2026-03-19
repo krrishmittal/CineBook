@@ -233,6 +233,17 @@ namespace CineBook.Infrastructure.Services
 
             await _context.Bookings.AddAsync(booking);
             await _context.BookingSeats.AddRangeAsync(bookingSeats);
+            await _context.SaveChangesAsync(); 
+            var pendingPayment = new Payment
+            {
+                Id = Guid.NewGuid(),
+                BookingId = booking.Id,
+                StripePaymentIntentId = "",   
+                Amount = totalAmount,
+                Status = PaymentStatus.Pending,
+                PaidAt = null
+            };
+            await _context.Payments.AddAsync(pendingPayment);
             await _context.SaveChangesAsync();
 
             _logger.LogInformation("Booking {BookingId} (Ref: {Ref}) initiated by User {UserId} with {Count} locked seats for Showtime {ShowtimeId}",
@@ -415,6 +426,41 @@ namespace CineBook.Infrastructure.Services
             return ApiResponse<string>.Ok("Cancelled", "Booking cancelled successfully");
         }
 
+        public async Task<ApiResponse<string>> SavePaymentAsync(
+    Guid bookingId, string stripePaymentIntentId, decimal amount)
+        {
+            // Check if payment already saved (prevent duplicate)
+            var existing = await _context.Payments
+                .FirstOrDefaultAsync(p => p.BookingId == bookingId);
+
+            if (existing != null)
+            {
+                // Update if exists
+                existing.StripePaymentIntentId = stripePaymentIntentId;
+                existing.Status = PaymentStatus.Success;
+                existing.PaidAt = DateTime.Now;
+                existing.Amount = amount;
+            }
+            else
+            {
+                // Create new payment record
+                var payment = new Payment
+                {
+                    Id = Guid.NewGuid(),
+                    BookingId = bookingId,
+                    StripePaymentIntentId = stripePaymentIntentId,
+                    Amount = amount,
+                    Status = PaymentStatus.Success,
+                    PaidAt = DateTime.Now
+                };
+                await _context.Payments.AddAsync(payment);
+            }
+
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<string>.Ok("Saved", "Payment saved successfully");
+        }
+
         // ── Helpers ───────────────────────────────────────────
         private static string GenerateReference()
         {
@@ -495,10 +541,47 @@ namespace CineBook.Infrastructure.Services
                 MapToResponse(booking, booking.Showtime, booking.BookingSeats.ToList()),
                 "Booking fetched");
         }
-       
+        public async Task<ApiResponse<string>> ReleaseLockedSeatsAsync(
+    Guid bookingId, string userId)
+        {
+            var booking = await _context.Bookings
+                .Include(b => b.BookingSeats)
+                .FirstOrDefaultAsync(b => b.Id == bookingId
+                    && b.UserId == userId
+                    && b.Status == BookingStatus.Pending);
 
-    private static BookingResponse MapToResponse(Booking booking, Showtime showtime, List<BookingSeat> seats) => new(){
+            if (booking == null)
+                return ApiResponse<string>.Fail("Booking not found", 404, "Booking");
+
+            var seatIds = booking.BookingSeats.Select(bs => bs.SeatId).ToList();
+            var showtimeSeats = await _context.ShowtimeSeats
+                .Where(ss => ss.ShowtimeId == booking.ShowtimeId
+                    && seatIds.Contains(ss.SeatId))
+                .ToListAsync();
+
+            foreach (var ss in showtimeSeats)
+            {
+                ss.Status = SeatStatus.Available;
+                ss.LockedByUserId = null;
+                ss.LockedAt = null;
+            }
+
+            // Update payment to cancelled
+            var payment = await _context.Payments
+                .FirstOrDefaultAsync(p => p.BookingId == bookingId);
+            if (payment != null)
+                payment.Status = PaymentStatus.Failed;
+
+            booking.Status = BookingStatus.Cancelled;
+            await _context.SaveChangesAsync();
+
+            return ApiResponse<string>.Ok("Released", "Seats released");
+        }
+
+
+        private static BookingResponse MapToResponse(Booking booking, Showtime showtime, List<BookingSeat> seats) => new(){
                 Id = booking.Id,
+                ShowtimeId=booking.ShowtimeId,
                 UserName = booking.User?.FullName,
                 BookingReference = booking.BookingReference,
                 MovieTitle = showtime.Movie?.Title ?? "",
@@ -525,6 +608,7 @@ namespace CineBook.Infrastructure.Services
                     ? TimeZoneHelper.ConvertToIST(booking.RefundedAt.Value)
                 : null,
                 RefundNote = booking.RefundNote
-     };
+        };
     }
+
 }

@@ -13,6 +13,8 @@ namespace CineBook.Application.Interfaces
         Task<ApiResponse<List<BookingResponse>>> GetCancelledBookingsAsync(string managerId);
         Task<ApiResponse<BookingResponse>> GetBookingByIdAsync(Guid bookingId, string userId);
         Task<ApiResponse<string>> ProcessRefundAsync(Guid bookingId, string managerId, string? note);
+        Task<ApiResponse<string>> SavePaymentAsync(Guid bookingId, string stripePaymentIntentId, decimal amount);
+        Task<ApiResponse<string>> ReleaseLockedSeatsAsync(Guid bookingId, string userId);
         Task<ApiResponse<string>> CancelBookingAsync(Guid bookingId, string userId);
     }
 }

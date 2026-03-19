@@ -65,7 +65,7 @@ namespace CineBook.API.Controllers
                         PriceData = new SessionLineItemPriceDataOptions
                         {
                             Currency = "inr",
-                            UnitAmount = (long)(booking.TotalAmount * 100), // paise
+                            UnitAmount = (long)(booking.TotalAmount * 100), 
                             ProductData = new SessionLineItemPriceDataProductDataOptions
                             {
                                 Name = $"🎬 {booking.MovieTitle}",
@@ -114,8 +114,7 @@ namespace CineBook.API.Controllers
         // POST api/checkout/confirm-payment
         // Called after Stripe redirects to success page
         [HttpPost("confirm-payment")]
-        public async Task<IActionResult> ConfirmPayment(
-            [FromBody] ConfirmPaymentRequest request)
+        public async Task<IActionResult> ConfirmPayment( [FromBody] ConfirmPaymentRequest request)
         {
             try
             {
@@ -128,10 +127,20 @@ namespace CineBook.API.Controllers
                 if (session.PaymentStatus != "paid")
                     return BadRequest(new { success = false, message = "Payment not completed" });
 
-                // Confirm booking
+                // ── Save Payment to DB ────────────────────────────
+                var paymentResult = await _bookingService.SavePaymentAsync(
+                    request.BookingId,
+                    session.PaymentIntentId,
+                    session.AmountTotal.HasValue
+                        ? session.AmountTotal.Value / 100m
+                        : 0m);
+
+                if (!paymentResult.Success)
+                    return BadRequest(paymentResult);
+
+                // ── Confirm Booking ───────────────────────────────
                 var result = await _bookingService.ConfirmBookingAsync(
-                    GetUserId(),
-                    new ConfirmBookingRequest { BookingId = request.BookingId });
+                    GetUserId(),new ConfirmBookingRequest { BookingId = request.BookingId });
 
                 if (!result.Success)
                     return BadRequest(result);

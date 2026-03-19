@@ -8,77 +8,107 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CineBook — Payment Cancelled</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@400;500;600;700&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --red: #E50914;
-            --bg: #080808; --surface: #111111;
-            --border: #282828; --text: #f5f5f5; --muted: #777777;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body {
-            background: var(--bg); color: var(--text);
-            font-family: 'Outfit', sans-serif; min-height: 100vh;
-            display: flex; align-items: center; justify-content: center; padding: 20px;
-        }
-        .card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 20px; padding: 48px 40px;
-            max-width: 460px; width: 100%; text-align: center;
-        }
-        .btn {
-            display: inline-flex; align-items: center; justify-content: center;
-            font-family: 'Outfit', sans-serif; font-weight: 600; font-size: 14px;
-            padding: 12px 24px; border-radius: 10px; cursor: pointer;
-            text-decoration: none; transition: all 0.2s; border: none;
-        }
-        .btn-primary { background: var(--red); color: white; }
-        .btn-primary:hover { background: #b20710; }
-        .btn-ghost { background: var(--surface); color: var(--muted); border: 1px solid var(--border); }
-        .btn-ghost:hover { color: var(--text); border-color: #444; }
+        body { font-family:'Outfit',sans-serif; }
+        #toast-container { position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none; }
+        .toast { pointer-events:all;min-width:260px;max-width:340px;background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,0.6);animation:toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;font-size:14px;color:#fff; }
+        .toast.removing { animation:toastOut 0.25s ease forwards; }
+        .toast-error { border-left:3px solid #E50914; }
+        .toast-info { border-left:3px solid #3b82f6; }
+        @@keyframes toastIn { from{opacity:0;transform:translateX(100px);}to{opacity:1;transform:translateX(0);} }
+        @@keyframes toastOut { from{opacity:1;transform:translateX(0);}to{opacity:0;transform:translateX(100px);} }
+        @@keyframes pop { from{transform:scale(0);opacity:0;}to{transform:scale(1);opacity:1;} }
+        .pop { animation:pop 0.5s cubic-bezier(0.175,0.885,0.32,1.275); }
+        @@keyframes spin { to{transform:rotate(360deg);} }
+        .spinner { width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block; }
     </style>
 </head>
-<body>
-    <div class="card">
-        <div style="font-size:64px; margin-bottom:20px;">💳</div>
-        <h1 style="font-size:24px; font-weight:700; margin-bottom:10px;">Payment Cancelled</h1>
-        <p style="font-size:14px; color:var(--muted); margin-bottom:8px;">
-            You cancelled the payment. Don't worry — your seats are still locked for a few minutes.
-        </p>
-        <p style="font-size:13px; color:var(--muted); margin-bottom:28px;" id="timerMsg">
-            Seats will be released soon if not paid.
-        </p>
+<body class="bg-[#080808] text-[#f5f5f5] min-h-screen flex items-center justify-center px-4 py-8">
 
-        <div style="display:flex; gap:10px; justify-content:center; flex-wrap:wrap;">
-            <button onclick="retryPayment()" class="btn btn-primary">↩ Try Again</button>
-            <a href="/" class="btn btn-ghost">🏠 Home</a>
+<div id="toast-container"></div>
+
+<div class="w-full max-w-md bg-[#111] border border-[#282828] rounded-2xl p-8 sm:p-12 text-center">
+    <div class="pop text-6xl sm:text-7xl mb-6">💳</div>
+    <h1 class="text-2xl sm:text-3xl font-bold mb-3">Payment Cancelled</h1>
+    <p class="text-sm text-[#777] mb-2 leading-relaxed">
+        You cancelled the payment. Don't worry — your seats are still locked for a few minutes.
+    </p>
+    <p class="text-sm text-[#555] mb-8" id="timerMsg">
+        Seats will be released soon if payment isn't completed.
+    </p>
+
+    <!-- Timer countdown -->
+    <div id="countdownBar" class="mb-8">
+        <div class="h-1 bg-[#222] rounded-full overflow-hidden mb-2">
+            <div id="timerFill" class="h-full bg-yellow-500 rounded-full transition-all duration-1000" style="width:100%"></div>
         </div>
+        <div class="text-xs text-[#555]">Seats locked for <span id="countdownDisplay" class="text-yellow-400 font-semibold">--</span></div>
     </div>
 
-    <script>
-        const params = new URLSearchParams(window.location.search);
-        const bookingId = params.get('bookingId');
+    <div class="flex flex-col sm:flex-row gap-3 justify-center">
+        <button onclick="retryPayment()" id="retryBtn"
+            class="flex-1 sm:flex-initial bg-[#E50914] hover:bg-[#b20710] text-white font-semibold text-sm px-6 py-3 rounded-xl transition-all flex items-center justify-center gap-2">
+            <span id="retryBtnText">↩ Try Again</span>
+            <div class="spinner hidden" id="retrySpinner"></div>
+        </button>
+        <a href="/" class="flex-1 sm:flex-initial bg-[#1a1a1a] hover:bg-[#222] text-[#777] hover:text-white border border-[#282828] hover:border-[#444] font-semibold text-sm px-6 py-3 rounded-xl transition-all text-center">
+            🏠 Home
+        </a>
+    </div>
 
-        function retryPayment() {
-            if (!bookingId) { window.location.href = '/'; return; }
+    <div class="mt-6 pt-6 border-t border-[#1a1a1a]">
+        <a href="/Booking/MyBookings" class="text-sm text-[#555] hover:text-[#E50914] transition-colors">🎟 Check My Bookings</a>
+    </div>
+</div>
 
-            // Re-create checkout session for same booking
-            const token = localStorage.getItem('token');
-            fetch('/api/checkout/create-session', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ bookingId })
-            })
-            .then(r => r.json())
-            .then(data => {
-                if (data.success) window.location.href = data.url;
-                else alert('Could not retry payment. Seats may have been released.');
-            })
-            .catch(() => alert('Something went wrong'));
-        }
-    </script>
+<script>
+function showToast(msg, type='info', duration=4000) {
+    const icons={error:'✕',info:'ℹ'};
+    const colors={error:'#E50914',info:'#3b82f6'};
+    const c=document.getElementById('toast-container');
+    const t=document.createElement('div'); t.className=`toast toast-${type}`;
+    t.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">${icons[type]||'ℹ'}</div><div style="flex:1;line-height:1.5;">${msg}</div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:0;">✕</button>`;
+    c.appendChild(t);
+    setTimeout(()=>{t.classList.add('removing');setTimeout(()=>t.remove(),250);},duration);
+}
+
+const params = new URLSearchParams(window.location.search);
+const bookingId = params.get('bookingId');
+
+// Countdown timer (assume 10 min lock, show remaining)
+let seconds = 600;
+const fill = document.getElementById('timerFill');
+const display = document.getElementById('countdownDisplay');
+const interval = setInterval(() => {
+    seconds--;
+    const m = Math.floor(seconds/60), s = seconds%60;
+    display.textContent = `${m}:${s.toString().padStart(2,'0')}`;
+    fill.style.width = (seconds/600*100)+'%';
+    if (seconds <= 60) fill.classList.replace('bg-yellow-500','bg-red-500');
+    if (seconds <= 0) { clearInterval(interval); display.textContent = 'Expired'; fill.style.width='0%'; showToast('Seat lock has expired', 'error'); }
+}, 1000);
+
+async function retryPayment() {
+    if (!bookingId) { window.location.href='/'; return; }
+    const token = localStorage.getItem('token');
+    if (!token) { window.location.href='/Auth/Login'; return; }
+    const btn = document.getElementById('retryBtn');
+    const txt = document.getElementById('retryBtnText');
+    const spin = document.getElementById('retrySpinner');
+    btn.disabled=true; txt.style.display='none'; spin.classList.remove('hidden');
+    showToast('Retrying payment...', 'info', 2000);
+    try {
+        const res = await fetch('/api/checkout/create-session', {
+            method:'POST', headers:{'Content-Type':'application/json','Authorization':`Bearer ${token}`},
+            body: JSON.stringify({ bookingId })
+        });
+        const data = await res.json();
+        if (data.success) { window.location.href = data.url; }
+        else { showToast(data.message || 'Could not retry. Seats may have been released.', 'error'); btn.disabled=false; txt.style.display='block'; spin.classList.add('hidden'); }
+    } catch { showToast('Something went wrong', 'error'); btn.disabled=false; txt.style.display='block'; spin.classList.add('hidden'); }
+}
+</script>
 </body>
 </html>

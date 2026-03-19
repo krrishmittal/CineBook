@@ -1,0 +1,244 @@
+﻿@* ───────── CinemaBookings.cshtml ───────── *@
+@{
+    ViewData["Title"] = "Cinema Bookings";
+    Layout = null;
+}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>CineBook — Cinema Bookings</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+    <style>
+        body{font-family:'DM Sans',sans-serif;}.brand{font-family:'Bebas Neue',sans-serif;letter-spacing:.05em;}
+        .cinput{background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:8px 12px;color:#fff;font-family:'DM Sans',sans-serif;font-size:13px;outline:none;transition:border-color .2s;}
+        .cinput:focus{border-color:#E50914;}
+        select.cinput option{background:#1e1e1e;}
+        .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:80;}
+        .sidebar-overlay.show{display:block;}
+        #toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+        .toast{pointer-events:all;min-width:260px;max-width:340px;background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.6);animation:tIn .35s cubic-bezier(.34,1.56,.64,1) forwards;font-size:14px;color:#fff;}
+        .toast.removing{animation:tOut .25s ease forwards;}
+        .toast-success{border-left:3px solid #22c55e;}.toast-error{border-left:3px solid #E50914;}.toast-info{border-left:3px solid #3b82f6;}
+        @@keyframes tIn{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
+        @@keyframes tOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(100px)}}
+        /* Responsive table */
+        .booking-table{width:100%;border-collapse:collapse;}
+        .booking-table th,.booking-table td{padding:12px 14px;text-align:left;border-bottom:1px solid #1e1e1e;font-size:13px;}
+        .booking-table th{background:#1a1a1a;font-size:11px;font-weight:700;color:#888;letter-spacing:.08em;}
+        .booking-table tr:hover td{background:#141414;}
+        .booking-table tr:last-child td{border-bottom:none;}
+        /* Mobile card view for table */
+        @@media(max-width:768px){
+            .booking-table,.booking-table thead,.booking-table tbody,.booking-table th,.booking-table td,.booking-table tr{display:block;}
+            .booking-table thead{display:none;}
+            .booking-table td{padding:6px 16px;border:none;display:flex;justify-content:space-between;align-items:center;font-size:13px;}
+            .booking-table td::before{content:attr(data-label);font-size:11px;color:#888;font-weight:600;letter-spacing:.06em;text-transform:uppercase;}
+            .booking-table tr{background:#141414;border:1px solid #2a2a2a;border-radius:12px;margin-bottom:12px;overflow:hidden;}
+            .booking-table tr:hover td{background:transparent;}
+        }
+    </style>
+</head>
+<body class="bg-[#0a0a0a] text-white min-h-screen">
+<div id="toast-container"></div>
+
+<nav class="fixed top-0 left-0 right-0 h-14 bg-[#0a0a0a]/95 border-b border-[#2a2a2a] flex items-center px-4 sm:px-6 gap-4 z-50 backdrop-blur-sm">
+    <button onclick="toggleSidebar()" class="sm:hidden text-[#888] text-xl p-1">☰</button>
+    <span class="brand text-2xl text-[#E50914]">CINEBOOK</span>
+    <span class="hidden sm:block text-xs text-[#2a2a2a]">|</span>
+    <span class="hidden sm:block text-sm text-[#888]">Cinema Manager</span>
+    <div class="flex-1"></div>
+    <span id="managerName" class="hidden sm:block text-sm text-[#888]"></span>
+    <button onclick="logout()" class="text-sm text-[#888] border border-[#2a2a2a] rounded-md px-3 py-1.5 hover:border-[#555] hover:text-white transition-all">Sign Out</button>
+</nav>
+
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<aside id="sidebar" class="fixed left-0 top-14 bottom-0 w-56 bg-[#141414] border-r border-[#2a2a2a] px-3 py-5 z-[100] flex flex-col gap-1 -translate-x-full sm:translate-x-0 transition-transform duration-300">
+    <div class="text-xs text-[#555] tracking-widest px-3 pb-3">MANAGE</div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Manager/Cinema">🏟 My Cinema</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Manager/Halls">🪑 Halls</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Manager/Showtimes">🎬 Showtimes</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#E50914] bg-[#E50914]/10" href="/Booking/CinemaBookings">📋 Bookings</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Booking/Refunds">↩ Refunds</a>
+    <div class="flex-1"></div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/">🏠 Dashboard</a>
+</aside>
+
+<div class="sm:ml-56 pt-14 min-h-screen">
+    <div class="p-4 sm:p-6">
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 mb-6">
+            <div>
+                <h1 class="text-xl font-bold">Cinema Bookings</h1>
+                <p class="text-sm text-[#888] mt-0.5" id="cinemaNameHeader">Loading...</p>
+            </div>
+        </div>
+
+        <!-- Pending refund alert -->
+        <div id="refundAlert" class="hidden mb-5 bg-red-400/5 border border-red-400/25 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
+            <div class="flex items-center gap-3">
+                <span class="text-xl">↩</span>
+                <div>
+                    <div class="text-sm font-semibold text-red-400" id="refundAlertText"></div>
+                    <div class="text-xs text-[#888]">These cancelled bookings need to be refunded to customers</div>
+                </div>
+            </div>
+            <a href="/Booking/Refunds" class="bg-red-400/10 text-red-400 border border-red-400/30 font-semibold text-xs px-4 py-2 rounded-lg hover:bg-red-400/20 transition-all whitespace-nowrap flex-shrink-0">Process Refunds →</a>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">🎟</div><div><div class="text-xl font-bold" id="totalBookings">0</div><div class="text-xs text-[#888]">Total</div></div></div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">✅</div><div><div class="text-xl font-bold" id="confirmedBookings">0</div><div class="text-xs text-[#888]">Confirmed</div></div></div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">🪑</div><div><div class="text-xl font-bold" id="totalSeatsBooked">0</div><div class="text-xs text-[#888]">Seats Sold</div></div></div>
+            <div class="bg-gradient-to-br from-[#E50914]/10 to-[#E50914]/5 border border-[#E50914]/30 rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">💰</div><div><div class="text-lg font-bold text-[#E50914]" id="totalRevenue">₹0</div><div class="text-xs text-[#888]">Net Revenue</div><div class="text-xs text-red-400" id="refundedAmountLabel"></div></div></div>
+        </div>
+
+        <!-- Filters -->
+        <div class="flex flex-col sm:flex-row gap-3 mb-5 flex-wrap">
+            <div class="relative flex-1 min-w-[200px]">
+                <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#555] text-sm">🔍</span>
+                <input class="cinput pl-9 w-full" type="text" id="searchInput" placeholder="Search ref, movie, user..." oninput="applyFilters()" />
+            </div>
+            <input class="cinput" type="date" id="dateFilter" onchange="applyFilters()" />
+            <select class="cinput" id="movieFilter" onchange="applyFilters()"><option value="">All Movies</option></select>
+            <div class="flex gap-2 flex-wrap">
+                <button class="status-tab px-3 py-1.5 rounded-full text-xs font-medium bg-[#E50914] text-white border border-[#E50914]" onclick="setStatusFilter('all',this)">All</button>
+                <button class="status-tab px-3 py-1.5 rounded-full text-xs font-medium text-[#888] border border-[#2a2a2a] bg-[#141414] hover:border-[#444] hover:text-white transition-all" onclick="setStatusFilter('Confirmed',this)">✅ Confirmed</button>
+                <button class="status-tab px-3 py-1.5 rounded-full text-xs font-medium text-[#888] border border-[#2a2a2a] bg-[#141414] hover:border-[#444] hover:text-white transition-all" onclick="setStatusFilter('Pending',this)">⏳ Pending</button>
+            </div>
+        </div>
+
+        <!-- Table -->
+        <div class="bg-[#141414] border border-[#2a2a2a] rounded-2xl overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="booking-table">
+                    <thead>
+                        <tr>
+                            <th>BOOKING REF</th><th>MOVIE</th><th>SHOWTIME</th><th>HALL</th>
+                            <th>CUSTOMER</th><th>SEATS</th><th>AMOUNT</th><th>STATUS</th><th>BOOKED AT</th>
+                        </tr>
+                    </thead>
+                    <tbody id="bookingsTableBody">
+                        <tr><td colspan="9" class="text-center py-10 text-[#555]">Loading bookings...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 mt-4">
+            <div class="text-sm text-[#888]" id="paginationInfo"></div>
+            <button id="exportBtn" onclick="exportCSV()" class="hidden text-sm border border-[#2a2a2a] bg-[#141414] hover:border-[#444] text-white px-4 py-2 rounded-lg transition-all">📊 Export CSV</button>
+        </div>
+    </div>
+</div>
+
+<script>
+function showToast(msg,type='info',duration=4000){const icons={success:'✓',error:'✕',info:'ℹ',warning:'⚠'};const colors={success:'#22c55e',error:'#E50914',info:'#3b82f6',warning:'#f59e0b'};const c=document.getElementById('toast-container');const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">${icons[type]}</div><div style="flex:1;line-height:1.5;">${msg}</div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:0;">✕</button>`;c.appendChild(t);setTimeout(()=>{t.classList.add('removing');setTimeout(()=>t.remove(),250);},duration);}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('-translate-x-full');document.getElementById('sidebarOverlay').classList.toggle('show');}
+function logout(){localStorage.clear();window.location.href='/Auth/Login';}
+const token=localStorage.getItem('token');const user=JSON.parse(localStorage.getItem('user')||'{}');
+if(!token)window.location.href='/Auth/Login';if(user.role!=='CinemaManager')window.location.href='/';
+document.getElementById('managerName').textContent=user.fullName||'Manager';
+function authHeaders(){return{'Content-Type':'application/json','Authorization':`Bearer ${token}`};}
+
+let allBookings=[],currentStatus='all';
+
+async function loadBookings(){
+    try{const res=await fetch('/api/bookings/cinema',{headers:authHeaders()});const data=await res.json();
+        if(data.success){allBookings=data.data;updateStats();buildMovieFilter();checkPendingRefunds();applyFilters();
+            document.getElementById('exportBtn').classList.remove('hidden');
+            document.getElementById('cinemaNameHeader').textContent=allBookings.length>0?`📍 ${allBookings[0].cinemaName}`:'No bookings yet';
+            showToast(`Loaded ${allBookings.length} bookings`,'info',2000);
+        }else{showEmpty('No bookings found for your cinema');}
+    }catch{showEmpty('Failed to load bookings');showToast('Failed to load bookings','error');}
+}
+
+function checkPendingRefunds(){
+    const pending=allBookings.filter(b=>(b.status==='Cancelled'||b.status===2)&&!b.refundProcessed);
+    if(pending.length>0){document.getElementById('refundAlertText').textContent=`${pending.length} cancelled booking${pending.length>1?'s':''} pending refund`;document.getElementById('refundAlert').classList.remove('hidden');}
+}
+
+function updateStats(bookings=allBookings){
+    const confirmed=bookings.filter(b=>b.status==='Confirmed'||b.status===1);
+    const cancelled=bookings.filter(b=>b.status==='Cancelled'||b.status===2);
+    const nonCancelled=bookings.filter(b=>b.status!=='Cancelled'&&b.status!==2);
+    document.getElementById('totalBookings').textContent=nonCancelled.length;
+    document.getElementById('confirmedBookings').textContent=confirmed.length;
+    document.getElementById('totalSeatsBooked').textContent=confirmed.reduce((s,b)=>s+(b.seats?.length||0),0);
+    document.getElementById('totalRevenue').textContent=`₹${confirmed.reduce((s,b)=>s+b.totalAmount,0).toLocaleString('en-IN')}`;
+    const refunded=cancelled.reduce((s,b)=>s+b.totalAmount,0);
+    if(refunded>0)document.getElementById('refundedAmountLabel').textContent=`₹${refunded.toLocaleString('en-IN')} in refunds`;
+}
+
+function buildMovieFilter(){
+    const movies=[...new Set(allBookings.filter(b=>b.status!=='Cancelled'&&b.status!==2).map(b=>b.movieTitle))].sort();
+    const sel=document.getElementById('movieFilter');sel.innerHTML='<option value="">All Movies</option>';
+    movies.forEach(m=>{const o=document.createElement('option');o.value=m;o.textContent=m;sel.appendChild(o);});
+}
+
+function setStatusFilter(s,el){
+    currentStatus=s;
+    document.querySelectorAll('.status-tab').forEach(t=>{t.classList.remove('bg-[#E50914]','text-white','border-[#E50914]');t.classList.add('text-[#888]','border-[#2a2a2a]','bg-[#141414]');});
+    el.classList.add('bg-[#E50914]','text-white','border-[#E50914]');el.classList.remove('text-[#888]','border-[#2a2a2a]','bg-[#141414]');
+    applyFilters();
+}
+
+function applyFilters(){
+    const search=document.getElementById('searchInput').value.toLowerCase();
+    const date=document.getElementById('dateFilter').value;const movie=document.getElementById('movieFilter').value;
+    let f=allBookings.filter(b=>b.status!=='Cancelled'&&b.status!==2);
+    if(currentStatus==='Confirmed')f=f.filter(b=>b.status==='Confirmed'||b.status===1);
+    else if(currentStatus==='Pending')f=f.filter(b=>b.status==='Pending'||b.status===0);
+    if(date)f=f.filter(b=>b.showtimeStart?.split('T')[0]===date);
+    if(movie)f=f.filter(b=>b.movieTitle===movie);
+    if(search)f=f.filter(b=>b.bookingReference?.toLowerCase().includes(search)||b.movieTitle?.toLowerCase().includes(search)||b.userName?.toLowerCase().includes(search));
+    updateStats(f);renderTable(f);
+    const total=allBookings.filter(b=>b.status!=='Cancelled'&&b.status!==2).length;
+    document.getElementById('paginationInfo').textContent=`Showing ${f.length} of ${total} bookings`;
+}
+
+function seatTag(s){const color=(s.seatType==='Standard'||s.seatType===0)?'#60a5fa':(s.seatType==='Premium'||s.seatType===1)?'#c084fc':'#facc15';return`<span style="display:inline-flex;align-items:center;gap:3px;background:#222;border:1px solid #2a2a2a;padding:2px 6px;border-radius:4px;font-size:11px;font-weight:600;margin:1px;"><span style="color:${color}">●</span>${s.row}${s.seatNumber}</span>`;}
+
+function fmtTime(isoStr){if(!isoStr)return'';const t=isoStr.split('T')[1]?.substring(0,5)||'';if(!t)return'';const[h,m]=t.split(':');const hour=parseInt(h);return`${hour%12||12}:${m} ${hour>=12?'pm':'am'}`;}
+function fmtDate(isoStr){if(!isoStr)return'';const[yr,mo,dy]=isoStr.split('T')[0].split('-');return new Date(parseInt(yr),parseInt(mo)-1,parseInt(dy)).toLocaleDateString('en-IN',{day:'numeric',month:'short'});}
+
+function renderTable(bookings){
+    const tbody=document.getElementById('bookingsTableBody');
+    if(!bookings.length){tbody.innerHTML=`<tr><td colspan="9" class="text-center py-10 text-[#555]">No bookings found</td></tr>`;return;}
+    tbody.innerHTML=bookings.map(b=>{
+        const statusBadge=b.status==='Confirmed'||b.status===1?'<span class="text-xs font-semibold px-2 py-0.5 rounded-full text-green-400 bg-green-400/10 border border-green-400/20">✅ Confirmed</span>':'<span class="text-xs font-semibold px-2 py-0.5 rounded-full text-yellow-400 bg-yellow-400/10 border border-yellow-400/20">⏳ Pending</span>';
+        return`<tr>
+            <td data-label="REF"><span class="font-bold text-[#E50914] text-xs tracking-wider">${b.bookingReference}</span></td>
+            <td data-label="MOVIE"><div class="flex items-center gap-2"><img src="${b.moviePoster||''}" onerror="this.style.display='none'" style="width:28px;height:38px;object-fit:cover;border-radius:3px;flex-shrink:0;" /><span class="font-medium">${b.movieTitle}</span></div></td>
+            <td data-label="SHOWTIME"><div class="font-semibold text-xs">${fmtDate(b.showtimeStart)}</div><div class="text-xs text-[#888]">${fmtTime(b.showtimeStart)}</div></td>
+            <td data-label="HALL" class="text-[#888] text-xs">${b.hallName}</td>
+            <td data-label="CUSTOMER" class="font-medium text-sm">${b.userName||'User'}</td>
+            <td data-label="SEATS"><div class="flex flex-wrap gap-0.5">${(b.seats||[]).map(s=>seatTag(s)).join('')}</div></td>
+            <td data-label="AMOUNT"><div class="font-bold">₹${b.totalAmount}</div><div class="text-xs text-[#888]">${b.seats?.length||0} seat${(b.seats?.length||0)>1?'s':''}</div></td>
+            <td data-label="STATUS">${statusBadge}</td>
+            <td data-label="BOOKED AT" class="text-xs text-[#888]">${fmtDate(b.bookedAt)}<br/>${fmtTime(b.bookedAt)}</td>
+        </tr>`;
+    }).join('');
+}
+
+function showEmpty(msg){document.getElementById('bookingsTableBody').innerHTML=`<tr><td colspan="9" class="text-center py-10 text-[#555]">${msg}</td></tr>`;}
+
+function exportCSV(){
+    const confirmed=allBookings.filter(b=>b.status==='Confirmed'||b.status===1);
+    const headers=['Ref','Movie','Date','Time','Hall','Customer','Seats','Amount','Status','Booked At'];
+    const rows=confirmed.map(b=>[b.bookingReference,b.movieTitle,b.showtimeStart?.split('T')[0]||'',fmtTime(b.showtimeStart),b.hallName,b.userName||'User',(b.seats||[]).map(s=>`${s.row}${s.seatNumber}`).join(' '),b.totalAmount,b.status,b.bookedAt?.split('T')[0]||'']);
+    const totalRevenue=confirmed.reduce((s,b)=>s+b.totalAmount,0);
+    rows.push([]);rows.push(['TOTAL REVENUE (Confirmed Only)','','','','','','',totalRevenue,'','']);
+    const csv=[headers,...rows].map(r=>r.map(v=>`"${v}"`).join(',')).join('\n');
+    const blob=new Blob([csv],{type:'text/csv'});const url=URL.createObjectURL(blob);
+    const a=document.createElement('a');a.href=url;a.download=`cinebookings_${new Date().toISOString().split('T')[0]}.csv`;a.click();
+    showToast('✅ CSV exported successfully!','success');
+}
+
+loadBookings();
+</script>
+</body>
+</html>

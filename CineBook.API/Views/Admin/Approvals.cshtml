@@ -8,539 +8,328 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CineBook Admin — Cinema Approvals</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --red: #E50914; --red-dark: #b20710;
-            --bg: #0a0a0a; --surface: #141414;
-            --surface2: #1e1e1e; --surface3: #242424;
-            --border: #2a2a2a; --text: #ffffff; --muted: #888888;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
-        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
-
-        .navbar {
-            position: fixed; top: 0; left: 0; right: 0; height: 56px;
-            background: rgba(10,10,10,0.97); border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; padding: 0 24px; gap: 16px; z-index: 200;
-        }
-
-        .sidebar {
-            position: fixed; left: 0; top: 56px; bottom: 0; width: 220px;
-            background: var(--surface); border-right: 1px solid var(--border);
-            padding: 20px 12px; z-index: 100; display: flex; flex-direction: column; gap: 4px;
-        }
-        .nav-item {
-            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-            border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--muted);
-            cursor: pointer; transition: all 0.2s; text-decoration: none;
-            border: none; background: none; width: 100%;
-        }
-        .nav-item:hover { background: var(--surface2); color: var(--text); }
-        .nav-item.active { background: rgba(229,9,20,0.12); color: var(--red); }
-
-        .main { margin-left: 220px; padding-top: 56px; display: flex; min-height: 100vh; }
-
-        /* List Panel */
-        .list-panel { flex: 1; padding: 24px; overflow-y: auto; max-height: calc(100vh - 56px); }
-
-        /* Slide Panel */
-        .slide-panel {
-            width: 500px; background: var(--surface);
-            border-left: 1px solid var(--border);
-            position: fixed; right: -500px; top: 56px; bottom: 0;
-            transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
-            z-index: 150; display: flex; flex-direction: column;
-        }
-        .slide-panel.open { right: 0; }
-
-        .overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.6);
-            z-index: 140; opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        }
-        .overlay.show { opacity: 1; pointer-events: all; }
-
-        .panel-header {
-            padding: 20px 24px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-        }
-        .panel-body { flex: 1; overflow-y: auto; padding: 24px; }
-        .panel-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-shrink: 0; }
-
-        /* Cinema Card */
-        .cinema-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 10px; padding: 16px; margin-bottom: 10px;
-            cursor: pointer; transition: all 0.2s;
-            display: flex; align-items: flex-start; gap: 14px;
-        }
-        .cinema-card:hover { border-color: #3a3a3a; background: var(--surface2); }
-        .cinema-card.selected { border-color: var(--red); background: rgba(229,9,20,0.05); }
-
-        .cinema-logo {
-            width: 48px; height: 48px; border-radius: 8px;
-            background: var(--surface3); display: flex; align-items: center;
-            justify-content: center; font-size: 22px; flex-shrink: 0;
-            overflow: hidden;
-        }
-
-        /* Badges */
-        .badge {
-            display: inline-flex; align-items: center; padding: 2px 9px;
-            border-radius: 20px; font-size: 11px; font-weight: 600;
-        }
-        .badge-pending { background: rgba(251,191,36,0.15); color: #fbbf24; border: 1px solid rgba(251,191,36,0.2); }
-        .badge-approved { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
-        .badge-rejected { background: rgba(229,9,20,0.15); color: #f87171; border: 1px solid rgba(229,9,20,0.2); }
-
-        /* Stat cards */
-        .stat-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 8px; padding: 16px 20px;
-            display: flex; align-items: center; gap: 14px;
-        }
-
-        /* Filter pills */
-        .filter-pill {
-            padding: 6px 14px; border-radius: 20px; font-size: 13px; font-weight: 500;
-            border: 1px solid var(--border); background: var(--surface); color: var(--muted);
-            cursor: pointer; transition: all 0.2s; white-space: nowrap;
-        }
-        .filter-pill:hover { border-color: #444; color: var(--text); }
-        .filter-pill.active { background: var(--red); border-color: var(--red); color: white; }
-
-        /* Detail rows in panel */
-        .detail-row {
-            display: flex; gap: 10px; padding: 10px 0;
-            border-bottom: 1px solid var(--border); font-size: 13px;
-        }
-        .detail-row:last-child { border-bottom: none; }
-        .detail-label { color: var(--muted); min-width: 110px; flex-shrink: 0; }
-        .detail-val { color: var(--text); font-weight: 500; }
-
-        /* Action buttons */
-        .btn-approve {
-            flex: 1; background: #16a34a; color: white;
-            font-family: 'DM Sans', sans-serif; font-weight: 600;
-            font-size: 14px; padding: 11px; border: none; border-radius: 6px;
-            cursor: pointer; transition: background 0.2s;
-        }
-        .btn-approve:hover { background: #15803d; }
-
-        .btn-reject {
-            flex: 1; background: rgba(229,9,20,0.15); color: #f87171;
-            font-family: 'DM Sans', sans-serif; font-weight: 600;
-            font-size: 14px; padding: 11px;
-            border: 1px solid rgba(229,9,20,0.3); border-radius: 6px;
-            cursor: pointer; transition: all 0.2s;
-        }
-        .btn-reject:hover { background: rgba(229,9,20,0.25); }
-
-        .cinput {
-            width: 100%; background: var(--surface2); border: 1px solid var(--border);
-            border-radius: 6px; padding: 11px 14px; color: var(--text);
-            font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
-            transition: border-color 0.2s; resize: vertical; min-height: 80px;
-        }
-        .cinput:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(229,9,20,0.12); }
-
-        .rejection-box { display: none; margin-top: 14px; }
-
-        label { display: block; font-size: 12px; font-weight: 500; color: #999; margin-bottom: 5px; }
-
-        .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
-
-        @@keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .cinema-card { animation: fadeIn 0.3s ease forwards; }
-
-        .section-title {
-            font-size: 20px; font-weight: 700;
-            display: flex; align-items: center; gap: 10px;
-        }
-        .section-title::before {
-            content: ''; width: 3px; height: 20px;
-            background: var(--red); border-radius: 2px;
-        }
+        body { font-family:'DM Sans',sans-serif; }
+        .brand { font-family:'Bebas Neue',sans-serif; letter-spacing:0.05em; }
+        .cinput { width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color 0.2s,box-shadow 0.2s; }
+        .cinput:focus { border-color:#E50914;box-shadow:0 0 0 3px rgba(229,9,20,0.12); }
+        .cinput::placeholder { color:#555; }
+        textarea.cinput { resize:vertical;min-height:80px; }
+        .slide-panel { transform:translateX(100%);transition:transform 0.35s cubic-bezier(0.4,0,0.2,1); }
+        .slide-panel.open { transform:translateX(0); }
+        .sidebar-overlay { display:none;position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:80; }
+        .sidebar-overlay.show { display:block; }
+        #toast-container { position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none; }
+        .toast { pointer-events:all;min-width:280px;max-width:340px;background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,0.6);animation:toastIn 0.35s cubic-bezier(0.34,1.56,0.64,1) forwards;font-size:14px;color:#fff; }
+        .toast.removing { animation:toastOut 0.25s ease forwards; }
+        .toast-success { border-left:3px solid #22c55e; }
+        .toast-error { border-left:3px solid #E50914; }
+        .toast-warning { border-left:3px solid #f59e0b; }
+        @@keyframes toastIn  { from{opacity:0;transform:translateX(100px);}to{opacity:1;transform:translateX(0);} }
+        @@keyframes toastOut { from{opacity:1;transform:translateX(0);}to{opacity:0;transform:translateX(100px);} }
+        @@keyframes fadeIn   { from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);} }
+        .fade-in { animation:fadeIn 0.3s ease forwards; }
+        @@keyframes spin { to{transform:rotate(360deg);} }
+        .spinner { display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite; }
     </style>
 </head>
-<body>
+<body class="bg-[#0a0a0a] text-white min-h-screen">
 
-    <!-- Navbar -->
-    <nav class="navbar">
-        <span class="brand" style="font-size:22px; color:var(--red);">CINEBOOK</span>
-        <span style="font-size:12px; color:var(--border);">|</span>
-        <span style="font-size:13px; color:var(--muted);">Admin Panel</span>
-        <div style="flex:1;"></div>
-        <span id="adminName" style="font-size:13px; color:var(--muted);"></span>
-        <button onclick="logout()" style="background:none; border:1px solid var(--border); color:var(--muted); font-family:'DM Sans',sans-serif; font-size:13px; padding:6px 14px; border-radius:6px; cursor:pointer;">Sign Out</button>
-    </nav>
+<div id="toast-container"></div>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div style="font-size:11px; color:var(--muted); letter-spacing:0.1em; padding:4px 12px 12px;">MANAGE</div>
-        <a class="nav-item" href="/Admin/Movies">🎬 Movies</a>
-        <a class="nav-item active" href="/Admin/Approvals">🏟 Cinema Approvals</a>
-        <div style="flex:1;"></div>
-        <a class="nav-item" href="/">🏠 Home</a>
-    </aside>
+<!-- Navbar -->
+<nav class="fixed top-0 left-0 right-0 h-14 bg-[#0a0a0a]/95 border-b border-[#2a2a2a] flex items-center px-4 sm:px-6 gap-4 z-50 backdrop-blur-sm">
+    <button onclick="toggleSidebar()" class="sm:hidden text-[#888] text-xl p-1">☰</button>
+    <span class="brand text-2xl text-[#E50914]">CINEBOOK</span>
+    <span class="hidden sm:block text-xs text-[#2a2a2a]">|</span>
+    <span class="hidden sm:block text-sm text-[#888]">Admin Panel</span>
+    <div class="flex-1"></div>
+    <span id="adminName" class="hidden sm:block text-sm text-[#888]"></span>
+    <button onclick="logout()" class="text-sm text-[#888] border border-[#2a2a2a] rounded-md px-3 py-1.5 hover:border-[#555] hover:text-white transition-all">Sign Out</button>
+</nav>
 
-    <div class="main">
-        <div class="list-panel">
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
-            <!-- Header -->
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-                <div>
-                    <h1 style="font-size:22px; font-weight:700;">Cinema Approvals</h1>
-                    <p style="font-size:13px; color:var(--muted); margin-top:2px;">Review and approve cinema manager applications</p>
-                </div>
+<aside id="sidebar" class="fixed left-0 top-14 bottom-0 w-56 bg-[#141414] border-r border-[#2a2a2a] px-3 py-5 z-[100] flex flex-col gap-1 -translate-x-full sm:translate-x-0 transition-transform duration-300">
+    <div class="text-xs text-[#555] tracking-widest px-3 pb-3">MANAGE</div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Admin/Movies">🎬 Movies</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#E50914] bg-[#E50914]/10" href="/Admin/Approvals">🏟 Cinema Approvals</a>
+    <div class="flex-1"></div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/">🏠 Home</a>
+</aside>
+
+<div class="sm:ml-56 pt-14 flex min-h-screen">
+    <div class="flex-1 p-4 sm:p-6 overflow-y-auto max-h-[calc(100vh-56px)]">
+
+        <div class="mb-6">
+            <h1 class="text-xl font-bold">Cinema Approvals</h1>
+            <p class="text-sm text-[#888] mt-0.5">Review and approve cinema manager applications</p>
+        </div>
+
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-3 mb-6">
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-2xl">⏳</div>
+                <div><div class="text-xl font-bold" id="pendingCount">0</div><div class="text-xs text-[#888]">Pending</div></div>
             </div>
-
-            <!-- Stats -->
-            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px;">
-                <div class="stat-card">
-                    <div style="font-size:26px;">⏳</div>
-                    <div>
-                        <div style="font-size:22px; font-weight:700;" id="pendingCount">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Pending</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div style="font-size:26px;">✅</div>
-                    <div>
-                        <div style="font-size:22px; font-weight:700;" id="approvedCount">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Approved</div>
-                    </div>
-                </div>
-                <div class="stat-card">
-                    <div style="font-size:26px;">❌</div>
-                    <div>
-                        <div style="font-size:22px; font-weight:700;" id="rejectedCount">0</div>
-                        <div style="font-size:12px; color:var(--muted);">Rejected</div>
-                    </div>
-                </div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-2xl">✅</div>
+                <div><div class="text-xl font-bold" id="approvedCount">0</div><div class="text-xs text-[#888]">Approved</div></div>
             </div>
-
-            <!-- Filter pills -->
-            <div style="display:flex; gap:8px; margin-bottom:16px;">
-                <div class="filter-pill active" onclick="setFilter('all', this)">All</div>
-                <div class="filter-pill" onclick="setFilter('Pending', this)">⏳ Pending</div>
-                <div class="filter-pill" onclick="setFilter('Approved', this)">✅ Approved</div>
-                <div class="filter-pill" onclick="setFilter('Rejected', this)">❌ Rejected</div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-2xl">❌</div>
+                <div><div class="text-xl font-bold" id="rejectedCount">0</div><div class="text-xs text-[#888]">Rejected</div></div>
             </div>
+        </div>
 
-            <!-- Cinema List -->
-            <div id="cinemaList">
-                <div class="empty">
-                    <div style="font-size:40px; margin-bottom:12px;">🏟</div>
-                    <div style="font-size:16px; font-weight:500;">Loading cinemas...</div>
-                </div>
-            </div>
+        <!-- Filter pills -->
+        <div class="flex gap-2 mb-5 flex-wrap">
+            <button class="px-4 py-1.5 rounded-full text-sm font-medium bg-[#E50914] text-white border border-[#E50914] transition-all filter-pill active" onclick="setFilter('all',this)">All</button>
+            <button class="px-4 py-1.5 rounded-full text-sm font-medium text-[#888] border border-[#2a2a2a] bg-[#141414] hover:border-[#444] hover:text-white transition-all filter-pill" onclick="setFilter('Pending',this)">⏳ Pending</button>
+            <button class="px-4 py-1.5 rounded-full text-sm font-medium text-[#888] border border-[#2a2a2a] bg-[#141414] hover:border-[#444] hover:text-white transition-all filter-pill" onclick="setFilter('Approved',this)">✅ Approved</button>
+            <button class="px-4 py-1.5 rounded-full text-sm font-medium text-[#888] border border-[#2a2a2a] bg-[#141414] hover:border-[#444] hover:text-white transition-all filter-pill" onclick="setFilter('Rejected',this)">❌ Rejected</button>
+        </div>
+
+        <div id="cinemaList">
+            <div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🏟</div><div>Loading cinemas...</div></div>
+        </div>
+    </div>
+</div>
+
+<!-- Overlay -->
+<div class="fixed inset-0 bg-black/60 z-40 opacity-0 pointer-events-none transition-opacity duration-300" id="overlay" onclick="closePanel()"></div>
+
+<!-- Slide Panel -->
+<div class="slide-panel fixed right-0 top-14 bottom-0 w-full sm:w-[500px] bg-[#141414] border-l border-[#2a2a2a] z-50 flex flex-col" id="slidePanel">
+    <div class="p-5 border-b border-[#2a2a2a] flex items-center justify-between flex-shrink-0">
+        <div>
+            <div class="text-base font-semibold" id="panelCinemaName">Cinema Details</div>
+            <div class="text-xs text-[#888] mt-0.5" id="panelManagerName"></div>
+        </div>
+        <button onclick="closePanel()" class="text-[#888] hover:text-white text-2xl leading-none transition-colors">✕</button>
+    </div>
+
+    <div class="flex-1 overflow-y-auto p-5">
+        <!-- Status banner -->
+        <div id="currentStatusBanner" class="rounded-xl px-4 py-3 mb-5 text-sm font-semibold"></div>
+
+        <!-- Cinema Info -->
+        <div class="mb-5">
+            <div class="text-xs font-bold text-[#888] tracking-widest mb-3">CINEMA INFO</div>
+            <div id="cinemaDetails" class="space-y-2"></div>
+        </div>
+
+        <!-- Manager Info -->
+        <div class="mb-5">
+            <div class="text-xs font-bold text-[#888] tracking-widest mb-3">MANAGER INFO</div>
+            <div id="managerDetails" class="space-y-2"></div>
+        </div>
+
+        <!-- Maps link -->
+        <div id="mapsLinkSection" class="hidden mb-5">
+            <a id="mapsLink" href="#" target="_blank" class="inline-flex items-center gap-2 bg-[#1e1e1e] border border-[#2a2a2a] text-white text-sm px-4 py-2.5 rounded-lg hover:border-[#444] transition-all">
+                📍 View on Google Maps →
+            </a>
+        </div>
+
+        <!-- Rejection textarea -->
+        <div id="rejectionBox" class="hidden mt-4">
+            <label class="block text-xs font-medium text-[#999] mb-2">Rejection Reason *</label>
+            <textarea class="cinput" id="rejectionReason" placeholder="Explain why this application is being rejected..."></textarea>
+        </div>
+
+        <div id="alreadyProcessed" class="hidden bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl px-4 py-3 text-sm text-[#888] mt-3">
+            This application has already been processed. You can re-review it below.
         </div>
     </div>
 
-    <!-- Overlay -->
-    <div class="overlay" id="overlay" onclick="closePanel()"></div>
-
-    <!-- Slide Panel -->
-    <div class="slide-panel" id="slidePanel">
-        <div class="panel-header">
-            <div>
-                <div style="font-size:17px; font-weight:600;" id="panelCinemaName">Cinema Details</div>
-                <div style="font-size:12px; color:var(--muted); margin-top:2px;" id="panelManagerName"></div>
-            </div>
-            <button onclick="closePanel()" style="background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer;">✕</button>
-        </div>
-
-        <div class="panel-body">
-
-            <!-- Status banner -->
-            <div id="currentStatusBanner" style="border-radius:8px; padding:12px 16px; margin-bottom:20px; font-size:13px; font-weight:600;"></div>
-
-            <!-- Cinema Details -->
-            <div style="margin-bottom:20px;">
-                <div style="font-size:13px; font-weight:600; color:var(--muted); letter-spacing:0.06em; margin-bottom:10px;">CINEMA INFO</div>
-                <div id="cinemaDetails"></div>
-            </div>
-
-            <!-- Manager Details -->
-            <div style="margin-bottom:20px;">
-                <div style="font-size:13px; font-weight:600; color:var(--muted); letter-spacing:0.06em; margin-bottom:10px;">MANAGER INFO</div>
-                <div id="managerDetails"></div>
-            </div>
-
-            <!-- Maps link -->
-            <div id="mapsLinkSection" style="display:none; margin-bottom:20px;">
-                <a id="mapsLink" href="#" target="_blank" style="
-                    display:inline-flex; align-items:center; gap:8px;
-                    background:var(--surface2); border:1px solid var(--border);
-                    color:var(--text); text-decoration:none; font-size:13px;
-                    padding:9px 16px; border-radius:6px; transition:border-color 0.2s;">
-                    📍 View on Google Maps →
-                </a>
-            </div>
-
-            <!-- Rejection reason input -->
-            <div class="rejection-box" id="rejectionBox">
-                <label>Rejection Reason *</label>
-                <textarea class="cinput" id="rejectionReason"
-                    placeholder="Explain why this application is being rejected..."></textarea>
-            </div>
-
-            <!-- Already processed message -->
-            <div id="alreadyProcessed" style="display:none; background:var(--surface2); border:1px solid var(--border); border-radius:8px; padding:14px; font-size:13px; color:var(--muted); margin-top:8px;">
-                This application has already been processed. You can re-review it using the buttons below.
-            </div>
-
-        </div>
-
-        <div class="panel-footer" id="panelFooter">
-            <button class="btn-approve" id="approveBtn" onclick="processApproval(true)">✅ Approve</button>
-            <button class="btn-reject" id="rejectBtn" onclick="toggleRejectBox()">❌ Reject</button>
-        </div>
+    <div class="p-4 border-t border-[#2a2a2a] flex gap-3 flex-shrink-0" id="panelFooter">
+        <button id="approveBtn" onclick="processApproval(true)"
+            class="flex-1 bg-green-700 hover:bg-green-800 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors">
+            ✅ Approve
+        </button>
+        <button id="rejectBtn" onclick="toggleRejectBox()"
+            class="flex-1 bg-[#E50914]/10 text-[#f87171] border border-[#E50914]/30 hover:bg-[#E50914]/20 font-semibold text-sm py-2.5 rounded-lg transition-all">
+            ❌ Reject
+        </button>
     </div>
+</div>
 
-    <script>
-        const token = localStorage.getItem('token');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+<script>
+function showToast(msg, type='info', duration=4000) {
+    const icons={success:'✓',error:'✕',info:'ℹ',warning:'⚠'};
+    const colors={success:'#22c55e',error:'#E50914',info:'#3b82f6',warning:'#f59e0b'};
+    const c=document.getElementById('toast-container');
+    const t=document.createElement('div'); t.className=`toast toast-${type}`;
+    t.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">${icons[type]}</div><div style="flex:1;line-height:1.5;">${msg}</div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:0;">✕</button>`;
+    c.appendChild(t);
+    setTimeout(()=>{t.classList.add('removing');setTimeout(()=>t.remove(),250);},duration);
+}
 
-        if (!token) window.location.href = '/Auth/Login';
-        if (user.role !== 'Admin') window.location.href = '/Home/Index';
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('-translate-x-full');
+    document.getElementById('sidebarOverlay').classList.toggle('show');
+}
 
-        document.getElementById('adminName').textContent = user.fullName || 'Admin';
+const token = localStorage.getItem('token');
+const user = JSON.parse(localStorage.getItem('user') || '{}');
+if (!token) window.location.href = '/Auth/Login';
+if (user.role !== 'Admin') window.location.href = '/Home/Index';
+document.getElementById('adminName').textContent = user.fullName || 'Admin';
 
-        let allCinemas = [];
-        let selectedCinema = null;
-        let rejectBoxOpen = false;
+let allCinemas = [], selectedCinema = null, rejectBoxOpen = false;
+function authHeaders() { return {'Content-Type':'application/json','Authorization':`Bearer ${token}`}; }
 
-        function authHeaders() {
-            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
-        }
+async function loadCinemas() {
+    try {
+        const res = await fetch('/api/cinemas', { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success) { allCinemas = data.data; updateStats(); renderCinemas(allCinemas); }
+        else showToast('Failed to load cinemas', 'error');
+    } catch { showToast('Network error loading cinemas', 'error'); }
+}
 
-        // ── Load Cinemas ──────────────────────────────────────
-        async function loadCinemas() {
-            try {
-                const res = await fetch('/api/cinemas', { headers: authHeaders() });
-                const data = await res.json();
+function updateStats() {
+    document.getElementById('pendingCount').textContent = allCinemas.filter(c => c.approvalStatus === 'Pending' || c.approvalStatus === 0).length;
+    document.getElementById('approvedCount').textContent = allCinemas.filter(c => c.approvalStatus === 'Approved' || c.approvalStatus === 1).length;
+    document.getElementById('rejectedCount').textContent = allCinemas.filter(c => c.approvalStatus === 'Rejected' || c.approvalStatus === 2).length;
+}
 
-                if (data.success) {
-                    allCinemas = data.data;
-                    updateStats();
-                    renderCinemas(allCinemas);
-                }
-            } catch {
-                document.getElementById('cinemaList').innerHTML =
-                    `<div class="empty"><div style="font-size:32px">⚠</div><div>Failed to load</div></div>`;
-            }
-        }
+function setFilter(f, el) {
+    document.querySelectorAll('.filter-pill').forEach(p => { p.classList.remove('bg-[#E50914]','text-white','border-[#E50914]'); p.classList.add('text-[#888]','border-[#2a2a2a]','bg-[#141414]'); });
+    el.classList.add('bg-[#E50914]','text-white','border-[#E50914]'); el.classList.remove('text-[#888]','border-[#2a2a2a]','bg-[#141414]');
+    let filtered = allCinemas;
+    if (f === 'Pending') filtered = allCinemas.filter(c => c.approvalStatus === 'Pending' || c.approvalStatus === 0);
+    else if (f === 'Approved') filtered = allCinemas.filter(c => c.approvalStatus === 'Approved' || c.approvalStatus === 1);
+    else if (f === 'Rejected') filtered = allCinemas.filter(c => c.approvalStatus === 'Rejected' || c.approvalStatus === 2);
+    renderCinemas(filtered);
+}
 
-        function updateStats() {
-            document.getElementById('pendingCount').textContent =
-                allCinemas.filter(c => c.approvalStatus === 'Pending' || c.approvalStatus === 0).length;
-            document.getElementById('approvedCount').textContent =
-                allCinemas.filter(c => c.approvalStatus === 'Approved' || c.approvalStatus === 1).length;
-            document.getElementById('rejectedCount').textContent =
-                allCinemas.filter(c => c.approvalStatus === 'Rejected' || c.approvalStatus === 2).length;
-        }
+function getStatusInfo(s) {
+    if (s === 'Pending' || s === 0) return { label:'⏳ Pending', cls:'text-yellow-400 bg-yellow-400/10 border-yellow-400/20' };
+    if (s === 'Approved' || s === 1) return { label:'✅ Approved', cls:'text-green-400 bg-green-400/10 border-green-400/20' };
+    return { label:'❌ Rejected', cls:'text-red-400 bg-red-400/10 border-red-400/20' };
+}
 
-        function setFilter(filter, el) {
-            document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
-            el.classList.add('active');
+function renderCinemas(cinemas) {
+    const list = document.getElementById('cinemaList');
+    if (!cinemas.length) { list.innerHTML=`<div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🏟</div><div>No cinemas found</div></div>`; return; }
+    list.innerHTML = cinemas.map(c => {
+        const s = getStatusInfo(c.approvalStatus);
+        return `<div class="fade-in bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 mb-3 flex gap-4 cursor-pointer hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-all" onclick="selectCinema('${c.id}')" id="card-${c.id}">
+            <div class="w-12 h-12 rounded-xl bg-[#222] flex-shrink-0 flex items-center justify-center overflow-hidden">
+                ${c.cinemaLogo ? `<img src="${c.cinemaLogo}" class="w-full h-full object-cover rounded-xl" onerror="this.parentElement.textContent='🏟'" />` : '🏟'}
+            </div>
+            <div class="flex-1 min-w-0">
+                <div class="flex items-center justify-between gap-2 mb-1">
+                    <div class="font-semibold text-sm truncate">${c.cinemaName}</div>
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full border flex-shrink-0 ${s.cls}">${s.label}</span>
+                </div>
+                <div class="text-xs text-[#888]">📍 ${c.city}, ${c.state}</div>
+                <div class="text-xs text-[#888] mt-0.5">👤 ${c.managerName} • 📞 ${c.managerPhone}</div>
+                <div class="text-xs text-[#555] mt-1">${new Date(c.registeredAt).toLocaleDateString()}</div>
+            </div>
+        </div>`;
+    }).join('');
+}
 
-            let filtered = allCinemas;
-            if (filter === 'Pending') filtered = allCinemas.filter(c => c.approvalStatus === 'Pending' || c.approvalStatus === 0);
-            else if (filter === 'Approved') filtered = allCinemas.filter(c => c.approvalStatus === 'Approved' || c.approvalStatus === 1);
-            else if (filter === 'Rejected') filtered = allCinemas.filter(c => c.approvalStatus === 'Rejected' || c.approvalStatus === 2);
+function detailRow(label, val) {
+    return `<div class="flex gap-2 py-2.5 border-b border-[#1e1e1e] text-sm"><span class="text-[#888] w-28 flex-shrink-0">${label}</span><span class="font-medium">${val}</span></div>`;
+}
 
-            renderCinemas(filtered);
-        }
+function selectCinema(id) {
+    selectedCinema = allCinemas.find(c => c.id === id);
+    if (!selectedCinema) return;
+    document.querySelectorAll('[id^="card-"]').forEach(c => c.classList.remove('border-[#E50914]','bg-[#E50914]/5'));
+    document.getElementById(`card-${id}`)?.classList.add('border-[#E50914]','bg-[#E50914]/5');
 
-        function getStatusInfo(status) {
-            if (status === 'Pending' || status === 0) return { label: '⏳ Pending', cls: 'badge-pending' };
-            if (status === 'Approved' || status === 1) return { label: '✅ Approved', cls: 'badge-approved' };
-            return { label: '❌ Rejected', cls: 'badge-rejected' };
-        }
+    document.getElementById('panelCinemaName').textContent = selectedCinema.cinemaName;
+    document.getElementById('panelManagerName').textContent = `Manager: ${selectedCinema.managerName}`;
 
-        function renderCinemas(cinemas) {
-            const list = document.getElementById('cinemaList');
+    const banner = document.getElementById('currentStatusBanner');
+    const s = selectedCinema.approvalStatus;
+    if (s === 'Pending' || s === 0) { banner.style.cssText='background:rgba(251,191,36,0.1);border:1px solid rgba(251,191,36,0.3);color:#fbbf24;'; banner.textContent='⏳ Awaiting your review'; }
+    else if (s === 'Approved' || s === 1) { banner.style.cssText='background:rgba(34,197,94,0.1);border:1px solid rgba(34,197,94,0.3);color:#4ade80;'; banner.textContent='✅ This cinema is approved and active'; }
+    else { banner.style.cssText='background:rgba(229,9,20,0.1);border:1px solid rgba(229,9,20,0.3);color:#f87171;'; banner.textContent=`❌ Rejected — "${selectedCinema.rejectionReason || 'No reason'}`; }
 
-            if (!cinemas.length) {
-                list.innerHTML = `<div class="empty"><div style="font-size:40px; margin-bottom:12px;">🏟</div><div style="font-size:16px; font-weight:500;">No cinemas found</div></div>`;
-                return;
-            }
+    document.getElementById('cinemaDetails').innerHTML = [
+        detailRow('Cinema Name', selectedCinema.cinemaName),
+        detailRow('Address', selectedCinema.address),
+        detailRow('City / State', `${selectedCinema.city}, ${selectedCinema.state} — ${selectedCinema.pinCode}`),
+        detailRow('License No.', selectedCinema.licenseNumber),
+        detailRow('Registered', new Date(selectedCinema.registeredAt).toLocaleString()),
+    ].join('');
+    document.getElementById('managerDetails').innerHTML = [
+        detailRow('Full Name', selectedCinema.managerName),
+        detailRow('Phone', selectedCinema.managerPhone),
+    ].join('');
 
-            list.innerHTML = cinemas.map(c => {
-                const s = getStatusInfo(c.approvalStatus);
-                return `
-                <div class="cinema-card" onclick="selectCinema('${c.id}')" id="card-${c.id}">
-                    <div class="cinema-logo">
-                        ${c.cinemaLogo
-                            ? `<img src="${c.cinemaLogo}" style="width:100%;height:100%;object-fit:cover;border-radius:8px;" onerror="this.parentElement.textContent='🏟'" />`
-                            : '🏟'}
-                    </div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:4px;">
-                            <div style="font-size:15px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${c.cinemaName}</div>
-                            <span class="badge ${s.cls}">${s.label}</span>
-                        </div>
-                        <div style="font-size:12px; color:var(--muted);">📍 ${c.city}, ${c.state}</div>
-                        <div style="font-size:12px; color:var(--muted); margin-top:2px;">👤 ${c.managerName} • 📞 ${c.managerPhone}</div>
-                        <div style="font-size:11px; color:#555; margin-top:4px;">Registered ${new Date(c.registeredAt).toLocaleDateString()}</div>
-                    </div>
-                </div>`;
-            }).join('');
-        }
+    if (selectedCinema.googleMapsLink) { document.getElementById('mapsLinkSection').classList.remove('hidden'); document.getElementById('mapsLink').href = selectedCinema.googleMapsLink; }
+    else document.getElementById('mapsLinkSection').classList.add('hidden');
 
-        // ── Panel ─────────────────────────────────────────────
-        function selectCinema(id) {
-            selectedCinema = allCinemas.find(c => c.id === id);
-            if (!selectedCinema) return;
+    document.getElementById('rejectionBox').classList.add('hidden');
+    document.getElementById('rejectionReason').value = '';
+    rejectBoxOpen = false;
+    document.getElementById('approveBtn').style.opacity = '1';
+    document.getElementById('approveBtn').onclick = () => processApproval(true);
 
-            document.querySelectorAll('.cinema-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById(`card-${id}`)?.classList.add('selected');
+    const isPending = s === 'Pending' || s === 0;
+    document.getElementById('alreadyProcessed').classList.toggle('hidden', isPending);
+    document.getElementById('approveBtn').textContent = isPending ? '✅ Approve' : '✅ Re-Approve';
+    document.getElementById('rejectBtn').textContent = '❌ Reject';
 
-            // Fill panel
-            document.getElementById('panelCinemaName').textContent = selectedCinema.cinemaName;
-            document.getElementById('panelManagerName').textContent = `Manager: ${selectedCinema.managerName}`;
+    document.getElementById('slidePanel').classList.add('open');
+    const ov = document.getElementById('overlay');
+    ov.classList.remove('opacity-0','pointer-events-none'); ov.classList.add('opacity-100');
+}
 
-            // Status banner
-            const s = getStatusInfo(selectedCinema.approvalStatus);
-            const banner = document.getElementById('currentStatusBanner');
-            if (selectedCinema.approvalStatus === 'Pending' || selectedCinema.approvalStatus === 0) {
-                banner.style.background = 'rgba(251,191,36,0.1)';
-                banner.style.border = '1px solid rgba(251,191,36,0.3)';
-                banner.style.color = '#fbbf24';
-                banner.textContent = '⏳ Awaiting your review';
-            } else if (selectedCinema.approvalStatus === 'Approved' || selectedCinema.approvalStatus === 1) {
-                banner.style.background = 'rgba(34,197,94,0.1)';
-                banner.style.border = '1px solid rgba(34,197,94,0.3)';
-                banner.style.color = '#4ade80';
-                banner.textContent = '✅ This cinema is approved and active';
-            } else {
-                banner.style.background = 'rgba(229,9,20,0.1)';
-                banner.style.border = '1px solid rgba(229,9,20,0.3)';
-                banner.style.color = '#f87171';
-                banner.textContent = `❌ Rejected — "${selectedCinema.rejectionReason || 'No reason'}"`;
-            }
+function closePanel() {
+    document.getElementById('slidePanel').classList.remove('open');
+    const ov = document.getElementById('overlay');
+    ov.classList.add('opacity-0','pointer-events-none'); ov.classList.remove('opacity-100');
+    document.querySelectorAll('[id^="card-"]').forEach(c => c.classList.remove('border-[#E50914]','bg-[#E50914]/5'));
+    selectedCinema = null;
+}
 
-            // Cinema details
-            document.getElementById('cinemaDetails').innerHTML = `
-                <div class="detail-row"><span class="detail-label">Cinema Name</span><span class="detail-val">${selectedCinema.cinemaName}</span></div>
-                <div class="detail-row"><span class="detail-label">Address</span><span class="detail-val">${selectedCinema.address}</span></div>
-                <div class="detail-row"><span class="detail-label">City / State</span><span class="detail-val">${selectedCinema.city}, ${selectedCinema.state} — ${selectedCinema.pinCode}</span></div>
-                <div class="detail-row"><span class="detail-label">License No.</span><span class="detail-val">${selectedCinema.licenseNumber}</span></div>
-                <div class="detail-row"><span class="detail-label">Registered</span><span class="detail-val">${new Date(selectedCinema.registeredAt).toLocaleString()}</span></div>
-            `;
+function toggleRejectBox() {
+    rejectBoxOpen = !rejectBoxOpen;
+    document.getElementById('rejectionBox').classList.toggle('hidden', !rejectBoxOpen);
+    document.getElementById('rejectBtn').textContent = rejectBoxOpen ? 'Cancel' : '❌ Reject';
+    document.getElementById('approveBtn').style.opacity = rejectBoxOpen ? '0.4' : '1';
+    if (rejectBoxOpen) {
+        document.getElementById('approveBtn').onclick = null;
+        document.getElementById('rejectBtn').onclick = () => processApproval(false);
+    } else {
+        document.getElementById('approveBtn').onclick = () => processApproval(true);
+        document.getElementById('rejectBtn').onclick = toggleRejectBox;
+    }
+}
 
-            // Manager details
-            document.getElementById('managerDetails').innerHTML = `
-                <div class="detail-row"><span class="detail-label">Full Name</span><span class="detail-val">${selectedCinema.managerName}</span></div>
-                <div class="detail-row"><span class="detail-label">Phone</span><span class="detail-val">${selectedCinema.managerPhone}</span></div>
-            `;
-
-            // Maps link
-            if (selectedCinema.googleMapsLink) {
-                document.getElementById('mapsLinkSection').style.display = 'block';
-                document.getElementById('mapsLink').href = selectedCinema.googleMapsLink;
-            } else {
-                document.getElementById('mapsLinkSection').style.display = 'none';
-            }
-
-            // Reset rejection box
-            document.getElementById('rejectionBox').style.display = 'none';
-            document.getElementById('rejectionReason').value = '';
-            rejectBoxOpen = false;
-
-            // Footer buttons
-            const isPending = selectedCinema.approvalStatus === 'Pending' || selectedCinema.approvalStatus === 0;
-            document.getElementById('alreadyProcessed').style.display = isPending ? 'none' : 'block';
-            document.getElementById('approveBtn').textContent = isPending ? '✅ Approve' : '✅ Re-Approve';
-            document.getElementById('rejectBtn').textContent = '❌ Reject';
-
-            // Open panel
-            document.getElementById('slidePanel').classList.add('open');
-            document.getElementById('overlay').classList.add('show');
-        }
-
-        function closePanel() {
-            document.getElementById('slidePanel').classList.remove('open');
-            document.getElementById('overlay').classList.remove('show');
-            document.querySelectorAll('.cinema-card').forEach(c => c.classList.remove('selected'));
-            selectedCinema = null;
-        }
-
-        function toggleRejectBox() {
-            rejectBoxOpen = !rejectBoxOpen;
-            document.getElementById('rejectionBox').style.display = rejectBoxOpen ? 'block' : 'none';
-            document.getElementById('rejectBtn').textContent = rejectBoxOpen ? 'Cancel Reject' : '❌ Reject';
-
-            if (rejectBoxOpen) {
-                document.getElementById('approveBtn').onclick = null;
-                document.getElementById('approveBtn').style.opacity = '0.4';
-            } else {
-                document.getElementById('approveBtn').onclick = () => processApproval(true);
-                document.getElementById('approveBtn').style.opacity = '1';
-            }
-        }
-
-        // ── Process Approval ──────────────────────────────────
-        async function processApproval(isApproved) {
-            if (!selectedCinema) return;
-
-            const reason = document.getElementById('rejectionReason').value.trim();
-
-            if (!isApproved && !reason) {
-                document.getElementById('rejectionReason').focus();
-                document.getElementById('rejectionReason').style.borderColor = 'var(--red)';
-                return;
-            }
-
-            const btn = isApproved
-                ? document.getElementById('approveBtn')
-                : document.getElementById('rejectBtn');
-
-            btn.disabled = true;
-            btn.textContent = 'Processing...';
-
-            try {
-                const res = await fetch(`/api/cinemas/${selectedCinema.id}/approve`, {
-                    method: 'PUT',
-                    headers: authHeaders(),
-                    body: JSON.stringify({
-                        isApproved,
-                        rejectionReason: isApproved ? null : reason
-                    })
-                });
-
-                const result = await res.json();
-
-                if (result.success) {
-                    await loadCinemas();
-                    closePanel();
-                } else {
-                    alert(result.message || 'Failed');
-                }
-            } catch {
-                alert('Something went wrong');
-            } finally {
-                btn.disabled = false;
-                btn.textContent = isApproved ? '✅ Approve' : '❌ Reject';
-            }
-        }
-
-        // Hook reject confirm button
-        document.getElementById('rejectBtn').addEventListener('click', function () {
-            if (rejectBoxOpen) {
-                processApproval(false);
-            }
+async function processApproval(isApproved) {
+    if (!selectedCinema) return;
+    const reason = document.getElementById('rejectionReason').value.trim();
+    if (!isApproved && !reason) { document.getElementById('rejectionReason').focus(); showToast('Please provide a rejection reason', 'warning'); return; }
+    const btn = isApproved ? document.getElementById('approveBtn') : document.getElementById('rejectBtn');
+    const origText = btn.textContent;
+    btn.disabled = true; btn.textContent = 'Processing...';
+    try {
+        const res = await fetch(`/api/cinemas/${selectedCinema.id}/approve`, {
+            method:'PUT', headers: authHeaders(),
+            body: JSON.stringify({ isApproved, rejectionReason: isApproved ? null : reason })
         });
+        const result = await res.json();
+        if (result.success) {
+            showToast(isApproved ? `✅ ${selectedCinema.cinemaName} approved!` : `❌ Cinema application rejected`, isApproved ? 'success' : 'info');
+            await loadCinemas(); closePanel();
+        } else { showToast(result.message || 'Failed', 'error'); }
+    } catch { showToast('Something went wrong', 'error'); }
+    finally { btn.disabled = false; btn.textContent = origText; }
+}
 
-        function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
-
-        loadCinemas();
-    </script>
+function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
+loadCinemas();
+</script>
 </body>
 </html>

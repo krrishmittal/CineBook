@@ -8,881 +8,444 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>CineBook — Hall Management</title>
-    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
     <style>
-        :root {
-            --red: #E50914; --red-dark: #b20710;
-            --bg: #0a0a0a; --surface: #141414;
-            --surface2: #1e1e1e; --surface3: #242424;
-            --border: #2a2a2a; --text: #ffffff; --muted: #888888;
-        }
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-        body { background: var(--bg); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; overflow-x: hidden; }
-        .brand { font-family: 'Bebas Neue', sans-serif; letter-spacing: 0.05em; }
-
-        .navbar {
-            position: fixed; top: 0; left: 0; right: 0; height: 56px;
-            background: rgba(10,10,10,0.97); border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; padding: 0 24px; gap: 16px; z-index: 200;
-        }
-        .sidebar {
-            position: fixed; left: 0; top: 56px; bottom: 0; width: 220px;
-            background: var(--surface); border-right: 1px solid var(--border);
-            padding: 20px 12px; z-index: 100; display: flex; flex-direction: column; gap: 4px;
-        }
-        .nav-item {
-            display: flex; align-items: center; gap: 10px; padding: 10px 12px;
-            border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--muted);
-            cursor: pointer; transition: all 0.2s; text-decoration: none;
-            border: none; background: none; width: 100%;
-        }
-        .nav-item:hover { background: var(--surface2); color: var(--text); }
-        .nav-item.active { background: rgba(229,9,20,0.12); color: var(--red); }
-
-        .main { margin-left: 220px; padding-top: 56px; display: flex; min-height: 100vh; }
-        .list-panel { flex: 1; padding: 24px; overflow-y: auto; max-height: calc(100vh - 56px); }
-
-        /* Slide Panel */
-        .slide-panel {
-            width: 680px; background: var(--surface);
-            border-left: 1px solid var(--border);
-            position: fixed; right: -680px; top: 56px; bottom: 0;
-            transition: right 0.35s cubic-bezier(0.4,0,0.2,1);
-            z-index: 150; display: flex; flex-direction: column;
-        }
-        .slide-panel.open { right: 0; }
-
-        .overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.7);
-            z-index: 140; opacity: 0; pointer-events: none; transition: opacity 0.3s;
-        }
-        .overlay.show { opacity: 1; pointer-events: all; }
-
-        .panel-header {
-            padding: 18px 24px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
-        }
-        .panel-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
-        .panel-footer { padding: 14px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; flex-shrink: 0; }
-
-        /* Hall Card */
-        .hall-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 10px; padding: 18px; margin-bottom: 10px;
-            cursor: pointer; transition: all 0.2s;
-            display: flex; align-items: center; gap: 16px;
-        }
-        .hall-card:hover { border-color: #3a3a3a; background: var(--surface2); }
-        .hall-card.selected { border-color: var(--red); background: rgba(229,9,20,0.05); }
-
-        /* Inputs */
-        label { display: block; font-size: 12px; font-weight: 500; color: #999; margin-bottom: 5px; }
-        .cinput {
-            width: 100%; background: var(--surface2); border: 1px solid var(--border);
-            border-radius: 6px; padding: 10px 14px; color: var(--text);
-            font-family: 'DM Sans', sans-serif; font-size: 14px; outline: none;
-            transition: border-color 0.2s;
-        }
-        .cinput:focus { border-color: var(--red); box-shadow: 0 0 0 3px rgba(229,9,20,0.12); }
-        .cinput::placeholder { color: #555; }
-        select.cinput option { background: var(--surface2); }
-
-        /* Buttons */
-        .cbtn {
-            background: var(--red); color: white; font-family: 'DM Sans', sans-serif;
-            font-weight: 600; font-size: 14px; padding: 10px 20px;
-            border: none; border-radius: 6px; cursor: pointer; transition: background 0.2s;
-        }
-        .cbtn:hover { background: var(--red-dark); }
-        .cbtn:disabled { opacity: 0.6; cursor: not-allowed; }
-
-        .cbtn-outline {
-            background: transparent; color: var(--muted); font-family: 'DM Sans', sans-serif;
-            font-weight: 500; font-size: 14px; padding: 10px 20px;
-            border: 1px solid var(--border); border-radius: 6px;
-            cursor: pointer; transition: all 0.2s; flex: 1;
-        }
-        .cbtn-outline:hover { border-color: #555; color: white; }
-
-        .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-        .form-full { grid-column: 1 / -1; }
-
-        /* Badges */
-        .badge { display: inline-flex; align-items: center; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 600; }
-        .badge-2d { background: rgba(59,130,246,0.15); color: #60a5fa; border: 1px solid rgba(59,130,246,0.2); }
-        .badge-3d { background: rgba(168,85,247,0.15); color: #c084fc; border: 1px solid rgba(168,85,247,0.2); }
-        .badge-imax { background: rgba(234,179,8,0.15); color: #facc15; border: 1px solid rgba(234,179,8,0.2); }
-        .badge-active { background: rgba(34,197,94,0.15); color: #4ade80; border: 1px solid rgba(34,197,94,0.2); }
-        .badge-inactive { background: rgba(100,100,100,0.15); color: #888; border: 1px solid rgba(100,100,100,0.2); }
-
-        /* Stat cards */
-        .stat-card {
-            background: var(--surface); border: 1px solid var(--border);
-            border-radius: 8px; padding: 16px 20px;
-            display: flex; align-items: center; gap: 14px;
-        }
-
-        /* Alert */
-        .alert { border-radius: 6px; padding: 10px 14px; font-size: 13px; display: none; margin-bottom: 14px; }
-        .alert-error { background: rgba(229,9,20,0.1); border: 1px solid rgba(229,9,20,0.3); color: #ff6b6b; }
-        .alert-success { background: rgba(34,197,94,0.1); border: 1px solid rgba(34,197,94,0.3); color: #4ade80; }
-
-        /* ── SEAT DESIGNER ── */
-        .designer-wrap {
-            background: var(--surface2); border: 1px solid var(--border);
-            border-radius: 10px; padding: 16px; margin-top: 16px;
-        }
-
-        /* Seat type selector toolbar */
-        .type-toolbar {
-            display: flex; gap: 8px; margin-bottom: 14px; flex-wrap: wrap;
-        }
-        .type-btn {
-            display: flex; align-items: center; gap: 8px;
-            padding: 8px 14px; border-radius: 8px; cursor: pointer;
-            border: 2px solid transparent; transition: all 0.15s;
-            font-size: 13px; font-weight: 600; font-family: 'DM Sans', sans-serif;
-        }
-        .type-btn .dot { width: 12px; height: 12px; border-radius: 3px; }
-        .type-btn.active-tool { border-color: white; }
-
-        .type-btn-standard { background: rgba(59,130,246,0.15); color: #60a5fa; }
-        .type-btn-standard.active-tool { background: rgba(59,130,246,0.3); }
-        .type-btn-premium { background: rgba(168,85,247,0.15); color: #c084fc; }
-        .type-btn-premium.active-tool { background: rgba(168,85,247,0.3); }
-        .type-btn-vip { background: rgba(245,158,11,0.15); color: #facc15; }
-        .type-btn-vip.active-tool { background: rgba(245,158,11,0.3); }
-        .type-btn-eraser { background: rgba(100,100,100,0.15); color: #888; }
-        .type-btn-eraser.active-tool { background: rgba(100,100,100,0.3); }
-
-        /* Row controls */
-        .row-actions { display: flex; gap: 6px; align-items: center; margin-bottom: 12px; }
-        .row-action-btn {
-            padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 600;
-            cursor: pointer; border: 1px solid var(--border); background: var(--surface3);
-            color: var(--muted); transition: all 0.15s; font-family: 'DM Sans', sans-serif;
-        }
-        .row-action-btn:hover { color: var(--text); border-color: #555; }
-
-        /* Screen bar */
-        .screen-bar {
-            text-align: center; margin-bottom: 20px;
-        }
-        .screen-line {
-            width: 55%; margin: 0 auto; height: 5px; border-radius: 3px;
-            background: linear-gradient(to right, transparent, #555, transparent);
-        }
-        .screen-label { font-size: 10px; color: #555; letter-spacing: 0.12em; margin-top: 4px; }
-
-        /* Seat grid */
-        .seat-grid-designer {
-            overflow-x: auto; padding-bottom: 8px;
-        }
-        .seat-grid-inner { display: inline-block; min-width: 100%; }
-
-        .designer-row {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-            margin-bottom: 5px;
-            height: 32px !important;
-            max-height: 32px !important;
-            flex-wrap: nowrap;
-            overflow: hidden;
-        }
-        .row-label-d {
-            width: 24px; font-size: 11px; color: #555; text-align: center;
-            flex-shrink: 0; font-weight: 700;
-        }
-        .row-select-all {
-            width: 20px; height: 20px; border-radius: 4px; cursor: pointer;
-            background: var(--surface3); border: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: center;
-            font-size: 10px; color: var(--muted); flex-shrink: 0; transition: all 0.15s;
-        }
-        .row-select-all:hover { border-color: #555; color: white; }
-
-        /* Designer seat */
-        .dseat {
-            width: 28px ;
-            height: 28px;
-            /* min-width: 18px;
-            max-width: 18px ;
-            min-height: 8px ;
-            max-height: 8px; */
-            border-radius: 4px;
-            cursor: pointer;
-            border: 1px solid var(--border);
-            background: var(--surface3);
-            flex-shrink: 0;
-            flex-basis: 28px;
-            position: relative;
-            user-select: none;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 8px;
-            color: transparent;
-            overflow: hidden;
-            padding: 0;
-            margin: 0;
-        }
-
-        .dseat.standard { background: rgba(59,130,246,0.5); border-color: rgba(59,130,246,0.8); color: rgba(255,255,255,0.6); }
-        .dseat.premium  { background: rgba(168,85,247,0.5); border-color: rgba(168,85,247,0.8); color: rgba(255,255,255,0.6); }
-        .dseat.vip      { background: rgba(245,158,11,0.5); border-color: rgba(245,158,11,0.8); color: rgba(255,255,255,0.6); }
-        .dseat:hover { border-color: #555; }
-             .dseat.empty { 
-            background: var(--surface3);
-            height: 16px;
-            width: 28px;
-            flex-basis: auto;
-            border-color: var(--border);
-        }
-
-        .dseat.gap { background: transparent; border-color: transparent; cursor: default; }
-        .dseat.gap:hover { transform: none; }
-
-        /* Seat counts summary */
-        .seat-summary {
-            display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px;
-            margin-top: 14px;
-        }
-        .seat-count-box {
-            background: var(--surface3); border: 1px solid var(--border);
-            border-radius: 6px; padding: 10px; text-align: center;
-        }
-
-        /* Delete confirm */
-        .delete-confirm {
-            background: rgba(229,9,20,0.08); border: 1px solid rgba(229,9,20,0.2);
-            border-radius: 8px; padding: 16px; margin-top: 16px; display: none;
-        }
-
-        .empty { text-align: center; padding: 60px 20px; color: var(--muted); }
-
-        @@keyframes fadeIn {
-            from { opacity: 0; transform: translateY(8px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        .hall-card { animation: fadeIn 0.3s ease forwards; }
-
-        .warning-card {
-            background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2);
-            border-radius: 10px; padding: 24px; text-align: center;
-        }
-
-        /* Aisle gap toggle */
-        .aisle-btn {
-            padding: 5px 10px; border-radius: 5px; font-size: 11px; font-weight: 600;
-            cursor: pointer; border: 1px solid var(--border); background: var(--surface3);
-            color: var(--muted); transition: all 0.15s; font-family: 'DM Sans', sans-serif;
-        }
-        .aisle-btn.active { background: rgba(229,9,20,0.15); border-color: var(--red); color: var(--red); }
+        body{font-family:'DM Sans',sans-serif;}
+        .brand{font-family:'Bebas Neue',sans-serif;letter-spacing:0.05em;}
+        .cinput{width:100%;background:#1e1e1e;border:1px solid #2a2a2a;border-radius:8px;padding:10px 14px;color:#fff;font-family:'DM Sans',sans-serif;font-size:14px;outline:none;transition:border-color .2s,box-shadow .2s;}
+        .cinput:focus{border-color:#E50914;box-shadow:0 0 0 3px rgba(229,9,20,.12);}
+        .cinput::placeholder{color:#555;}
+        select.cinput option{background:#1e1e1e;}
+        .slide-panel{transform:translateX(100%);transition:transform .35s cubic-bezier(.4,0,.2,1);}
+        .slide-panel.open{transform:translateX(0);}
+        .sidebar-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:80;}
+        .sidebar-overlay.show{display:block;}
+        #toast-container{position:fixed;top:20px;right:20px;z-index:9999;display:flex;flex-direction:column;gap:10px;pointer-events:none;}
+        .toast{pointer-events:all;min-width:260px;max-width:340px;background:#141414;border:1px solid #2a2a2a;border-radius:12px;padding:14px 18px;display:flex;align-items:flex-start;gap:12px;box-shadow:0 8px 32px rgba(0,0,0,.6);animation:tIn .35s cubic-bezier(.34,1.56,.64,1) forwards;font-size:14px;color:#fff;}
+        .toast.removing{animation:tOut .25s ease forwards;}
+        .toast-success{border-left:3px solid #22c55e;}.toast-error{border-left:3px solid #E50914;}.toast-info{border-left:3px solid #3b82f6;}.toast-warning{border-left:3px solid #f59e0b;}
+        @@keyframes tIn{from{opacity:0;transform:translateX(100px)}to{opacity:1;transform:translateX(0)}}
+        @@keyframes tOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(100px)}}
+        @@keyframes spin{to{transform:rotate(360deg)}}
+        .spinner{width:16px;height:16px;border:2px solid rgba(255,255,255,.3);border-top-color:#fff;border-radius:50%;animation:spin .7s linear infinite;display:inline-block;}
+        @@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+        .fade-in{animation:fadeIn .3s ease forwards;}
+        /* Seat designer */
+        .designer-row{display:flex;align-items:center;gap:4px;margin-bottom:5px;flex-wrap:nowrap;overflow:hidden;}
+        .dseat{width:28px;height:28px;border-radius:4px;cursor:pointer;border:1px solid #2a2a2a;background:#242424;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:8px;color:transparent;user-select:none;transition:transform .1s;}
+        .dseat:hover:not(.gap){transform:scale(1.15);}
+        .dseat.standard{background:rgba(59,130,246,.5);border-color:rgba(59,130,246,.8);color:rgba(255,255,255,.6);}
+        .dseat.premium{background:rgba(168,85,247,.5);border-color:rgba(168,85,247,.8);color:rgba(255,255,255,.6);}
+        .dseat.vip{background:rgba(245,158,11,.5);border-color:rgba(245,158,11,.8);color:rgba(255,255,255,.6);}
+        .dseat.empty{background:#242424;border-color:#2a2a2a;color:transparent;}
+        .dseat.gap{background:transparent;border-color:transparent;cursor:default;}
+        .type-btn{display:flex;align-items:center;gap:6px;padding:7px 12px;border-radius:8px;cursor:pointer;border:2px solid transparent;transition:all .15s;font-size:13px;font-weight:600;font-family:'DM Sans',sans-serif;}
+        .type-btn.active-tool{border-color:white;}
+        .seat-grid-designer{overflow-x:auto;padding-bottom:8px;}
+        .seat-grid-inner{display:inline-block;min-width:100%;}
     </style>
 </head>
-<body>
+<body class="bg-[#0a0a0a] text-white min-h-screen">
+<div id="toast-container"></div>
 
-    <!-- Navbar -->
-    <nav class="navbar">
-        <span class="brand" style="font-size:22px; color:var(--red);">CINEBOOK</span>
-        <span style="font-size:12px; color:var(--border);">|</span>
-        <span style="font-size:13px; color:var(--muted);">Cinema Manager</span>
-        <div style="flex:1;"></div>
-        <span id="managerName" style="font-size:13px; color:var(--muted);"></span>
-        <button onclick="logout()" style="background:none; border:1px solid var(--border); color:var(--muted); font-family:'DM Sans',sans-serif; font-size:13px; padding:6px 14px; border-radius:6px; cursor:pointer;">Sign Out</button>
-    </nav>
+<nav class="fixed top-0 left-0 right-0 h-14 bg-[#0a0a0a]/95 border-b border-[#2a2a2a] flex items-center px-4 sm:px-6 gap-4 z-50 backdrop-blur-sm">
+    <button onclick="toggleSidebar()" class="sm:hidden text-[#888] text-xl p-1">☰</button>
+    <span class="brand text-2xl text-[#E50914]">CINEBOOK</span>
+    <span class="hidden sm:block text-xs text-[#2a2a2a]">|</span>
+    <span class="hidden sm:block text-sm text-[#888]">Cinema Manager</span>
+    <div class="flex-1"></div>
+    <span id="managerName" class="hidden sm:block text-sm text-[#888]"></span>
+    <button onclick="logout()" class="text-sm text-[#888] border border-[#2a2a2a] rounded-md px-3 py-1.5 hover:border-[#555] hover:text-white transition-all">Sign Out</button>
+</nav>
 
-    <!-- Sidebar -->
-    <aside class="sidebar">
-        <div style="font-size:11px; color:var(--muted); letter-spacing:0.1em; padding:4px 12px 12px;">MANAGE</div>
-        <a class="nav-item" href="/Manager/Cinema">🏟 My Cinema</a>
-        <a class="nav-item active" href="/Manager/Halls">🪑 Halls</a>
-        <a class="nav-item" href="/Manager/Showtimes">🎬 Showtimes</a>
-        <a class="nav-item" href="/Booking/CinemaBookings">📋 Bookings</a>
-        <a class="nav-item" href="/Booking/Refunds">↩ Refunds</a>
-        <div style="flex:1;"></div>
-        <a class="nav-item" href="/Manager/Cinema">🏠 Dashboard</a>
-    </aside>
+<div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+<aside id="sidebar" class="fixed left-0 top-14 bottom-0 w-56 bg-[#141414] border-r border-[#2a2a2a] px-3 py-5 z-[100] flex flex-col gap-1 -translate-x-full sm:translate-x-0 transition-transform duration-300">
+    <div class="text-xs text-[#555] tracking-widest px-3 pb-3">MANAGE</div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Manager/Cinema">🏟 My Cinema</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#E50914] bg-[#E50914]/10" href="/Manager/Halls">🪑 Halls</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Manager/Showtimes">🎬 Showtimes</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Booking/CinemaBookings">📋 Bookings</a>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/Booking/Refunds">↩ Refunds</a>
+    <div class="flex-1"></div>
+    <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/">🏠 Dashboard</a>
+</aside>
 
-    <div class="main">
-        <div class="list-panel">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:20px;">
-                <div>
-                    <h1 style="font-size:22px; font-weight:700;">Hall Management</h1>
-                    <p style="font-size:13px; color:var(--muted); margin-top:2px;">Design halls with custom seat layouts</p>
-                </div>
-                <button class="cbtn" onclick="openAddPanel()">+ Add Hall</button>
+<div class="sm:ml-56 pt-14 flex min-h-screen">
+    <div class="flex-1 p-4 sm:p-6 overflow-y-auto max-h-[calc(100vh-56px)]">
+
+        <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
+            <div>
+                <h1 class="text-xl font-bold">Hall Management</h1>
+                <p class="text-sm text-[#888] mt-0.5">Design halls with custom seat layouts</p>
             </div>
+            <button onclick="openAddPanel()" class="bg-[#E50914] hover:bg-[#b20710] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors w-full sm:w-auto">+ Add Hall</button>
+        </div>
 
-            <div class="warning-card" id="noCinemaWarning" style="display:none;">
-                <div style="font-size:32px; margin-bottom:12px;">🏟</div>
-                <div style="font-size:16px; font-weight:600; color:#fbbf24; margin-bottom:8px;">Cinema not approved yet</div>
-                <div style="font-size:13px; color:var(--muted); margin-bottom:16px;">You need an approved cinema before adding halls.</div>
-                <a href="/Manager/Cinema" style="background:var(--red); color:white; font-family:'DM Sans',sans-serif; font-weight:600; font-size:13px; padding:10px 20px; border-radius:6px; text-decoration:none;">Go to My Cinema →</a>
-            </div>
+        <!-- No cinema warning -->
+        <div id="noCinemaWarning" class="hidden mb-6 bg-yellow-400/5 border border-yellow-400/20 rounded-2xl p-8 text-center">
+            <div class="text-4xl mb-3">🏟</div>
+            <div class="text-base font-semibold text-yellow-400 mb-2">Cinema not approved yet</div>
+            <div class="text-sm text-[#888] mb-5">You need an approved cinema before adding halls.</div>
+            <a href="/Manager/Cinema" class="bg-[#E50914] text-white font-semibold text-sm px-5 py-2.5 rounded-xl inline-block">Go to My Cinema →</a>
+        </div>
 
-            <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:24px;" id="statsSection">
-                <div class="stat-card"><div style="font-size:26px;">🎭</div><div><div style="font-size:22px; font-weight:700;" id="totalHalls">0</div><div style="font-size:12px; color:var(--muted);">Total Halls</div></div></div>
-                <div class="stat-card"><div style="font-size:26px;">🪑</div><div><div style="font-size:22px; font-weight:700;" id="totalSeats">0</div><div style="font-size:12px; color:var(--muted);">Total Seats</div></div></div>
-                <div class="stat-card"><div style="font-size:26px;">✅</div><div><div style="font-size:22px; font-weight:700;" id="activeHalls">0</div><div style="font-size:12px; color:var(--muted);">Active Halls</div></div></div>
+        <!-- Stats -->
+        <div class="grid grid-cols-3 gap-3 mb-6" id="statsSection">
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-2xl">🎭</div><div><div class="text-xl font-bold" id="totalHalls">0</div><div class="text-xs text-[#888]">Total Halls</div></div>
             </div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-2xl">🪑</div><div><div class="text-xl font-bold" id="totalSeats">0</div><div class="text-xs text-[#888]">Total Seats</div></div>
+            </div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-2xl">✅</div><div><div class="text-xl font-bold" id="activeHalls">0</div><div class="text-xs text-[#888]">Active</div></div>
+            </div>
+        </div>
 
-            <div id="hallList">
-                <div class="empty"><div style="font-size:40px; margin-bottom:12px;">🪑</div><div style="font-size:16px; font-weight:500;">Loading halls...</div></div>
-            </div>
+        <div id="hallList">
+            <div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🪑</div><div>Loading halls...</div></div>
         </div>
     </div>
+</div>
 
-    <!-- Overlay -->
-    <div class="overlay" id="overlay" onclick="closePanel()"></div>
+<!-- Overlay -->
+<div class="fixed inset-0 bg-black/60 z-40 opacity-0 pointer-events-none transition-opacity duration-300" id="overlay" onclick="closePanel()"></div>
 
-    <!-- Slide Panel -->
-    <div class="slide-panel" id="slidePanel">
-        <div class="panel-header">
-            <div>
-                <div style="font-size:17px; font-weight:600;" id="panelTitle">Add Hall</div>
-                <div style="font-size:12px; color:var(--muted); margin-top:2px;" id="panelSubtitle">Design your hall layout</div>
-            </div>
-            <button onclick="closePanel()" style="background:none; border:none; color:var(--muted); font-size:22px; cursor:pointer;">✕</button>
+<!-- Slide Panel -->
+<div class="slide-panel fixed right-0 top-14 bottom-0 w-full sm:w-[680px] bg-[#141414] border-l border-[#2a2a2a] z-50 flex flex-col" id="slidePanel">
+    <div class="p-5 border-b border-[#2a2a2a] flex items-center justify-between flex-shrink-0">
+        <div>
+            <div class="text-base font-semibold" id="panelTitle">Add Hall</div>
+            <div class="text-xs text-[#888] mt-0.5" id="panelSubtitle">Design your hall layout</div>
         </div>
+        <button onclick="closePanel()" class="text-[#888] hover:text-white text-2xl leading-none transition-colors">✕</button>
+    </div>
 
-        <div class="panel-body">
-            <div class="alert alert-error" id="formError"></div>
-            <div class="alert alert-success" id="formSuccess"></div>
+    <div class="flex-1 overflow-y-auto p-5">
+        <div id="formError" class="hidden bg-[#E50914]/10 border border-[#E50914]/30 text-[#ff6b6b] rounded-lg px-4 py-2.5 text-sm mb-4"></div>
+        <div id="formSuccess" class="hidden bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg px-4 py-2.5 text-sm mb-4"></div>
 
-            <!-- Add Form -->
-            <div id="addForm">
-                <div class="form-grid" style="margin-bottom:16px;">
-                    <div class="form-full">
-                        <label>Hall Name *</label>
-                        <input class="cinput" type="text" id="fHallName" placeholder="e.g. Hall 1, Gold Class" />
+        <!-- Add Form -->
+        <div id="addForm">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-[#999] mb-1.5">Hall Name *</label>
+                    <input class="cinput" type="text" id="fHallName" placeholder="e.g. Hall 1, Gold Class" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-[#999] mb-1.5">Hall Type *</label>
+                    <select class="cinput" id="fHallType">
+                        <option value="0">2D</option><option value="1">3D</option><option value="2">IMAX</option>
+                    </select>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-[#999] mb-1.5">Rows *</label>
+                        <input class="cinput" type="number" id="fRows" placeholder="e.g. 10" min="1" max="26" oninput="generateGrid()" />
                     </div>
                     <div>
-                        <label>Hall Type *</label>
-                        <select class="cinput" id="fHallType">
-                            <option value="0">2D</option>
-                            <option value="1">3D</option>
-                            <option value="2">IMAX</option>
-                        </select>
-                    </div>
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-                        <div>
-                            <label>Rows *</label>
-                            <input class="cinput" type="number" id="fRows" placeholder="e.g. 10" min="1" max="26"
-                                   oninput="generateGrid()" style="padding:10px 10px;" />
-                        </div>
-                        <div>
-                            <label>Seats/Row *</label>
-                            <input class="cinput" type="number" id="fSeats" placeholder="e.g. 12" min="1" max="30"
-                                   oninput="generateGrid()" style="padding:10px 10px;" />
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Seat Designer -->
-                <div class="designer-wrap" id="designerWrap" style="display:none;">
-
-                    <!-- Toolbar -->
-                    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; flex-wrap:wrap; gap:8px;">
-                        <div style="font-size:12px; font-weight:700; color:var(--muted); letter-spacing:0.06em;">SEAT DESIGNER</div>
-                        <div style="display:flex; gap:6px; align-items:center;">
-                            <div style="font-size:12px; color:var(--muted);">Aisle after col:</div>
-                            <input class="cinput" type="number" id="aisleCol" placeholder="e.g. 6"
-                                   style="width:64px; padding:5px 8px; font-size:12px;"
-                                   oninput="generateGrid()" />
-                        </div>
-                    </div>
-
-                    <!-- Type selector -->
-                    <div class="type-toolbar">
-                        <button class="type-btn type-btn-standard active-tool" onclick="setTool('standard', this)">
-                            <div class="dot" style="background:#3b82f6;"></div> Standard
-                        </button>
-                        <button class="type-btn type-btn-premium" onclick="setTool('premium', this)">
-                            <div class="dot" style="background:#a855f7;"></div> Premium
-                        </button>
-                        <button class="type-btn type-btn-vip" onclick="setTool('vip', this)">
-                            <div class="dot" style="background:#f59e0b;"></div> VIP
-                        </button>
-                        <button class="type-btn type-btn-eraser" onclick="setTool('empty', this)">
-                            ✕ Remove
-                        </button>
-                    </div>
-
-                    <!-- Row actions -->
-                    <div class="row-actions">
-                        <div style="font-size:12px; color:var(--muted);">Paint row:</div>
-                        <button class="row-action-btn" onclick="paintAllRows('standard')" style="color:#60a5fa; border-color:rgba(59,130,246,0.3);">All → Standard</button>
-                        <button class="row-action-btn" onclick="paintAllRows('premium')" style="color:#c084fc; border-color:rgba(168,85,247,0.3);">All → Premium</button>
-                        <button class="row-action-btn" onclick="paintAllRows('vip')" style="color:#facc15; border-color:rgba(245,158,11,0.3);">All → VIP</button>
-                        <button class="row-action-btn" onclick="clearAll()" style="color:#f87171;">Clear All</button>
-                    </div>
-
-                    <!-- Screen -->
-                    <div class="screen-bar">
-                        <div class="screen-line"></div>
-                        <div class="screen-label">SCREEN</div>
-                    </div>
-
-                    <!-- Grid -->
-                    <div class="seat-grid-designer">
-                        <div class="seat-grid-inner" id="designerGrid"></div>
-                    </div>
-
-                    <!-- Seat summary -->
-                    <div class="seat-summary" id="seatSummary">
-                        <div class="seat-count-box">
-                            <div style="font-size:18px; font-weight:700; color:#60a5fa;" id="cntStandard">0</div>
-                            <div style="font-size:11px; color:var(--muted);">Standard</div>
-                        </div>
-                        <div class="seat-count-box">
-                            <div style="font-size:18px; font-weight:700; color:#c084fc;" id="cntPremium">0</div>
-                            <div style="font-size:11px; color:var(--muted);">Premium</div>
-                        </div>
-                        <div class="seat-count-box">
-                            <div style="font-size:18px; font-weight:700; color:#facc15;" id="cntVIP">0</div>
-                            <div style="font-size:11px; color:var(--muted);">VIP</div>
-                        </div>
-                        <div class="seat-count-box">
-                            <div style="font-size:18px; font-weight:700;" id="cntTotal">0</div>
-                            <div style="font-size:11px; color:var(--muted);">Total</div>
-                        </div>
-                    </div>
-
-                    <div style="font-size:11px; color:#555; margin-top:10px; text-align:center;">
-                        💡 Click a seat to paint • Click row label to paint entire row • Drag to paint multiple
+                        <label class="block text-xs font-medium text-[#999] mb-1.5">Seats/Row *</label>
+                        <input class="cinput" type="number" id="fSeats" placeholder="e.g. 12" min="1" max="30" oninput="generateGrid()" />
                     </div>
                 </div>
             </div>
 
-            <!-- Edit Form -->
-            <div id="editForm" style="display:none;">
-                <div class="form-grid">
-                    <div class="form-full">
-                        <label>Hall Name *</label>
-                        <input class="cinput" type="text" id="eHallName" />
-                    </div>
-                    <div class="form-full">
-                        <label>Hall Type *</label>
-                        <select class="cinput" id="eHallType">
-                            <option value="0">2D</option>
-                            <option value="1">3D</option>
-                            <option value="2">IMAX</option>
-                        </select>
-                    </div>
-                    <div class="form-full">
-                        <label>Status</label>
-                        <select class="cinput" id="eIsActive">
-                            <option value="true">Active</option>
-                            <option value="false">Inactive</option>
-                        </select>
+            <!-- Seat Designer -->
+            <div id="designerWrap" class="hidden bg-[#1e1e1e] border border-[#2a2a2a] rounded-xl p-4">
+                <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+                    <div class="text-xs font-bold text-[#888] tracking-widest">SEAT DESIGNER</div>
+                    <div class="flex items-center gap-2">
+                        <label class="text-xs text-[#888]">Aisle after col:</label>
+                        <input class="cinput" type="number" id="aisleCol" placeholder="e.g. 6" style="width:70px;padding:6px 10px;font-size:12px;" oninput="generateGrid()" />
                     </div>
                 </div>
 
-                <div style="margin-top:20px;">
-                    <div style="font-size:13px; font-weight:600; color:var(--muted); letter-spacing:0.06em; margin-bottom:10px;">SEAT INFO</div>
-                    <div class="seat-summary">
-                        <div class="seat-count-box"><div style="font-size:18px; font-weight:700; color:#60a5fa;" id="editStandard">0</div><div style="font-size:11px; color:var(--muted);">Standard</div></div>
-                        <div class="seat-count-box"><div style="font-size:18px; font-weight:700; color:#c084fc;" id="editPremium">0</div><div style="font-size:11px; color:var(--muted);">Premium</div></div>
-                        <div class="seat-count-box"><div style="font-size:18px; font-weight:700; color:#facc15;" id="editVIP">0</div><div style="font-size:11px; color:var(--muted);">VIP</div></div>
-                        <div class="seat-count-box"><div style="font-size:18px; font-weight:700;" id="editTotal">0</div><div style="font-size:11px; color:var(--muted);">Total</div></div>
-                    </div>
+                <!-- Type toolbar -->
+                <div class="flex flex-wrap gap-2 mb-3">
+                    <button class="type-btn active-tool" id="toolStd" onclick="setTool('standard',this)" style="background:rgba(59,130,246,.15);color:#60a5fa;">
+                        <div style="width:10px;height:10px;border-radius:2px;background:#3b82f6;"></div> Standard
+                    </button>
+                    <button class="type-btn" id="toolPrem" onclick="setTool('premium',this)" style="background:rgba(168,85,247,.15);color:#c084fc;">
+                        <div style="width:10px;height:10px;border-radius:2px;background:#a855f7;"></div> Premium
+                    </button>
+                    <button class="type-btn" id="toolVip" onclick="setTool('vip',this)" style="background:rgba(245,158,11,.15);color:#facc15;">
+                        <div style="width:10px;height:10px;border-radius:2px;background:#f59e0b;"></div> VIP
+                    </button>
+                    <button class="type-btn" onclick="setTool('empty',this)" style="background:rgba(100,100,100,.15);color:#888;">✕ Remove</button>
                 </div>
 
-                <div class="delete-confirm" id="deleteConfirm">
-                    <div style="font-size:14px; font-weight:600; color:#f87171; margin-bottom:8px;">⚠ Delete Hall</div>
-                    <div style="font-size:13px; color:var(--muted); margin-bottom:12px;">This will permanently delete the hall and all its seats.</div>
-                    <button class="cbtn" onclick="deleteHall()" style="background:#dc2626; width:100%; font-size:13px; padding:10px;">Confirm Delete</button>
+                <!-- Row paint actions -->
+                <div class="flex flex-wrap gap-2 mb-4 text-xs">
+                    <button onclick="paintAllRows('standard')" class="px-3 py-1.5 rounded-lg border border-blue-500/30 text-blue-400 bg-blue-500/5 hover:bg-blue-500/10 font-semibold cursor-pointer transition-colors">All → Standard</button>
+                    <button onclick="paintAllRows('premium')" class="px-3 py-1.5 rounded-lg border border-purple-500/30 text-purple-400 bg-purple-500/5 hover:bg-purple-500/10 font-semibold cursor-pointer transition-colors">All → Premium</button>
+                    <button onclick="paintAllRows('vip')" class="px-3 py-1.5 rounded-lg border border-yellow-500/30 text-yellow-400 bg-yellow-500/5 hover:bg-yellow-500/10 font-semibold cursor-pointer transition-colors">All → VIP</button>
+                    <button onclick="clearAll()" class="px-3 py-1.5 rounded-lg border border-red-500/30 text-red-400 bg-red-500/5 hover:bg-red-500/10 font-semibold cursor-pointer transition-colors">Clear All</button>
                 </div>
-                <button onclick="toggleDelete()" style="background:none; border:1px solid rgba(229,9,20,0.3); color:#f87171; font-family:'DM Sans',sans-serif; font-size:13px; padding:9px 16px; border-radius:6px; cursor:pointer; margin-top:16px; width:100%;">🗑 Delete This Hall</button>
+
+                <!-- Screen -->
+                <div class="text-center mb-5">
+                    <div class="w-3/5 mx-auto h-1.5 rounded-full" style="background:linear-gradient(to right,transparent,#555,transparent)"></div>
+                    <div class="text-xs text-[#555] tracking-widest mt-1.5">SCREEN</div>
+                </div>
+
+                <!-- Grid -->
+                <div class="seat-grid-designer">
+                    <div class="seat-grid-inner" id="designerGrid"></div>
+                </div>
+
+                <!-- Seat summary -->
+                <div class="grid grid-cols-4 gap-2 mt-4">
+                    <div class="bg-[#242424] border border-[#2a2a2a] rounded-lg p-3 text-center"><div class="text-lg font-bold text-blue-400" id="cntStandard">0</div><div class="text-xs text-[#888]">Standard</div></div>
+                    <div class="bg-[#242424] border border-[#2a2a2a] rounded-lg p-3 text-center"><div class="text-lg font-bold text-purple-400" id="cntPremium">0</div><div class="text-xs text-[#888]">Premium</div></div>
+                    <div class="bg-[#242424] border border-[#2a2a2a] rounded-lg p-3 text-center"><div class="text-lg font-bold text-yellow-400" id="cntVIP">0</div><div class="text-xs text-[#888]">VIP</div></div>
+                    <div class="bg-[#242424] border border-[#2a2a2a] rounded-lg p-3 text-center"><div class="text-lg font-bold" id="cntTotal">0</div><div class="text-xs text-[#888]">Total</div></div>
+                </div>
+                <div class="text-center text-xs text-[#444] mt-3">💡 Click to paint • Click row label to paint entire row • Drag for multiple</div>
             </div>
         </div>
 
-        <div class="panel-footer">
-            <button class="cbtn-outline" onclick="closePanel()">Cancel</button>
-            <button class="cbtn" id="saveBtn" onclick="saveHall()" style="flex:2;">Create Hall</button>
+        <!-- Edit Form -->
+        <div id="editForm" class="hidden">
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div class="sm:col-span-2">
+                    <label class="block text-xs font-medium text-[#999] mb-1.5">Hall Name *</label>
+                    <input class="cinput" type="text" id="eHallName" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-[#999] mb-1.5">Hall Type *</label>
+                    <select class="cinput" id="eHallType"><option value="0">2D</option><option value="1">3D</option><option value="2">IMAX</option></select>
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-[#999] mb-1.5">Status</label>
+                    <select class="cinput" id="eIsActive"><option value="true">Active</option><option value="false">Inactive</option></select>
+                </div>
+            </div>
+            <!-- Seat info -->
+            <div class="mt-5">
+                <div class="text-xs font-bold text-[#888] tracking-widest mb-3">SEAT INFO</div>
+                <div class="grid grid-cols-4 gap-2">
+                    <div class="bg-[#1e1e1e] border border-[#2a2a2a] rounded-lg p-3 text-center"><div class="text-lg font-bold text-blue-400" id="editStandard">0</div><div class="text-xs text-[#888]">Standard</div></div>
+                    <div class="bg-[#1e1e1e] border border-[#2a2a2a] rounded-lg p-3 text-center"><div class="text-lg font-bold text-purple-400" id="editPremium">0</div><div class="text-xs text-[#888]">Premium</div></div>
+                    <div class="bg-[#1e1e1e] border border-[#2a2a2a] rounded-lg p-3 text-center"><div class="text-lg font-bold text-yellow-400" id="editVIP">0</div><div class="text-xs text-[#888]">VIP</div></div>
+                    <div class="bg-[#1e1e1e] border border-[#2a2a2a] rounded-lg p-3 text-center"><div class="text-lg font-bold" id="editTotal">0</div><div class="text-xs text-[#888]">Total</div></div>
+                </div>
+            </div>
+            <!-- Delete confirm -->
+            <div id="deleteConfirm" class="hidden mt-5 bg-[#E50914]/8 border border-[#E50914]/20 rounded-xl p-4">
+                <div class="text-sm font-semibold text-[#f87171] mb-2">⚠ Delete Hall</div>
+                <div class="text-xs text-[#888] mb-3">This will permanently delete the hall and all its seats.</div>
+                <button onclick="deleteHall()" class="w-full bg-red-700 hover:bg-red-800 text-white font-semibold text-sm py-2.5 rounded-lg transition-colors">Confirm Delete</button>
+            </div>
+            <button onclick="toggleDelete()" class="w-full mt-4 text-[#f87171] border border-[#E50914]/30 bg-[#E50914]/5 hover:bg-[#E50914]/10 font-medium text-sm py-2.5 rounded-xl transition-all">🗑 Delete This Hall</button>
         </div>
     </div>
 
-    <script>
-        const token = localStorage.getItem('token');
-        const user = JSON.parse(localStorage.getItem('user') || '{}');
+    <div class="p-4 border-t border-[#2a2a2a] flex gap-3 flex-shrink-0">
+        <button onclick="closePanel()" class="flex-1 text-[#888] border border-[#2a2a2a] hover:border-[#555] hover:text-white rounded-xl py-2.5 text-sm font-medium transition-all">Cancel</button>
+        <button id="saveBtn" onclick="saveHall()" class="flex-[2] bg-[#E50914] hover:bg-[#b20710] text-white font-semibold text-sm py-2.5 rounded-xl transition-colors">Create Hall</button>
+    </div>
+</div>
 
-        if (!token) window.location.href = '/Auth/Login';
-        if (user.role !== 'CinemaManager') window.location.href = '/';
+<script>
+function showToast(msg,type='info',duration=4000){const icons={success:'✓',error:'✕',info:'ℹ',warning:'⚠'};const colors={success:'#22c55e',error:'#E50914',info:'#3b82f6',warning:'#f59e0b'};const c=document.getElementById('toast-container');const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">${icons[type]}</div><div style="flex:1;line-height:1.5;">${msg}</div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:0;">✕</button>`;c.appendChild(t);setTimeout(()=>{t.classList.add('removing');setTimeout(()=>t.remove(),250);},duration);}
+function toggleSidebar(){document.getElementById('sidebar').classList.toggle('-translate-x-full');document.getElementById('sidebarOverlay').classList.toggle('show');}
+function logout(){localStorage.clear();window.location.href='/Auth/Login';}
 
-        document.getElementById('managerName').textContent = user.fullName || 'Manager';
+const token=localStorage.getItem('token');
+const user=JSON.parse(localStorage.getItem('user')||'{}');
+if(!token)window.location.href='/Auth/Login';
+if(user.role!=='CinemaManager')window.location.href='/';
+document.getElementById('managerName').textContent=user.fullName||'Manager';
+function authHeaders(){return{'Content-Type':'application/json','Authorization':`Bearer ${token}`};}
 
-        let allHalls = [];
-        let editingId = null;
-        let isEditMode = false;
-        let currentTool = 'standard';
+let allHalls=[],editingId=null,isEditMode=false,currentTool='standard',seatMap=[],isDragging=false;
 
-        // seatMap[row][col] = 'empty' | 'standard' | 'premium' | 'vip'
-        let seatMap = [];
-        let isDragging = false;
+async function loadHalls(){
+    try{
+        const res=await fetch('/api/halls',{headers:authHeaders()});
+        const data=await res.json();
+        if(data.success){allHalls=data.data;updateStats();renderHalls(allHalls);}
+        else{document.getElementById('noCinemaWarning').classList.remove('hidden');document.getElementById('statsSection').classList.add('hidden');document.getElementById('hallList').innerHTML='';}
+    }catch{showToast('Failed to load halls','error');}
+}
 
-        function authHeaders() {
-            return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` };
+function updateStats(){
+    document.getElementById('totalHalls').textContent=allHalls.length;
+    document.getElementById('totalSeats').textContent=allHalls.reduce((s,h)=>s+h.totalSeats,0);
+    document.getElementById('activeHalls').textContent=allHalls.filter(h=>h.isActive).length;
+}
+
+function typeBadge(type){
+    if(type==='TwoD'||type===0)return'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-blue-400/10 border border-blue-400/20 text-blue-400">2D</span>';
+    if(type==='ThreeD'||type===1)return'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-purple-400/10 border border-purple-400/20 text-purple-400">3D</span>';
+    return'<span class="text-xs font-bold px-2 py-0.5 rounded-full bg-yellow-400/10 border border-yellow-400/20 text-yellow-400">IMAX</span>';
+}
+
+function renderHalls(halls){
+    const list=document.getElementById('hallList');
+    if(!halls.length){list.innerHTML=`<div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🪑</div><div class="text-base font-medium mb-1">No halls yet</div><div class="text-sm">Click "+ Add Hall" to design your first hall</div></div>`;return;}
+    list.innerHTML=halls.map(h=>`
+        <div class="fade-in bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 mb-3 flex gap-4 items-center cursor-pointer hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-all" onclick="selectHall('${h.id}')" id="card-${h.id}">
+            <div class="w-12 h-12 rounded-xl bg-[#222] flex-shrink-0 flex items-center justify-center text-2xl">🎭</div>
+            <div class="flex-1 min-w-0">
+                <div class="flex flex-wrap items-center gap-2 mb-1.5">
+                    <div class="font-semibold text-sm">${h.hallName}</div>
+                    ${typeBadge(h.hallType)}
+                    <span class="text-xs font-semibold px-2 py-0.5 rounded-full border ${h.isActive?'text-green-400 bg-green-400/10 border-green-400/20':'text-[#888] bg-[#888]/10 border-[#888]/20'}">${h.isActive?'Active':'Inactive'}</span>
+                </div>
+                <div class="flex flex-wrap gap-3 text-xs text-[#888]">
+                    <span>🪑 ${h.totalSeats} seats</span>
+                    <span class="text-blue-400">● ${h.standardSeats} Std</span>
+                    <span class="text-purple-400">● ${h.premiumSeats} Prem</span>
+                    <span class="text-yellow-400">● ${h.vipSeats} VIP</span>
+                </div>
+            </div>
+            <div class="text-[#555] text-xl flex-shrink-0">›</div>
+        </div>`).join('');
+}
+
+// ── Seat Designer ───────────────────────────────────
+function generateGrid(){
+    const rows=parseInt(document.getElementById('fRows').value)||0;
+    const seatsPerRow=parseInt(document.getElementById('fSeats').value)||0;
+    if(rows<1||seatsPerRow<1||rows>26||seatsPerRow>30){document.getElementById('designerWrap').classList.add('hidden');return;}
+    document.getElementById('designerWrap').classList.remove('hidden');
+    const newMap=[];
+    for(let r=0;r<rows;r++){newMap[r]=[];for(let c=0;c<seatsPerRow;c++)newMap[r][c]=(seatMap[r]&&seatMap[r][c])?seatMap[r][c]:'standard';}
+    seatMap=newMap;renderDesignerGrid(rows,seatsPerRow);updateSeatCounts();
+}
+
+function renderDesignerGrid(rows,seatsPerRow){
+    const aisleCol=parseInt(document.getElementById('aisleCol').value)||0;
+    const grid=document.getElementById('designerGrid');
+    let html='';
+    for(let r=0;r<rows;r++){
+        const rowLabel=String.fromCharCode(65+r);
+        html+=`<div class="designer-row"><div style="width:24px;font-size:11px;color:#555;text-align:center;flex-shrink:0;font-weight:700;cursor:pointer;" onclick="paintRow(${r})" title="Paint row">${rowLabel}</div>`;
+        for(let c=0;c<seatsPerRow;c++){
+            if(aisleCol>0&&c===aisleCol)html+=`<div style="width:12px;flex-shrink:0;"></div>`;
+            const type=seatMap[r][c];
+            html+=`<div class="dseat ${type}" id="ds-${r}-${c}" onmousedown="startPaint(${r},${c})" onmouseenter="dragPaint(${r},${c})" onmouseup="stopPaint()">${c+1}</div>`;
         }
+        html+=`</div>`;
+    }
+    grid.innerHTML=html;
+}
 
-        // ── Load Halls ────────────────────────────────────────
-        async function loadHalls() {
-            try {
-                const res = await fetch('/api/halls', { headers: authHeaders() });
-                const data = await res.json();
-                if (data.success) {
-                    allHalls = data.data;
-                    updateStats();
-                    renderHalls(allHalls);
-                } else {
-                    document.getElementById('noCinemaWarning').style.display = 'block';
-                    document.getElementById('statsSection').style.display = 'none';
-                    document.getElementById('hallList').innerHTML = '';
-                }
-            } catch {
-                document.getElementById('hallList').innerHTML =
-                    `<div class="empty"><div style="font-size:32px">⚠</div><div>Failed to load halls</div></div>`;
-            }
-        }
+function setTool(tool,el){currentTool=tool;document.querySelectorAll('.type-btn').forEach(b=>b.classList.remove('active-tool'));el.classList.add('active-tool');}
+function startPaint(r,c){isDragging=true;paintSeat(r,c);}
+function dragPaint(r,c){if(isDragging)paintSeat(r,c);}
+function stopPaint(){isDragging=false;}
+document.addEventListener('mouseup',()=>isDragging=false);
+function paintSeat(r,c){seatMap[r][c]=currentTool;const el=document.getElementById(`ds-${r}-${c}`);if(el){el.className=`dseat ${currentTool}`;}updateSeatCounts();}
+function paintRow(r){const seatsPerRow=parseInt(document.getElementById('fSeats').value)||0;for(let c=0;c<seatsPerRow;c++)paintSeat(r,c);}
+function paintAllRows(type){const rows=parseInt(document.getElementById('fRows').value)||0;const seatsPerRow=parseInt(document.getElementById('fSeats').value)||0;const prev=currentTool;currentTool=type;for(let r=0;r<rows;r++)for(let c=0;c<seatsPerRow;c++)paintSeat(r,c);currentTool=prev;}
+function clearAll(){paintAllRows('empty');}
+function updateSeatCounts(){let std=0,prem=0,vip=0;seatMap.forEach(row=>row.forEach(s=>{if(s==='standard')std++;else if(s==='premium')prem++;else if(s==='vip')vip++;}));document.getElementById('cntStandard').textContent=std;document.getElementById('cntPremium').textContent=prem;document.getElementById('cntVIP').textContent=vip;document.getElementById('cntTotal').textContent=std+prem+vip;}
 
-        function updateStats() {
-            document.getElementById('totalHalls').textContent = allHalls.length;
-            document.getElementById('totalSeats').textContent = allHalls.reduce((s, h) => s + h.totalSeats, 0);
-            document.getElementById('activeHalls').textContent = allHalls.filter(h => h.isActive).length;
-        }
+function buildSeatData(){
+    const rows=parseInt(document.getElementById('fRows').value);
+    const seatsPerRow=parseInt(document.getElementById('fSeats').value);
+    const seats=[];
+    for(let r=0;r<rows;r++){const rowLabel=String.fromCharCode(65+r);for(let c=0;c<seatsPerRow;c++){const type=seatMap[r]?.[c];if(type&&type!=='empty')seats.push({row:rowLabel,seatNumber:c+1,seatType:type==='standard'?0:type==='premium'?1:2});}}
+    return seats;
+}
 
-        function getHallTypeBadge(type) {
-            if (type === 'TwoD' || type === 0) return '<span class="badge badge-2d">2D</span>';
-            if (type === 'ThreeD' || type === 1) return '<span class="badge badge-3d">3D</span>';
-            return '<span class="badge badge-imax">IMAX</span>';
-        }
+// ── Panel Controls ───────────────────────────────────
+function openAddPanel(){
+    isEditMode=false;editingId=null;seatMap=[];
+    document.getElementById('fHallName').value='';document.getElementById('fHallType').value='0';
+    document.getElementById('fRows').value='';document.getElementById('fSeats').value='';document.getElementById('aisleCol').value='';
+    document.getElementById('designerWrap').classList.add('hidden');
+    document.getElementById('formError').classList.add('hidden');document.getElementById('formSuccess').classList.add('hidden');
+    document.getElementById('panelTitle').textContent='Add Hall';document.getElementById('panelSubtitle').textContent='Design your hall layout';
+    document.getElementById('saveBtn').textContent='Create Hall';
+    document.getElementById('addForm').classList.remove('hidden');document.getElementById('editForm').classList.add('hidden');
+    openPanelUI();
+}
 
-        function renderHalls(halls) {
-            const list = document.getElementById('hallList');
-            if (!halls.length) {
-                list.innerHTML = `<div class="empty"><div style="font-size:40px; margin-bottom:12px;">🪑</div><div style="font-size:16px; font-weight:500; margin-bottom:6px;">No halls yet</div><div style="font-size:13px;">Click "+ Add Hall" to design your first hall</div></div>`;
-                return;
-            }
-            list.innerHTML = halls.map(h => `
-                <div class="hall-card" onclick="selectHall('${h.id}')" id="card-${h.id}">
-                    <div style="width:52px; height:52px; border-radius:10px; background:var(--surface3); display:flex; align-items:center; justify-content:center; font-size:24px; flex-shrink:0;">🎭</div>
-                    <div style="flex:1; min-width:0;">
-                        <div style="display:flex; align-items:center; gap:8px; margin-bottom:6px;">
-                            <div style="font-size:15px; font-weight:600;">${h.hallName}</div>
-                            ${getHallTypeBadge(h.hallType)}
-                            <span class="badge ${h.isActive ? 'badge-active' : 'badge-inactive'}">${h.isActive ? 'Active' : 'Inactive'}</span>
-                        </div>
-                        <div style="display:flex; gap:16px; font-size:12px; color:var(--muted);">
-                            <span>🪑 ${h.totalSeats} seats</span>
-                            <span style="color:#60a5fa;">● ${h.standardSeats} Std</span>
-                            <span style="color:#c084fc;">● ${h.premiumSeats} Prem</span>
-                            <span style="color:#facc15;">● ${h.vipSeats} VIP</span>
-                        </div>
-                    </div>
-                    <div style="color:var(--muted); font-size:18px;">›</div>
-                </div>`).join('');
-        }
+function selectHall(id){
+    const h=allHalls.find(x=>x.id===id);if(!h)return;
+    isEditMode=true;editingId=h.id;
+    document.querySelectorAll('[id^="card-"]').forEach(c=>c.classList.remove('border-[#E50914]','bg-[#E50914]/5'));
+    document.getElementById(`card-${id}`)?.classList.add('border-[#E50914]','bg-[#E50914]/5');
+    document.getElementById('panelTitle').textContent=h.hallName;document.getElementById('panelSubtitle').textContent='Edit hall details';
+    document.getElementById('saveBtn').textContent='Update Hall';
+    document.getElementById('addForm').classList.add('hidden');document.getElementById('editForm').classList.remove('hidden');
+    document.getElementById('deleteConfirm').classList.add('hidden');
+    document.getElementById('eHallName').value=h.hallName;
+    document.getElementById('eHallType').value=h.hallType==='TwoD'?0:h.hallType==='ThreeD'?1:h.hallType==='IMAX'?2:h.hallType;
+    document.getElementById('eIsActive').value=h.isActive.toString();
+    document.getElementById('editStandard').textContent=h.standardSeats;document.getElementById('editPremium').textContent=h.premiumSeats;document.getElementById('editVIP').textContent=h.vipSeats;document.getElementById('editTotal').textContent=h.totalSeats;
+    document.getElementById('formError').classList.add('hidden');document.getElementById('formSuccess').classList.add('hidden');
+    openPanelUI();
+}
 
-        // ── Seat Designer ─────────────────────────────────────
-        function generateGrid() {
-            const rows = parseInt(document.getElementById('fRows').value) || 0;
-            const seatsPerRow = parseInt(document.getElementById('fSeats').value) || 0;
+function openPanelUI(){
+    document.getElementById('slidePanel').classList.add('open');
+    const ov=document.getElementById('overlay');ov.classList.remove('opacity-0','pointer-events-none');ov.classList.add('opacity-100');
+}
 
-            if (rows < 1 || seatsPerRow < 1 || rows > 26 || seatsPerRow > 30) {
-                document.getElementById('designerWrap').style.display = 'none';
-                return;
-            }
+function closePanel(){
+    document.getElementById('slidePanel').classList.remove('open');
+    const ov=document.getElementById('overlay');ov.classList.add('opacity-0','pointer-events-none');ov.classList.remove('opacity-100');
+    document.querySelectorAll('[id^="card-"]').forEach(c=>c.classList.remove('border-[#E50914]','bg-[#E50914]/5'));
+    editingId=null;isEditMode=false;
+}
 
-            document.getElementById('designerWrap').style.display = 'block';
+function toggleDelete(){document.getElementById('deleteConfirm').classList.toggle('hidden');}
 
-            // Init seatMap — preserve existing values if same size
-            const newMap = [];
-            for (let r = 0; r < rows; r++) {
-                newMap[r] = [];
-                for (let c = 0; c < seatsPerRow; c++) {
-                    newMap[r][c] = (seatMap[r] && seatMap[r][c]) ? seatMap[r][c] : 'standard';
-                }
-            }
-            seatMap = newMap;
+function showError(msg){const el=document.getElementById('formError');el.textContent=msg;el.classList.remove('hidden');}
 
-            renderDesignerGrid(rows, seatsPerRow);
-            updateSeatCounts();
-        }
+async function saveHall(){
+    if(isEditMode){await updateHall();return;}
+    const hallName=document.getElementById('fHallName').value.trim();
+    const hallType=parseInt(document.getElementById('fHallType').value);
+    const rows=parseInt(document.getElementById('fRows').value);
+    const seatsPerRow=parseInt(document.getElementById('fSeats').value);
+    if(!hallName){showError('Hall name is required');showToast('Hall name is required','error');return;}
+    if(!rows||!seatsPerRow){showError('Set rows and seats per row first');showToast('Set rows and seats per row','error');return;}
+    const seats=buildSeatData();
+    if(!seats.length){showError('Please paint at least one seat');showToast('Please paint at least one seat','error');return;}
+    let standardRows=0,premiumRows=0;
+    for(let r=0;r<rows;r++){const dominant=seatMap[r]?.filter(s=>s!=='empty')[0]||'empty';if(dominant==='standard')standardRows++;else if(dominant==='premium')premiumRows++;}
+    const data={hallName,hallType,rows,seatsPerRow,standardRows,premiumRows,customSeats:seats};
+    await submitHall('POST','/api/halls',data);
+}
 
-        function renderDesignerGrid(rows, seatsPerRow) {
-            const aisleCol = parseInt(document.getElementById('aisleCol').value) || 0;
-            const grid = document.getElementById('designerGrid');
-            let html = '';
+async function updateHall(){
+    const data={hallName:document.getElementById('eHallName').value.trim(),hallType:parseInt(document.getElementById('eHallType').value),isActive:document.getElementById('eIsActive').value==='true'};
+    if(!data.hallName){showError('Hall name is required');showToast('Hall name is required','error');return;}
+    await submitHall('PUT',`/api/halls/${editingId}`,data);
+}
 
-            for (let r = 0; r < rows; r++) {
-                const rowLabel = String.fromCharCode(65 + r);
-                html += `<div class="designer-row">
-                    <div class="row-label-d" onclick="paintRow(${r})" title="Paint entire row" style="cursor:pointer;">${rowLabel}</div>`;
+async function submitHall(method,url,data){
+    const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent='Saving...';document.getElementById('formError').classList.add('hidden');
+    try{
+        const res=await fetch(url,{method,headers:authHeaders(),body:JSON.stringify(data)});
+        const result=await res.json();
+        if(result.success){
+            showToast(isEditMode?'✅ Hall updated!':'✅ Hall created successfully!','success');
+            document.getElementById('formSuccess').textContent=isEditMode?'Hall updated!':'Hall created!';
+            document.getElementById('formSuccess').classList.remove('hidden');
+            await loadHalls();setTimeout(closePanel,1000);
+        }else{showError(result.message||'Failed');showToast(result.message||'Failed','error');}
+    }catch{showError('Something went wrong');showToast('Something went wrong','error');}
+    finally{btn.disabled=false;btn.textContent=isEditMode?'Update Hall':'Create Hall';}
+}
 
-                for (let c = 0; c < seatsPerRow; c++) {
-                    if (aisleCol > 0 && c === aisleCol) {
-                        html += `<div style="width:12px; flex-shrink:0;"></div>`;
-                    }
-                    const type = seatMap[r][c];
-                    html += `<div class="dseat ${type}"
-                        id="ds-${r}-${c}"
-                        onmousedown="startPaint(${r},${c})"
-                        onmouseenter="dragPaint(${r},${c})"
-                        onmouseup="stopPaint()"
-                        title="${rowLabel}${c+1}">
-                        ${c + 1}
-                    </div>`;
-                }
-                html += `</div>`;
-            }
+async function deleteHall(){
+    if(!editingId)return;
+    try{
+        const res=await fetch(`/api/halls/${editingId}`,{method:'DELETE',headers:authHeaders()});
+        const result=await res.json();
+        if(result.success){showToast('🗑 Hall deleted','info');await loadHalls();closePanel();}
+        else showToast(result.message||'Failed to delete','error');
+    }catch{showToast('Failed to delete hall','error');}
+}
 
-            grid.innerHTML = html;
-        }
-
-        // ── Paint Tools ───────────────────────────────────────
-        function setTool(tool, el) {
-            currentTool = tool;
-            document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active-tool'));
-            el.classList.add('active-tool');
-        }
-
-        function startPaint(r, c) {
-            isDragging = true;
-            paintSeat(r, c);
-        }
-
-        function dragPaint(r, c) {
-            if (isDragging) paintSeat(r, c);
-        }
-
-        function stopPaint() { isDragging = false; }
-
-        document.addEventListener('mouseup', () => isDragging = false);
-
-        function paintSeat(r, c) {
-            seatMap[r][c] = currentTool;
-            const el = document.getElementById(`ds-${r}-${c}`);
-            if (el) {
-                el.className = `dseat ${currentTool}`;
-            }
-            updateSeatCounts();
-        }
-
-        function paintRow(r) {
-            const seatsPerRow = parseInt(document.getElementById('fSeats').value) || 0;
-            for (let c = 0; c < seatsPerRow; c++) {
-                paintSeat(r, c);
-            }
-        }
-
-        function paintAllRows(type) {
-            const rows = parseInt(document.getElementById('fRows').value) || 0;
-            const seatsPerRow = parseInt(document.getElementById('fSeats').value) || 0;
-            const prevTool = currentTool;
-            currentTool = type;
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < seatsPerRow; c++) {
-                    paintSeat(r, c);
-                }
-            }
-            currentTool = prevTool;
-        }
-
-        function clearAll() {
-            const rows = parseInt(document.getElementById('fRows').value) || 0;
-            const seatsPerRow = parseInt(document.getElementById('fSeats').value) || 0;
-            const prevTool = currentTool;
-            currentTool = 'empty';
-            for (let r = 0; r < rows; r++) {
-                for (let c = 0; c < seatsPerRow; c++) {
-                    paintSeat(r, c);
-                }
-            }
-            currentTool = prevTool;
-        }
-
-        function updateSeatCounts() {
-            let std = 0, prem = 0, vip = 0;
-            seatMap.forEach(row => row.forEach(s => {
-                if (s === 'standard') std++;
-                else if (s === 'premium') prem++;
-                else if (s === 'vip') vip++;
-            }));
-            document.getElementById('cntStandard').textContent = std;
-            document.getElementById('cntPremium').textContent = prem;
-            document.getElementById('cntVIP').textContent = vip;
-            document.getElementById('cntTotal').textContent = std + prem + vip;
-        }
-
-        // Build seat data for API from seatMap
-        function buildSeatData() {
-            const rows = parseInt(document.getElementById('fRows').value);
-            const seatsPerRow = parseInt(document.getElementById('fSeats').value);
-            const seats = [];
-
-            for (let r = 0; r < rows; r++) {
-                const rowLabel = String.fromCharCode(65 + r);
-                for (let c = 0; c < seatsPerRow; c++) {
-                    const type = seatMap[r]?.[c];
-                    if (type && type !== 'empty') {
-                        seats.push({
-                            row: rowLabel,
-                            seatNumber: c + 1,
-                            seatType: type === 'standard' ? 0 : type === 'premium' ? 1 : 2
-                        });
-                    }
-                }
-            }
-            return seats;
-        }
-
-        // ── Panel Controls ────────────────────────────────────
-        function openAddPanel() {
-            isEditMode = false; editingId = null;
-            seatMap = [];
-            document.getElementById('fHallName').value = '';
-            document.getElementById('fHallType').value = '0';
-            document.getElementById('fRows').value = '';
-            document.getElementById('fSeats').value = '';
-            document.getElementById('aisleCol').value = '';
-            document.getElementById('designerWrap').style.display = 'none';
-            document.getElementById('formError').style.display = 'none';
-            document.getElementById('formSuccess').style.display = 'none';
-            document.getElementById('panelTitle').textContent = 'Add Hall';
-            document.getElementById('panelSubtitle').textContent = 'Design your hall layout';
-            document.getElementById('saveBtn').textContent = 'Create Hall';
-            document.getElementById('addForm').style.display = 'block';
-            document.getElementById('editForm').style.display = 'none';
-            document.getElementById('slidePanel').classList.add('open');
-            document.getElementById('overlay').classList.add('show');
-        }
-
-        function selectHall(id) {
-            const hall = allHalls.find(h => h.id === id);
-            if (!hall) return;
-            isEditMode = true; editingId = hall.id;
-            document.querySelectorAll('.hall-card').forEach(c => c.classList.remove('selected'));
-            document.getElementById(`card-${id}`)?.classList.add('selected');
-            document.getElementById('panelTitle').textContent = hall.hallName;
-            document.getElementById('panelSubtitle').textContent = 'Edit hall details';
-            document.getElementById('saveBtn').textContent = 'Update Hall';
-            document.getElementById('addForm').style.display = 'none';
-            document.getElementById('editForm').style.display = 'block';
-            document.getElementById('deleteConfirm').style.display = 'none';
-            document.getElementById('eHallName').value = hall.hallName;
-            document.getElementById('eHallType').value = hall.hallType === 'TwoD' ? 0 : hall.hallType === 'ThreeD' ? 1 : hall.hallType === 'IMAX' ? 2 : hall.hallType;
-            document.getElementById('eIsActive').value = hall.isActive.toString();
-            document.getElementById('editStandard').textContent = hall.standardSeats;
-            document.getElementById('editPremium').textContent = hall.premiumSeats;
-            document.getElementById('editVIP').textContent = hall.vipSeats;
-            document.getElementById('editTotal').textContent = hall.totalSeats;
-            document.getElementById('formError').style.display = 'none';
-            document.getElementById('formSuccess').style.display = 'none';
-            document.getElementById('slidePanel').classList.add('open');
-            document.getElementById('overlay').classList.add('show');
-        }
-
-        function closePanel() {
-            document.getElementById('slidePanel').classList.remove('open');
-            document.getElementById('overlay').classList.remove('show');
-            document.querySelectorAll('.hall-card').forEach(c => c.classList.remove('selected'));
-            editingId = null; isEditMode = false;
-        }
-
-        function toggleDelete() {
-            const box = document.getElementById('deleteConfirm');
-            box.style.display = box.style.display === 'none' ? 'block' : 'none';
-        }
-
-        // ── Save Hall ─────────────────────────────────────────
-        async function saveHall() {
-            if (isEditMode) { await updateHall(); return; }
-
-            const hallName = document.getElementById('fHallName').value.trim();
-            const hallType = parseInt(document.getElementById('fHallType').value);
-            const rows = parseInt(document.getElementById('fRows').value);
-            const seatsPerRow = parseInt(document.getElementById('fSeats').value);
-
-            if (!hallName) { showError('Hall name is required'); return; }
-            if (!rows || !seatsPerRow) { showError('Set rows and seats per row first'); return; }
-
-            const seats = buildSeatData();
-            if (!seats.length) { showError('Please paint at least one seat in the designer'); return; }
-
-            // Build request using new custom seat layout
-            // We'll send rows/seatsPerRow/standardRows/premiumRows as derived from seatMap
-            // Count rows by type
-            let standardRows = 0, premiumRows = 0;
-            let prevType = null;
-            for (let r = 0; r < rows; r++) {
-                const rowTypes = seatMap[r]?.filter(s => s !== 'empty') || [];
-                const dominant = rowTypes.length ? rowTypes[0] : 'empty';
-                if (dominant === 'standard') standardRows++;
-                else if (dominant === 'premium') premiumRows++;
-            }
-
-            const data = {
-                hallName,
-                hallType,
-                rows,
-                seatsPerRow,
-                standardRows,
-                premiumRows,
-                customSeats: seats  // pass custom layout
-            };
-
-            await submitHall('POST', '/api/halls', data);
-        }
-
-        async function updateHall() {
-            const data = {
-                hallName: document.getElementById('eHallName').value.trim(),
-                hallType: parseInt(document.getElementById('eHallType').value),
-                isActive: document.getElementById('eIsActive').value === 'true'
-            };
-            if (!data.hallName) { showError('Hall name is required'); return; }
-            await submitHall('PUT', `/api/halls/${editingId}`, data);
-        }
-
-        async function submitHall(method, url, data) {
-            const btn = document.getElementById('saveBtn');
-            btn.disabled = true; btn.textContent = 'Saving...';
-            document.getElementById('formError').style.display = 'none';
-            try {
-                const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(data) });
-                const result = await res.json();
-                if (result.success) {
-                    document.getElementById('formSuccess').textContent = isEditMode ? 'Hall updated!' : `Hall created with ${data.customSeats?.length || 0} seats!`;
-                    document.getElementById('formSuccess').style.display = 'block';
-                    await loadHalls();
-                    setTimeout(closePanel, 1200);
-                } else {
-                    showError(result.message || 'Failed');
-                }
-            } catch { showError('Something went wrong'); }
-            finally { btn.disabled = false; btn.textContent = isEditMode ? 'Update Hall' : 'Create Hall'; }
-        }
-
-        async function deleteHall() {
-            if (!editingId) return;
-            try {
-                const res = await fetch(`/api/halls/${editingId}`, { method: 'DELETE', headers: authHeaders() });
-                const result = await res.json();
-                if (result.success) { await loadHalls(); closePanel(); }
-                else alert(result.message);
-            } catch { alert('Failed to delete'); }
-        }
-
-        function showError(msg) {
-            const el = document.getElementById('formError');
-            el.textContent = msg; el.style.display = 'block';
-        }
-
-        function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
-
-        loadHalls();
-    </script>
+loadHalls();
+</script>
 </body>
 </html>

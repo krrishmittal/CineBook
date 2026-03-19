@@ -376,7 +376,7 @@
         }
 
         function goToSeats(showtimeId) {
-            if (!token) { window.location.href = '/Auth/Login'; return; }
+            if (!token) { window.location.href = '/Auth/Login'; return; }   
             window.location.href = `/Booking/Seats?showtimeId=${showtimeId}&movieId=${movieId}`;
         }
 
