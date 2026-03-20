@@ -120,6 +120,33 @@
 </div>
 
 <script>
+(function() {
+    const user = localStorage.getItem('user');
+    const token = localStorage.getItem('token');
+    
+    if (user && token) {
+        try {
+            const userData = JSON.parse(user);
+            const role = userData.role;
+            
+            if (role === 'Admin') {
+                window.location.href = '/Admin/Movies';
+                return;
+            } else if (role === 'CinemaManager') {
+                window.location.href = '/Manager/Cinema';
+                return;
+            } else {
+                window.location.href = '/';
+                return;
+            }
+        } catch (e) {
+            console.error('Failed to parse user data:', e);
+            localStorage.removeItem('user');
+            localStorage.removeItem('token');
+        }
+    }
+})();
+
 // ── Toast System ─────────────────────────────────────────
 function showToast(message, type = 'info', duration = 4000) {
     const icons = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };

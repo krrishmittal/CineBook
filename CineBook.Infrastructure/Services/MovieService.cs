@@ -23,6 +23,14 @@ namespace CineBook.Infrastructure.Services
         // ── Create ────────────────────────────────────────────
         public async Task<ApiResponse<MovieResponse>> CreateAsync(CreateMovieRequest request)
         {
+            var exists = await _context.Movies.AnyAsync(m => m.Title == request.Title);
+            if (exists)
+            {
+                _logger.LogError("Movie with title '{Title}' already exists", request.Title);
+                return ApiResponse<MovieResponse>.Fail(
+                    "A movie with this title already exists", 400, "Movie");
+            }
+
             var movie = new Movie
             {
                 Id = Guid.NewGuid(),
@@ -52,8 +60,7 @@ namespace CineBook.Infrastructure.Services
         }
 
         // ── Get All ───────────────────────────────────────────
-        public async Task<ApiResponse<List<MovieResponse>>> GetAllAsync(
-            string? search, string? genre, string? status)
+        public async Task<ApiResponse<List<MovieResponse>>> GetAllAsync(string? search, string? genre, string? status)
         {
             var query = _context.Movies.Where(m => !m.IsDeleted).AsQueryable();
 
@@ -71,7 +78,7 @@ namespace CineBook.Infrastructure.Services
                 query = query.Where(m => m.Status == movieStatus);
 
             var movies = await query
-                .OrderByDescending(m => m.CreatedAt)
+                .OrderBy(m => m.Title)
                 .ToListAsync();
 
             _logger.LogInformation("Retrieved {Count} movies with filters - Search: '{Search}', Genre: '{Genre}', Status: '{Status}'",

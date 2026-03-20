@@ -39,7 +39,7 @@ namespace CineBook.Infrastructure.Services
             {
                 _logger.LogWarning("GetSeatLayoutAsync failed: Showtime {ShowtimeId} not found or inactive", showtimeId);
                 return ApiResponse<SeatLayoutResponse>.Fail(
-                    "Showtime not found", 404, "Showtime");
+                    "Showtime not found", 404, "GetSeatLayoutAsync");
             }
 
             // Release expired locks (older than 10 minutes)

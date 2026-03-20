@@ -43,17 +43,17 @@ namespace CineBook.Infrastructure.Services
 
             if (request.Password != request.ConfirmPassword)
                 return ApiResponse<AuthResponse>.Fail(
-                    "Passwords do not match", 400, "ConfirmPassword");
+                    "Passwords do not match", 400, "RegisterAsync");
 
             if (await _userManager.FindByNameAsync(request.UserName) != null)
                 return ApiResponse<AuthResponse>.Fail(
-                    "Username already taken", 409, "UserName");
+                    "Username already taken", 409, "RegisterAsync");
 
             var phoneExists = await _userManager.Users
                 .AnyAsync(u => u.PhoneNumber == request.PhoneNumber);
             if (phoneExists)
                 return ApiResponse<AuthResponse>.Fail(
-                    "Phone number already registered", 409, "PhoneNumber");
+                    "Phone number already registered", 409, "RegisterAsync");
 
             var user = new ApplicationUser
             {
@@ -70,7 +70,7 @@ namespace CineBook.Infrastructure.Services
                 var error = result.Errors.First();
                 _logger.LogError("Registration failed for {UserName}: {Error}",
                     request.UserName, error.Description);
-                return ApiResponse<AuthResponse>.Fail(error.Description, 400, "Identity");
+                return ApiResponse<AuthResponse>.Fail(error.Description, 400, "RegisterAsync");
             }
 
             await _userManager.AddToRoleAsync(user, role);
@@ -118,7 +118,7 @@ namespace CineBook.Infrastructure.Services
 
             if (user == null)
                 return ApiResponse<AuthResponse>.Fail(
-                    "Invalid credentials", 401, "UserNameOrPhone");
+                    "Invalid credentials", 401, "LoginAsync");
 
             if (!user.IsActive)
                 return ApiResponse<AuthResponse>.Fail(
@@ -130,7 +130,7 @@ namespace CineBook.Infrastructure.Services
             {
                 _logger.LogWarning("Invalid password for {UserName}", user.UserName);
                 return ApiResponse<AuthResponse>.Fail(
-                    "Invalid credentials", 401, "Password");
+                    "Invalid credentials", 401, "LoginAsync");
             }
 
             var role = (await _userManager.GetRolesAsync(user)).FirstOrDefault() ?? "User";
@@ -177,7 +177,7 @@ namespace CineBook.Infrastructure.Services
 
             if (user == null)
                 return ApiResponse<string>.Fail(
-                    "No account found with this phone number", 404, "PhoneNumber");
+                    "No account found with this phone number", 404, "ForgotPasswordAsync");
 
             // Generate 6 digit OTP
             var otp = new Random().Next(100000, 999999).ToString();
@@ -197,7 +197,7 @@ namespace CineBook.Infrastructure.Services
                 _logger.LogError("Failed to send OTP SMS to {Phone}",
                     user.PhoneNumber);
                 return ApiResponse<string>.Fail(
-                    "Failed to send OTP. Please try again.", 500, "Sms");
+                    "Failed to send OTP. Please try again.", 500, "ForgotPasswordAsync");
             }
 
             _logger.LogInformation("OTP sent successfully to {Phone}",
@@ -220,27 +220,27 @@ namespace CineBook.Infrastructure.Services
 
             if (user == null)
                 return ApiResponse<string>.Fail(
-                    "No account found with this phone number", 404, "PhoneNumber");
+                    "No account found with this phone number", 404, "ResetPasswordAsync");
 
             if (user.OtpCodeHash == null || user.OtpExpiresAt == null)
                 return ApiResponse<string>.Fail(
-                    "No OTP requested", 400, "Otp");
+                    "No OTP requested", 400, "ResetPasswordAsync");
 
             if (user.OtpUsed)
                 return ApiResponse<string>.Fail(
-                    "OTP already used", 400, "Otp");
+                    "OTP already used", 400, "ResetPasswordAsync");
 
             if (DateTime.UtcNow > user.OtpExpiresAt)
                 return ApiResponse<string>.Fail(
-                    "OTP has expired", 400, "Otp");
+                    "OTP has expired", 400, "ResetPasswordAsync");
 
             if (!BCrypt.Net.BCrypt.Verify(request.Otp, user.OtpCodeHash))
                 return ApiResponse<string>.Fail(
-                    "Invalid OTP", 400, "Otp");
+                    "Invalid OTP", 400, "ResetPasswordAsync");
 
             if (request.NewPassword != request.ConfirmPassword)
                 return ApiResponse<string>.Fail(
-                    "Passwords do not match", 400, "ConfirmPassword");
+                    "Passwords do not match", 400, "ResetPasswordAsync");
 
             // Reset password via Identity
             var resetToken = await _userManager
