@@ -15,7 +15,6 @@ namespace CineBook.Infrastructure.Services
         {
             _config = config;
             _logger = logger;
-            _logger.LogInformation("📱 SmsService initialized");
         }
 
         // ── Send OTP via WhatsApp ─────────────────────────────
