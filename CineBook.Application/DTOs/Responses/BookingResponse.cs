@@ -12,6 +12,7 @@ namespace CineBook.Application.DTOs.Responses
         public string MoviePoster { get; set; }
         public string CinemaName { get; set; }
         public string HallName { get; set; }
+        public string? TicketPdfUrl { get; set; }
         public DateTime ShowtimeStart { get; set; }
         public DateTime ShowtimeEnd { get; set; }
         public List<BookedSeatInfo> Seats { get; set; }

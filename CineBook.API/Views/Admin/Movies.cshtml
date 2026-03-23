@@ -33,14 +33,38 @@
         @@keyframes toastOut { from{opacity:1;transform:translateX(0);}to{opacity:0;transform:translateX(100px);} }
         @@keyframes fadeIn   { from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);} }
         .fade-in { animation:fadeIn 0.3s ease forwards; }
-        /* Slide panel */
         .slide-panel { transform:translateX(100%); transition:transform 0.35s cubic-bezier(0.4,0,0.2,1); }
         .slide-panel.open { transform:translateX(0); }
-        /* Mobile sidebar */
         .sidebar-overlay { display:none; position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:80; }
         .sidebar-overlay.show { display:block; }
         @@keyframes spin { to{transform:rotate(360deg);} }
         .spinner { width:16px;height:16px;border:2px solid rgba(255,255,255,0.3);border-top-color:white;border-radius:50%;animation:spin 0.7s linear infinite;display:inline-block;vertical-align:middle; }
+
+        /* ── Upload button ── */
+        .upload-btn {
+            display:inline-flex; align-items:center; gap:6px;
+            background:#1e1e1e; border:1px solid #2a2a2a; border-radius:8px;
+            padding:10px 14px; cursor:pointer; font-size:13px; color:#888;
+            white-space:nowrap; transition:all 0.2s; flex-shrink:0;
+            font-family:'DM Sans',sans-serif;
+        }
+        .upload-btn:hover { border-color:#E50914; color:white; }
+
+        /* ── Poster preview ── */
+        .poster-preview {
+            width:70px; height:100px; border-radius:8px;
+            object-fit:cover; border:1px solid #2a2a2a;
+            display:none;
+        }
+        .upload-progress {
+            height:3px; background:#2a2a2a; border-radius:2px;
+            margin-top:6px; overflow:hidden; display:none;
+        }
+        .upload-progress-bar {
+            height:100%; background:#E50914; border-radius:2px;
+            width:0%; transition:width 0.3s; animation:uploadPulse 1s ease infinite;
+        }
+        @@keyframes uploadPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
     </style>
 </head>
 <body class="bg-[#0a0a0a] text-white min-h-screen">
@@ -49,7 +73,6 @@
 
 <!-- Navbar -->
 <nav class="fixed top-0 left-0 right-0 h-14 bg-[#0a0a0a]/95 border-b border-[#2a2a2a] flex items-center px-4 sm:px-6 gap-4 z-50 backdrop-blur-sm">
-    <!-- Mobile hamburger -->
     <button id="sidebarToggle" onclick="toggleSidebar()" class="sm:hidden text-[#888] text-xl p-1">☰</button>
     <span class="brand text-2xl text-[#E50914]">CINEBOOK</span>
     <span class="hidden sm:block text-xs text-[#2a2a2a]">|</span>
@@ -59,7 +82,6 @@
     <button onclick="logout()" class="text-sm text-[#888] border border-[#2a2a2a] rounded-md px-3 py-1.5 hover:border-[#555] hover:text-white transition-all">Sign Out</button>
 </nav>
 
-<!-- Mobile Sidebar Overlay -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 
 <!-- Sidebar -->
@@ -74,9 +96,8 @@
 
 <!-- Main -->
 <div class="sm:ml-56 pt-14 flex min-h-screen">
-    <div class="flex-1 p-4 sm:p-6 overflow-y-auto max-h-[calc(100vh-56px]">
+    <div class="flex-1 p-4 sm:p-6 overflow-y-auto max-h-[calc(100vh-56px)]">
 
-        <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
             <div>
                 <h1 class="text-xl font-bold">Movie Management</h1>
@@ -190,13 +211,41 @@
                 <label class="block text-xs font-medium text-[#999] mb-1.5">Release Date *</label>
                 <input class="cinput" type="date" id="fReleaseDate" />
             </div>
+
+            <!-- ── Poster URL + Upload ── -->
             <div class="sm:col-span-2">
-                <label class="block text-xs font-medium text-[#999] mb-1.5">Poster URL *</label>
-                <input class="cinput" type="url" id="fPosterUrl" placeholder="https://..." />
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Movie Poster *</label>
+                <div class="flex gap-2 items-center">
+                    <input class="cinput" type="url" id="fPosterUrl" placeholder="https://... or upload below"
+                           oninput="onPosterUrlInput()" />
+                    <label for="posterFileInput" class="upload-btn" title="Upload image to Cloudinary">
+                        <span id="uploadBtnIcon">📁</span>
+                        <span id="uploadBtnText">Upload</span>
+                    </label>
+                    <input type="file" id="posterFileInput" accept="image/jpeg,image/png,image/webp"
+                           style="display:none;" onchange="uploadPoster()" />
+                </div>
+                <!-- Progress bar -->
+                <div class="upload-progress" id="uploadProgress">
+                    <div class="upload-progress-bar" id="uploadProgressBar"></div>
+                </div>
+                <!-- Preview -->
+                <div class="flex items-center gap-3 mt-3" id="posterPreviewWrap" style="display:none!important;">
+                    <img id="posterPreviewImg" class="poster-preview" src="" alt="Poster preview" style="display:block;" />
+                    <div>
+                        <div class="text-xs text-green-400 font-semibold">✅ Uploaded to Cloudinary</div>
+                        <div class="text-xs text-[#555] mt-0.5" id="posterPreviewName"></div>
+                        <button onclick="clearPoster()" class="text-xs text-[#f87171] hover:text-red-400 mt-1 transition-colors">✕ Remove</button>
+                    </div>
+                </div>
+                <div class="text-xs text-[#555] mt-1.5">Upload JPG/PNG/WEBP (max 5MB) or paste a URL directly</div>
             </div>
+
+            <!-- ── Trailer URL ── -->
             <div class="sm:col-span-2">
-                <label class="block text-xs font-medium text-[#999] mb-1.5">Trailer URL</label>
-                <input class="cinput" type="url" id="fTrailerUrl" placeholder="https://youtube.com/..." />
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Trailer URL <span class="text-[#555]">(optional)</span></label>
+                <input class="cinput" type="url" id="fTrailerUrl" placeholder="https://youtube.com/watch?v=..." />
+                <div class="text-xs text-[#555] mt-1.5">Paste a YouTube link</div>
             </div>
         </div>
 
@@ -248,15 +297,107 @@ const statusColors = { 'NowShowing':'text-green-400 bg-green-400/10 border-green
 
 function authHeaders() { return { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` }; }
 
+// ── Upload Poster ─────────────────────────────────────
+async function uploadPoster() {
+    const input = document.getElementById('posterFileInput');
+    const file = input.files[0];
+    if (!file) return;
+
+    // Validate size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+        showToast('File too large. Max 5MB.', 'error');
+        input.value = '';
+        return;
+    }
+
+    // Show local preview immediately
+    const reader = new FileReader();
+    reader.onload = e => {
+        document.getElementById('posterPreviewImg').src = e.target.result;
+        document.getElementById('posterPreviewWrap').style.display = 'flex';
+        document.getElementById('posterPreviewName').textContent = file.name;
+    };
+    reader.readAsDataURL(file);
+
+    // Show progress bar
+    const progress = document.getElementById('uploadProgress');
+    const progressBar = document.getElementById('uploadProgressBar');
+    progress.style.display = 'block';
+    progressBar.style.width = '30%';
+
+    // Update button state
+    document.getElementById('uploadBtnIcon').textContent = '⏳';
+    document.getElementById('uploadBtnText').textContent = 'Uploading...';
+
+    try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        progressBar.style.width = '60%';
+
+        const res = await fetch('/api/images/upload', {
+            method: 'POST',
+            headers: { 'Authorization': `Bearer ${token}` },
+            // ← NO Content-Type here! Browser sets multipart boundary automatically
+            body: formData
+        });
+
+        const data = await res.json();
+        progressBar.style.width = '100%';
+
+        if (data.success) {
+            // Auto-fill URL field with Cloudinary URL
+            document.getElementById('fPosterUrl').value = data.url;
+            document.getElementById('posterPreviewImg').src = data.url;
+            showToast('✅ Poster uploaded successfully!', 'success');
+        } else {
+            showToast(data.message || 'Upload failed', 'error');
+            clearPoster();
+        }
+    } catch {
+        showToast('Upload failed. Check your connection.', 'error');
+        clearPoster();
+    } finally {
+        setTimeout(() => { progress.style.display = 'none'; progressBar.style.width = '0%'; }, 800);
+        document.getElementById('uploadBtnIcon').textContent = '📁';
+        document.getElementById('uploadBtnText').textContent = 'Upload';
+        input.value = '';
+    }
+}
+
+// Show preview if URL is pasted manually
+function onPosterUrlInput() {
+    const url = document.getElementById('fPosterUrl').value.trim();
+    if (url.startsWith('http')) {
+        document.getElementById('posterPreviewImg').src = url;
+        document.getElementById('posterPreviewImg').onerror = () => {
+            document.getElementById('posterPreviewWrap').style.display = 'none';
+        };
+        document.getElementById('posterPreviewImg').onload = () => {
+            document.getElementById('posterPreviewWrap').style.display = 'flex';
+            document.getElementById('posterPreviewName').textContent = 'From URL';
+        };
+    } else if (!url) {
+        document.getElementById('posterPreviewWrap').style.display = 'none';
+    }
+}
+
+function clearPoster() {
+    document.getElementById('fPosterUrl').value = '';
+    document.getElementById('posterPreviewImg').src = '';
+    document.getElementById('posterPreviewWrap').style.display = 'none';
+    document.getElementById('posterFileInput').value = '';
+}
+
+// ── Movies ────────────────────────────────────────────
 async function loadMovies() {
     try {
         const res = await fetch('/api/movies', { headers: authHeaders() });
         const data = await res.json();
-         if (data.success) {
-            // Convert numeric status to string
+        if (data.success) {
             allMovies = data.data.map(m => ({
                 ...m,
-                status: statusReverseMap[m.status] || m.status  // Convert 0→ComingSoon, 1→NowShowing, 2→Archived
+                status: statusReverseMap[m.status] || m.status
             }));
             updateStats();
             renderMovies(allMovies);
@@ -289,7 +430,7 @@ function renderMovies(movies) {
         const s = m.status; const clr = statusColors[s] || statusColors.Archived;
         return `<div class="fade-in bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 mb-3 flex gap-4 cursor-pointer hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-all" onclick="selectMovie('${m.id}')" id="card-${m.id}">
             <div class="w-12 h-16 rounded-lg bg-[#222] flex-shrink-0 flex items-center justify-center overflow-hidden">
-                ${m.posterUrl ? `<img src="${m.posterUrl}" class="w-full h-full object-cover rounded-lg" onerror="this.parentElement.textContent='🎬'" />` : '🎬'}
+                ${m.posterUrl ? `<img src="${m.posterUrl}" class="w-full h-full object-cover rounded-lg" onerror="this.parentElement.innerHTML='🎬'" />` : '🎬'}
             </div>
             <div class="flex-1 min-w-0">
                 <div class="flex items-start justify-between gap-2 mb-1">
@@ -342,13 +483,14 @@ function selectMovie(id) {
 }
 
 function clearForm() {
-    ['fTitle','fDescription','fLanguage','fGenre','fDirector','fCast','fPosterUrl','fTrailerUrl'].forEach(id => document.getElementById(id).value = '');
+    ['fTitle','fDescription','fLanguage','fGenre','fDirector','fCast','fTrailerUrl'].forEach(id => document.getElementById(id).value = '');
     document.getElementById('fCertificate').value = '';
     document.getElementById('fStatus').value = 'ComingSoon';
     document.getElementById('fDuration').value = '';
     document.getElementById('fReleaseDate').value = '';
     document.getElementById('formError').classList.add('hidden');
     document.getElementById('formSuccess').classList.add('hidden');
+    clearPoster();
 }
 
 function fillForm(m) {
@@ -364,6 +506,13 @@ function fillForm(m) {
     document.getElementById('fPosterUrl').value = m.posterUrl || '';
     document.getElementById('fTrailerUrl').value = m.trailerUrl || '';
     if (m.releaseDate) document.getElementById('fReleaseDate').value = new Date(m.releaseDate).toISOString().split('T')[0];
+
+    // Show poster preview in edit mode
+    if (m.posterUrl) {
+        document.getElementById('posterPreviewImg').src = m.posterUrl;
+        document.getElementById('posterPreviewWrap').style.display = 'flex';
+        document.getElementById('posterPreviewName').textContent = 'Current poster';
+    }
 }
 
 function getFormData() {
@@ -393,7 +542,7 @@ function validate(d) {
     if (!d.durationTime || d.durationTime < 1) return 'Valid duration required';
     if (!d.cast) return 'Cast is required';
     if (!d.releaseDate) return 'Release date is required';
-    if (!d.posterUrl) return 'Poster URL is required';
+    if (!d.posterUrl) return 'Poster is required — upload or paste a URL';
     return null;
 }
 
@@ -410,7 +559,7 @@ async function saveMovie() {
         const res = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(data) });
         const result = await res.json();
         if (result.success) {
-            showToast(editingId ? '✅ Movie updated successfully!' : '✅ Movie added successfully!', 'success');
+            showToast(editingId ? '✅ Movie updated!' : '✅ Movie added!', 'success');
             await loadMovies();
             setTimeout(closePanel, 800);
         } else {
@@ -432,11 +581,8 @@ async function deleteMovie() {
     try {
         const res = await fetch(`/api/movies/${editingId}`, { method:'DELETE', headers: authHeaders() });
         const result = await res.json();
-        if (result.success) {
-            showToast('🗑 Movie deleted successfully', 'info');
-            await loadMovies();
-            closePanel();
-        } else { showToast(result.message || 'Failed to delete', 'error'); }
+        if (result.success) { showToast('🗑 Movie deleted', 'info'); await loadMovies(); closePanel(); }
+        else showToast(result.message || 'Failed to delete', 'error');
     } catch { showToast('Failed to delete movie', 'error'); }
 }
 

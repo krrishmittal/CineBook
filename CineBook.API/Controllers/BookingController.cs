@@ -1,10 +1,11 @@
 ﻿using CineBook.API.Hubs;
 using CineBook.Application.DTOs.Requests;
+using CineBook.Application.DTOs.Responses;
 using CineBook.Application.Interfaces;
-using CineBook.Infrastructure.Services;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.SignalR;
+using System.Reflection.Metadata;
 using System.Security.Claims;
 
 namespace CineBook.API.Controllers
@@ -37,12 +38,18 @@ namespace CineBook.API.Controllers
     {
         private readonly IBookingService _bookingService;
         private readonly ITicketService _ticketService;
+        private readonly ILogger<BookingController> _logger;
         private readonly IHubContext<SeatHub> _seatHub;
 
-        public BookingController(IBookingService bookingService, ITicketService ticketService, IHubContext<SeatHub>seatHub)
+        public BookingController(
+            IBookingService bookingService,
+            ITicketService ticketService,
+            ILogger<BookingController> logger,
+            IHubContext<SeatHub>seatHub)
         {
             _bookingService = bookingService;
             _ticketService = ticketService;
+            _logger = logger;
             _seatHub = seatHub;
         }
 
@@ -54,6 +61,15 @@ namespace CineBook.API.Controllers
         public async Task<IActionResult> GetSeatLayout(Guid showtimeId)
         {
             var result = await _bookingService.GetSeatLayoutAsync(showtimeId, GetUserId());
+            if (!result.Success) return NotFound(result);
+            return Ok(result);
+        }
+
+        // GET api/bookings/{id}
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetById(Guid id)
+        {
+            var result = await _bookingService.GetBookingByIdAsync(id, GetUserId());
             if (!result.Success) return NotFound(result);
             return Ok(result);
         }
@@ -140,17 +156,46 @@ namespace CineBook.API.Controllers
         [HttpGet("{id}/ticket")]
         public async Task<IActionResult> DownloadTicket(Guid id)
         {
+            var userId = GetUserId();
+
             try
             {
-                var pdfBytes = await _ticketService.GenerateTicketPdfAsync(id, GetUserId());
-                return File(pdfBytes, "application/pdf", $"CineBook_Ticket_{id}.pdf");
+                // Verify booking belongs to user
+                var bookingResult = await _bookingService.GetBookingByIdAsync(id, userId);
+                if (!bookingResult.Success)
+                {
+                    _logger.LogWarning("Booking {BookingId} not found for user {UserId}", id, userId);
+                    return NotFound(new { message = "Booking not found" });
+                }
+
+                // Generate PDF
+                _logger.LogInformation("📥 Generating PDF for download - Booking {BookingId}", id);
+                var pdfBytes = await _ticketService.GenerateTicketPdfAsync(id, userId);
+
+                if (pdfBytes == null || pdfBytes.Length == 0)
+                {
+                    _logger.LogWarning("PDF generation returned empty for Booking {BookingId}", id);
+                    return BadRequest(new { message = "Failed to generate PDF" });
+                }
+
+                // Get booking reference for filename
+                var booking = bookingResult.Data;
+                var fileName = $"CineBook_Ticket_{booking.BookingReference}.pdf";
+
+                // Return PDF with download headers
+                _logger.LogInformation("✅ Serving PDF download: {FileName} ({Size} bytes)", fileName, pdfBytes.Length);
+                return File(
+                    pdfBytes,
+                    "application/pdf",
+                    fileName
+                );
             }
             catch (Exception ex)
             {
-                return BadRequest(new { success = false, message = ex.Message });
+                _logger.LogError(ex, "❌ Error downloading ticket for {BookingId}", id);
+                return StatusCode(500, new { message = "Error generating ticket" });
             }
-        }
-
+        } 
         // GET api/bookings/cinema/cancelled
         [HttpGet("cinema/cancelled")]
         [Authorize(Roles = "CinemaManager")]

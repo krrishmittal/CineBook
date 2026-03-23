@@ -14,11 +14,14 @@
         VIP = 2
     }
 
+    /// <summary>
+    /// 
+    /// </summary>
     public enum SeatStatus
     {
-        Available = 0,
-        Locket = 1,
-        Booked = 2
+        Available = 0, //
+        Locket = 1, //
+        Booked = 2 //
     }
 
     public enum MovieStatus

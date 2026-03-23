@@ -3,6 +3,7 @@ using CineBook.Domain.Entities;
 //using CineBook.Infrastructure.Jobs;
 using CineBook.Infrastructure.Persistence;
 using CineBook.Infrastructure.Services;
+using CloudinaryDotNet;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,6 +33,15 @@ namespace CineBook.Infrastructure
             .AddEntityFrameworkStores<AppDbContext>()
             .AddDefaultTokenProviders();
 
+            // Cloudinary
+            var cloudinarySection = configuration.GetSection("Cloudinary");
+            var account = new Account(
+                cloudinarySection["CloudName"],
+                cloudinarySection["ApiKey"],
+                cloudinarySection["ApiSecret"]
+            );
+            services.AddScoped(_ => new Cloudinary(account));
+
             // Services
             services.AddScoped<ISmsService, SmsService>();
             services.AddScoped<ITicketService, TicketService>();
@@ -45,6 +55,7 @@ namespace CineBook.Infrastructure
             services.AddScoped<IMovieService, MovieService>();
             services.AddScoped<IReviewService, ReviewService>();
             services.AddScoped<IFavouriteService, FavouriteService>();
+            services.AddScoped<IImageService, ImageService>();
 
             return services;
         }

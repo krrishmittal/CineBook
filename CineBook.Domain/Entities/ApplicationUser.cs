@@ -9,11 +9,17 @@ namespace CineBook.Domain.Entities
 
         // OTP fields
         public string? OtpCodeHash { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
         public DateTime? OtpExpiresAt { get; set; }
         public bool OtpUsed { get; set; } = false;
 
         // Navigation
         public ICollection<RefreshToken> RefreshTokens { get; set; }
+        /// <summary>
+        /// 
+        /// </summary>
         public ICollection<Booking> Bookings { get; set; }
         public ICollection<Review> Reviews { get; set; }
         public ICollection<UserFavourite> Favourites { get; set; }

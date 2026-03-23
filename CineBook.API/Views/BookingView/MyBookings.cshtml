@@ -179,18 +179,27 @@ function renderBookings(bookings) {
         </div>`;
     }).join('');
 }
-
 async function downloadTicket(bookingId) {
-    showToast('Generating ticket PDF...', 'info', 2000);
+    showToast('Preparing ticket...', 'info', 2000);
     try {
-        const res = await fetch(`/api/bookings/${bookingId}/ticket`, { headers:{'Authorization':`Bearer ${token}`} });
-        if (!res.ok) { showToast('Failed to generate ticket', 'error'); return; }
-        const blob = await res.blob();
+        // Always download fresh from your server — never use Cloudinary URL directly
+        const pdfRes = await fetch(`/api/bookings/${bookingId}/ticket`, {
+            headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!pdfRes.ok) { showToast('Failed to generate ticket', 'error'); return; }
+        const blob = await pdfRes.blob();
         const url = URL.createObjectURL(blob);
-        const a = document.createElement('a'); a.href=url; a.download='CineBook_Ticket.pdf'; a.click();
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `CineBook_Ticket.pdf`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
         showToast('✅ Ticket downloaded!', 'success');
-    } catch { showToast('Something went wrong', 'error'); }
+    } catch {
+        showToast('Something went wrong', 'error');
+    }
 }
 
 async function cancelBooking(id) {

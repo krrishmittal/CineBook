@@ -14,6 +14,7 @@ namespace CineBook.Domain.Entities
         public BookingStatus Status { get; set; }
         public bool SmsReminderSent { get; set; } = false;
         public DateTime BookedAt { get; set; }
+        public string? TicketPdfUrl { get; set; }
         public bool RefundProcessed { get; set; } = false;
         public DateTime? RefundedAt { get; set; }
         public string? RefundNote { get; set; }

@@ -5,6 +5,12 @@ namespace CineBook.Application.Interfaces
 {
     public interface IAuthService
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="role"></param>
+        /// <returns></returns>
         Task<ApiResponse<AuthResponse>> RegisterAsync(RegisterRequest request, string role);
         Task<ApiResponse<AuthResponse>> LoginAsync(LoginRequest request);
         Task<ApiResponse<string>> ForgotPasswordAsync(ForgotPasswordRequest request);

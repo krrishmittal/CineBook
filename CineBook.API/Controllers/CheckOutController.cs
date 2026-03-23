@@ -1,11 +1,17 @@
 ﻿using CineBook.Application.DTOs.Requests;
 using CineBook.Application.Interfaces;
+using CineBook.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using Stripe;
 using Stripe.Checkout;
+using Stripe.V2;
+using System.Net.Sockets;
 using System.Security.Claims;
+using Twilio.Types;
+using static System.Runtime.InteropServices.JavaScript.JSType;
 
 namespace CineBook.API.Controllers
 {
@@ -28,13 +34,19 @@ namespace CineBook.API.Controllers
     {
         private readonly StripeSettings _stripeSettings;
         private readonly IBookingService _bookingService;
+        private readonly IServiceProvider _serviceProvider;
+        private readonly ILogger<CheckOutController> _logger;
 
         public CheckOutController(
             IOptions<StripeSettings> stripeSettings,
-            IBookingService bookingService)
+            IBookingService bookingService,
+            IServiceProvider serviceProvider,
+            ILogger<CheckOutController> logger)
         {
             _stripeSettings = stripeSettings.Value;
             _bookingService = bookingService;
+            _serviceProvider = serviceProvider;
+            _logger = logger;
             StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
         }
 
@@ -114,42 +126,65 @@ namespace CineBook.API.Controllers
         // POST api/checkout/confirm-payment
         // Called after Stripe redirects to success page
         [HttpPost("confirm-payment")]
-        public async Task<IActionResult> ConfirmPayment( [FromBody] ConfirmPaymentRequest request)
+        public async Task<IActionResult> ConfirmPayment(
+            [FromBody] ConfirmPaymentRequest request)
         {
             try
             {
                 StripeConfiguration.ApiKey = _stripeSettings.SecretKey;
 
-                // Verify session with Stripe
                 var service = new SessionService();
                 var session = await service.GetAsync(request.SessionId);
 
                 if (session.PaymentStatus != "paid")
                     return BadRequest(new { success = false, message = "Payment not completed" });
 
-                // ── Save Payment to DB ────────────────────────────
+                // Save payment to DB
                 var paymentResult = await _bookingService.SavePaymentAsync(
                     request.BookingId,
                     session.PaymentIntentId,
-                    session.AmountTotal.HasValue
-                        ? session.AmountTotal.Value / 100m
-                        : 0m);
+                    session.AmountTotal.HasValue ? session.AmountTotal.Value / 100m : 0m);
 
                 if (!paymentResult.Success)
                     return BadRequest(paymentResult);
 
-                // ── Confirm Booking ───────────────────────────────
+                // Confirm booking
                 var result = await _bookingService.ConfirmBookingAsync(
-                    GetUserId(),new ConfirmBookingRequest { BookingId = request.BookingId });
+                    GetUserId(),
+                    new ConfirmBookingRequest { BookingId = request.BookingId });
 
                 if (!result.Success)
                     return BadRequest(result);
+
+                // ── Send WhatsApp confirmation ────────────────────
+                // Fire and forget with proper error handling
+                _ = SendBookingConfirmationBackgroundAsync(request.BookingId);
 
                 return Ok(result);
             }
             catch (StripeException ex)
             {
                 return BadRequest(new { success = false, message = ex.Message });
+            }
+        }
+
+        private async Task SendBookingConfirmationBackgroundAsync(Guid bookingId)
+        {
+            try
+            {
+                _logger.LogInformation("Starting background WhatsApp send for booking {BookingId}", bookingId);
+                
+                using (var scope = _serviceProvider.CreateScope())
+                {
+                    var bookingService = scope.ServiceProvider.GetRequiredService<IBookingService>();
+                    await bookingService.SendBookingConfirmationAsync(bookingId);
+                }
+
+                _logger.LogInformation("WhatsApp confirmation sent successfully for booking {BookingId}", bookingId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error sending WhatsApp confirmation for booking {BookingId}", bookingId);
             }
         }
     }

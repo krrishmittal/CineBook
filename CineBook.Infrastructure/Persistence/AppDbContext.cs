@@ -8,6 +8,10 @@ namespace CineBook.Infrastructure.Persistence
 {
     public class AppDbContext:IdentityDbContext<ApplicationUser>
     {
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="options"></param>
         public AppDbContext(DbContextOptions<AppDbContext> options) :base(options){ }
         public DbSet<RefreshToken> RefreshTokens { get; set; }
         public DbSet<Cinema> Cinemas { get; set; }
@@ -33,6 +37,7 @@ namespace CineBook.Infrastructure.Persistence
                     .HasMaxLength(100);
             });
 
+           
             // ── RefreshToken ─────────────────────────────────
             builder.Entity<RefreshToken>(entity =>
             {
