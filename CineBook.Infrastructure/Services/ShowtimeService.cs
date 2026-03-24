@@ -36,7 +36,6 @@ namespace CineBook.Infrastructure.Services
                     "No approved cinema found", 400, "Cinema");
             }
 
-            // Verify hall belongs to this cinema
             var hall = await _context.Halls
                 .Include(h => h.Seats)
                 .FirstOrDefaultAsync(h => h.Id == request.HallId
@@ -49,7 +48,6 @@ namespace CineBook.Infrastructure.Services
                     "Hall not found or inactive", 404, "Hall");
             }
 
-            // Verify movie exists and is active
             var movie = await _context.Movies
                 .FirstOrDefaultAsync(m => m.Id == request.MovieId && !m.IsDeleted);
 
@@ -60,10 +58,8 @@ namespace CineBook.Infrastructure.Services
                     "Movie not found", 404, "Movie");
             }
 
-            // Calculate end time from movie duration
             var endTime = request.StartTime.AddMinutes(movie.DurationTime);
 
-            // Check hall conflict — no overlapping showtimes
             var conflict = await _context.Showtimes
                 .AnyAsync(s => s.HallId == request.HallId
                     && s.IsActive
@@ -94,7 +90,6 @@ namespace CineBook.Infrastructure.Services
 
             await _context.Showtimes.AddAsync(showtime);
 
-            // Auto-generate ShowtimeSeats from hall seats
             var showtimeSeats = hall.Seats
                 .Where(s => s.IsActive)
                 .Select(seat => new ShowtimeSeat
@@ -108,7 +103,7 @@ namespace CineBook.Infrastructure.Services
             await _context.ShowtimeSeats.AddRangeAsync(showtimeSeats);
             await _context.SaveChangesAsync();
 
-            _logger.LogInformation("Showtime {ShowtimeId} created successfully for movie '{MovieTitle}' at {Time} in Hall {HallId}",
+            _logger.LogInformation("Showtime {ShowtimeId} created for movie '{MovieTitle}' at {Time} in Hall {HallId}",
                 showtime.Id, movie.Title, showtime.StartTime, hall.Id);
 
             showtime.Movie = movie;
@@ -120,48 +115,66 @@ namespace CineBook.Infrastructure.Services
                 "Showtime created successfully");
         }
 
-        // ── Get My Showtimes ──────────────────────────────────
-        public async Task<ApiResponse<List<ShowtimeResponse>>> GetMyShowtimesAsync(
-            string managerId, string? date)
+        // ── Get My Showtimes (Paged) ──────────────────────────
+        public async Task<ApiResponse<PagedResponse<ShowtimeResponse>>> GetMyShowtimesPagedAsync(
+            string managerId, string? date, int page, int pageSize)
         {
+            // Clamp to safe values
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
             var cinema = await _context.Cinemas
                 .FirstOrDefaultAsync(c => c.ManagerUserId == managerId
                     && c.ApprovalStatus == ApprovalStatus.Approved);
 
             if (cinema == null)
             {
-                _logger.LogWarning("GetMyShowtimes failed: No approved cinema found for manager {ManagerId}", managerId);
-                return ApiResponse<List<ShowtimeResponse>>.Fail(
+                _logger.LogWarning("GetMyShowtimesPaged failed: No approved cinema for manager {ManagerId}", managerId);
+                return ApiResponse<PagedResponse<ShowtimeResponse>>.Fail(
                     "No approved cinema found", 404, "Cinema");
             }
 
             var query = _context.Showtimes
                 .Include(s => s.Movie)
                 .Include(s => s.Hall)
+                .Include(s => s.Cinema)
                 .Include(s => s.ShowtimeSeats)
                 .Where(s => s.CinemaId == cinema.Id)
                 .AsQueryable();
 
-            if (!string.IsNullOrEmpty(date) &&
-                DateTime.TryParse(date, out var filterDate))
-            {
+            // Optional date filter
+            if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out var filterDate))
                 query = query.Where(s => s.StartTime.Date == filterDate.Date);
-            }
+
+            query = query.OrderBy(s => s.StartTime);
+
+            // Count before paging
+            var totalCount = await query.CountAsync();
 
             var showtimes = await query
-                .Include(s => s.Movie)
-                .Include(s => s.Hall)
-                .Include(s => s.Cinema)
-                .Include(s => s.ShowtimeSeats)
-                .OrderBy(s => s.StartTime)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
                 .ToListAsync();
 
-            _logger.LogInformation("Retrieved {Count} showtimes for cinema {CinemaId} on date {Date}", showtimes.Count, cinema.Id, date ?? "All");
+            _logger.LogInformation(
+                "Paged showtime query — Cinema: {CinemaId}, Page: {Page}/{TotalPages}, PageSize: {PageSize}, Total: {Total}, Date: '{Date}'",
+                cinema.Id, page,
+                (int)Math.Ceiling(totalCount / (double)pageSize),
+                pageSize, totalCount, date ?? "All");
 
-            return ApiResponse<List<ShowtimeResponse>>.Ok(
-                showtimes.Select(s => MapToResponse(s,
-                    s.ShowtimeSeats.Count(ss => ss.Status == SeatStatus.Available)
-                )).ToList(), "Showtimes fetched");
+            var items = showtimes.Select(s =>
+                MapToResponse(s, s.ShowtimeSeats.Count(ss => ss.Status == SeatStatus.Available))
+            ).ToList();
+
+            var result = new PagedResponse<ShowtimeResponse>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return ApiResponse<PagedResponse<ShowtimeResponse>>.Ok(result, "Showtimes fetched");
         }
 
         // ── Update Showtime ───────────────────────────────────
@@ -191,22 +204,18 @@ namespace CineBook.Infrastructure.Services
                     "Showtime not found", 404, "Showtime");
             }
 
-            // Check if any seats are booked
             var hasBookings = await _context.Bookings
-                .AnyAsync(b => b.ShowtimeId == id &&
-                    b.Status != BookingStatus.Cancelled);
+                .AnyAsync(b => b.ShowtimeId == id && b.Status != BookingStatus.Cancelled);
 
-            // VULNERABILITY FIX: Prevent altering times & prices of an actively booked showtime
             if (hasBookings)
             {
-                _logger.LogWarning("UpdateShowtime failed: Attempted to modifying showtime {ShowtimeId} which already has active bookings.", id);
+                _logger.LogWarning("UpdateShowtime failed: Showtime {ShowtimeId} has active bookings", id);
                 return ApiResponse<ShowtimeResponse>.Fail(
                     "Cannot modify this showtime because it has active bookings. Please cancel the bookings first to process refunds.", 400, "Bookings");
             }
 
             showtime.StartTime = TimeZoneHelper.ConvertToUTC(request.StartTime);
-            showtime.EndTime = TimeZoneHelper.ConvertToUTC(request.StartTime)
-                .AddMinutes(showtime.Movie.DurationTime);
+            showtime.EndTime = TimeZoneHelper.ConvertToUTC(request.StartTime).AddMinutes(showtime.Movie.DurationTime);
             showtime.PriceStandard = request.PriceStandard;
             showtime.PricePremium = request.PricePremium;
             showtime.PriceVIP = request.PriceVIP;
@@ -238,7 +247,6 @@ namespace CineBook.Infrastructure.Services
             if (showtime == null)
                 return ApiResponse<string>.Fail("Showtime not found", 404, "Showtime");
 
-            // Check active bookings
             var hasActiveBookings = await _context.Bookings
                 .AnyAsync(b => b.ShowtimeId == id &&
                     (b.Status == BookingStatus.Confirmed || b.Status == BookingStatus.Pending));
@@ -247,7 +255,6 @@ namespace CineBook.Infrastructure.Services
                 return ApiResponse<string>.Fail(
                     "Cannot delete showtime with active bookings. Cancel bookings first.", 400, "Bookings");
 
-            // Step 1 — Delete BookingSeats for all bookings of this showtime
             var bookingIds = await _context.Bookings
                 .Where(b => b.ShowtimeId == id)
                 .Select(b => b.Id)
@@ -260,20 +267,18 @@ namespace CineBook.Infrastructure.Services
                     .ToListAsync();
                 _context.BookingSeats.RemoveRange(bookingSeats);
 
-                // Step 2 — Delete Bookings (cancelled ones)
                 var bookings = await _context.Bookings
                     .Where(b => bookingIds.Contains(b.Id))
                     .ToListAsync();
                 _context.Bookings.RemoveRange(bookings);
             }
 
-            // Step 3 — Delete ShowtimeSeats
             _context.ShowtimeSeats.RemoveRange(showtime.ShowtimeSeats);
-
-            // Step 4 — Delete Showtime
             _context.Showtimes.Remove(showtime);
 
             await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Showtime {ShowtimeId} deleted successfully", id);
 
             return ApiResponse<string>.Ok("Deleted", "Showtime deleted successfully");
         }
@@ -290,22 +295,15 @@ namespace CineBook.Infrastructure.Services
                 .Where(s => s.MovieId == movieId && s.IsActive)
                 .AsQueryable();
 
-            if (!string.IsNullOrEmpty(date) &&
-                DateTime.TryParse(date, out var filterDate))
-            {
+            if (!string.IsNullOrEmpty(date) && DateTime.TryParse(date, out var filterDate))
                 query = query.Where(s => s.StartTime.Date == filterDate.Date);
-            }
             else
-            {
-                // Default: today and future
                 query = query.Where(s => s.StartTime >= DateTime.UtcNow);
-            }
 
-            var showtimes = await query
-                .OrderBy(s => s.StartTime)
-                .ToListAsync();
+            var showtimes = await query.OrderBy(s => s.StartTime).ToListAsync();
 
-            _logger.LogInformation("Retrieved {Count} public showtimes for movie {MovieId} on date {Date}", showtimes.Count, movieId, date ?? "Future/Today");
+            _logger.LogInformation("Retrieved {Count} public showtimes for movie {MovieId} on date {Date}",
+                showtimes.Count, movieId, date ?? "Future/Today");
 
             return ApiResponse<List<ShowtimeResponse>>.Ok(
                 showtimes.Select(s => MapToResponse(s,

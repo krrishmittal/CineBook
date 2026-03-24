@@ -60,9 +60,15 @@ namespace CineBook.Infrastructure.Services
         }
 
         // ── Get All ───────────────────────────────────────────
-        public async Task<ApiResponse<List<MovieResponse>>> GetAllAsync(string? search, string? genre, string? status)
+        public async Task<ApiResponse<PagedResponse<MovieResponse>>> GetAllPagedAsync( string? search, string? genre, string? status, int page = 1, int pageSize = 18)
         {
-            var query = _context.Movies.Where(m => !m.IsDeleted).AsQueryable();
+            // Clamp inputs to safe values
+            page = Math.Max(1, page);
+            pageSize = Math.Clamp(pageSize, 1, 100);
+
+            var query = _context.Movies
+                .Where(m => !m.IsDeleted)
+                .AsQueryable();
 
             if (!string.IsNullOrEmpty(search))
                 query = query.Where(m =>
@@ -77,16 +83,34 @@ namespace CineBook.Infrastructure.Services
                 Enum.TryParse<MovieStatus>(status, out var movieStatus))
                 query = query.Where(m => m.Status == movieStatus);
 
-            var movies = await query
+            // Count BEFORE paging (same filtered query, no data fetch yet)
+            var totalCount = await query.CountAsync();
+
+            var items = await query
                 .OrderBy(m => m.Title)
+                .Skip((page - 1) * pageSize)
+                .Take(pageSize)
+                .Select(m => MapToResponse(m))
                 .ToListAsync();
 
-            _logger.LogInformation("Retrieved {Count} movies with filters - Search: '{Search}', Genre: '{Genre}', Status: '{Status}'",
-                movies.Count, search ?? "None", genre ?? "None", status ?? "None");
+            _logger.LogInformation(
+                "Paged movie query — Page: {Page}/{TotalPages}, PageSize: {PageSize}, Total: {Total}, " +
+                "Search: '{Search}', Genre: '{Genre}', Status: '{Status}'",
+                page,
+                (int)Math.Ceiling(totalCount / (double)pageSize),
+                pageSize,
+                totalCount,
+                search ?? "None", genre ?? "None", status ?? "None");
 
-            return ApiResponse<List<MovieResponse>>.Ok(
-                movies.Select(MapToResponse).ToList(),
-                "Movies fetched successfully");
+            var result = new PagedResponse<MovieResponse>
+            {
+                Items = items,
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize
+            };
+
+            return ApiResponse<PagedResponse<MovieResponse>>.Ok(result, "Movies fetched successfully");
         }
 
         // ── Get By Id ─────────────────────────────────────────
@@ -150,7 +174,6 @@ namespace CineBook.Infrastructure.Services
                     "Movie not found", 404, "Movie");
             }
 
-            // VULNERABILITY FIX: Prevent deleting a movie that has active upcoming scheduled showtimes
             var hasActiveShowtimes = await _context.Showtimes
                 .AnyAsync(s => s.MovieId == id && s.IsActive && s.StartTime > DateTime.UtcNow);
 

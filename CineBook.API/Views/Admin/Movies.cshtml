@@ -65,6 +65,12 @@
             width:0%; transition:width 0.3s; animation:uploadPulse 1s ease infinite;
         }
         @@keyframes uploadPulse { 0%,100%{opacity:1} 50%{opacity:0.5} }
+
+        /* ── Pagination ── */
+        .page-btn { min-width:36px;height:36px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid #282828;background:#111;color:#777;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;padding:0 10px; }
+        .page-btn:hover:not(:disabled) { border-color:#444;color:#fff;background:#1a1a1a; }
+        .page-btn.active { background:#E50914;border-color:#E50914;color:#fff; }
+        .page-btn:disabled { opacity:0.3;cursor:not-allowed; }
     </style>
 </head>
 <body class="bg-[#0a0a0a] text-white min-h-screen">
@@ -126,9 +132,9 @@
         <div class="flex flex-col sm:flex-row gap-3 mb-5">
             <div class="relative flex-1">
                 <span class="absolute left-3 top-1/2 -translate-y-1/2 text-[#555]">🔍</span>
-                <input class="cinput pl-9" type="text" id="searchInput" placeholder="Search movies..." oninput="filterMovies()" />
+                <input class="cinput pl-9" type="text" id="searchInput" placeholder="Search movies..." oninput="handleSearch()" />
             </div>
-            <select class="cinput sm:w-44" id="statusFilter" onchange="filterMovies()">
+            <select class="cinput sm:w-44" id="statusFilter" onchange="handleFilter()">
                 <option value="">All Status</option>
                 <option value="NowShowing">Now Showing</option>
                 <option value="ComingSoon">Coming Soon</option>
@@ -140,6 +146,9 @@
         <div id="movieList">
             <div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🎬</div><div>Loading movies...</div></div>
         </div>
+
+        <!-- ── Pagination Bar ── -->
+        <div id="paginationBar" class="flex items-center justify-center gap-2 mt-10 flex-wrap"></div>
     </div>
 </div>
 
@@ -295,6 +304,13 @@ const statusReverseMap = { 0:'ComingSoon', 1:'NowShowing', 2:'Archived' };
 const statusLabels = { 'NowShowing':'Now Showing', 'ComingSoon':'Coming Soon', 'Archived':'Archived' };
 const statusColors = { 'NowShowing':'text-green-400 bg-green-400/10 border-green-400/20', 'ComingSoon':'text-blue-400 bg-blue-400/10 border-blue-400/20', 'Archived':'text-[#888] bg-[#888]/10 border-[#888]/20' };
 
+// ── Pagination state ──
+let currentPage = 1;
+const PAGE_SIZE = 10;
+let totalPages = 1;
+let totalCount = 0;
+const activeFilters = { search: '', status: '' };
+
 function authHeaders() { return { 'Content-Type':'application/json', 'Authorization':`Bearer ${token}` }; }
 
 // ── Upload Poster ─────────────────────────────────────
@@ -303,14 +319,12 @@ async function uploadPoster() {
     const file = input.files[0];
     if (!file) return;
 
-    // Validate size (5MB)
     if (file.size > 5 * 1024 * 1024) {
         showToast('File too large. Max 5MB.', 'error');
         input.value = '';
         return;
     }
 
-    // Show local preview immediately
     const reader = new FileReader();
     reader.onload = e => {
         document.getElementById('posterPreviewImg').src = e.target.result;
@@ -319,13 +333,11 @@ async function uploadPoster() {
     };
     reader.readAsDataURL(file);
 
-    // Show progress bar
     const progress = document.getElementById('uploadProgress');
     const progressBar = document.getElementById('uploadProgressBar');
     progress.style.display = 'block';
     progressBar.style.width = '30%';
 
-    // Update button state
     document.getElementById('uploadBtnIcon').textContent = '⏳';
     document.getElementById('uploadBtnText').textContent = 'Uploading...';
 
@@ -338,7 +350,6 @@ async function uploadPoster() {
         const res = await fetch('/api/images/upload', {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` },
-            // ← NO Content-Type here! Browser sets multipart boundary automatically
             body: formData
         });
 
@@ -346,7 +357,6 @@ async function uploadPoster() {
         progressBar.style.width = '100%';
 
         if (data.success) {
-            // Auto-fill URL field with Cloudinary URL
             document.getElementById('fPosterUrl').value = data.url;
             document.getElementById('posterPreviewImg').src = data.url;
             showToast('✅ Poster uploaded successfully!', 'success');
@@ -365,7 +375,6 @@ async function uploadPoster() {
     }
 }
 
-// Show preview if URL is pasted manually
 function onPosterUrlInput() {
     const url = document.getElementById('fPosterUrl').value.trim();
     if (url.startsWith('http')) {
@@ -390,34 +399,45 @@ function clearPoster() {
 }
 
 // ── Movies ────────────────────────────────────────────
-async function loadMovies() {
+async function loadMovies(page = 1) {
+    if (page === 1) {
+        document.getElementById('movieList').innerHTML = `<div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🎬</div><div>Loading movies...</div></div>`;
+        document.getElementById('paginationBar').innerHTML = '';
+    }
+
     try {
-        const res = await fetch('/api/movies', { headers: authHeaders() });
+        const params = new URLSearchParams({ page, pageSize: PAGE_SIZE });
+        if (activeFilters.search) params.set('search', activeFilters.search);
+        if (activeFilters.status) params.set('status', activeFilters.status);
+
+        const res = await fetch(`/api/movies/paged?${params}`, { headers: authHeaders() });
         const data = await res.json();
+
         if (data.success) {
-            allMovies = data.data.map(m => ({
+            const paged = data.data;
+            currentPage = paged.page;
+            totalPages = paged.totalPages;
+            totalCount = paged.totalCount;
+            allMovies = paged.items.map(m => ({
                 ...m,
                 status: statusReverseMap[m.status] || m.status
             }));
             updateStats();
             renderMovies(allMovies);
+            renderPagination();
+        } else {
+            showToast(data.message || 'Failed to load movies', 'error');
         }
-    } catch { showToast('Failed to load movies', 'error'); }
+    } catch (err) {
+        console.error(err);
+        showToast('Failed to load movies', 'error');
+    }
 }
 
 function updateStats() {
-    document.getElementById('totalCount').textContent = allMovies.length;
+    document.getElementById('totalCount').textContent = totalCount;
     document.getElementById('showingCount').textContent = allMovies.filter(m => m.status === 'NowShowing').length;
     document.getElementById('comingCount').textContent = allMovies.filter(m => m.status === 'ComingSoon').length;
-}
-
-function filterMovies() {
-    const s = document.getElementById('searchInput').value.toLowerCase();
-    const st = document.getElementById('statusFilter').value;
-    let f = allMovies;
-    if (s) f = f.filter(m => m.title.toLowerCase().includes(s) || m.director.toLowerCase().includes(s) || m.cast.toLowerCase().includes(s));
-    if (st) f = f.filter(m => m.status === st);
-    renderMovies(f);
 }
 
 function renderMovies(movies) {
@@ -444,6 +464,59 @@ function renderMovies(movies) {
     }).join('');
 }
 
+// ── Pagination ────────────────────────────────────────
+function renderPagination() {
+    const bar = document.getElementById('paginationBar');
+    if (totalPages <= 1) { bar.innerHTML = ''; return; }
+
+    const pages = [];
+    if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+        pages.push(1);
+        if (currentPage > 3) pages.push('…');
+        for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+        if (currentPage < totalPages - 2) pages.push('…');
+        pages.push(totalPages);
+    }
+
+    bar.innerHTML = `
+        <button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>
+            ← Prev
+        </button>
+        ${pages.map(p => p === '…'
+            ? `<span class="page-btn" style="cursor:default;color:#444;border-color:#1a1a1a">…</span>`
+            : `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`
+        ).join('')}
+        <button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>
+            Next →
+        </button>`;
+}
+
+function goToPage(page) {
+    if (page < 1 || page > totalPages || page === currentPage) return;
+    currentPage = page;
+    loadMovies(page);
+}
+
+// ── Search & Filter ───────────────────────────────────
+let searchTimeout = null;
+function handleSearch() {
+    clearTimeout(searchTimeout);
+    searchTimeout = setTimeout(() => {
+        activeFilters.search = document.getElementById('searchInput').value.trim();
+        currentPage = 1;
+        loadMovies(1);
+    }, 400);
+}
+
+function handleFilter() {
+    activeFilters.status = document.getElementById('statusFilter').value;
+    currentPage = 1;
+    loadMovies(1);
+}
+
+// ── Form Management ───────────────────────────────────
 function openPanel(movie = null) {
     clearForm(); editingId = null;
     if (movie) {
@@ -507,7 +580,6 @@ function fillForm(m) {
     document.getElementById('fTrailerUrl').value = m.trailerUrl || '';
     if (m.releaseDate) document.getElementById('fReleaseDate').value = new Date(m.releaseDate).toISOString().split('T')[0];
 
-    // Show poster preview in edit mode
     if (m.posterUrl) {
         document.getElementById('posterPreviewImg').src = m.posterUrl;
         document.getElementById('posterPreviewWrap').style.display = 'flex';
@@ -560,7 +632,7 @@ async function saveMovie() {
         const result = await res.json();
         if (result.success) {
             showToast(editingId ? '✅ Movie updated!' : '✅ Movie added!', 'success');
-            await loadMovies();
+            await loadMovies(1);
             setTimeout(closePanel, 800);
         } else {
             showError(result.message || 'API Error');
@@ -581,7 +653,7 @@ async function deleteMovie() {
     try {
         const res = await fetch(`/api/movies/${editingId}`, { method:'DELETE', headers: authHeaders() });
         const result = await res.json();
-        if (result.success) { showToast('🗑 Movie deleted', 'info'); await loadMovies(); closePanel(); }
+        if (result.success) { showToast('🗑 Movie deleted', 'info'); await loadMovies(1); closePanel(); }
         else showToast(result.message || 'Failed to delete', 'error');
     } catch { showToast('Failed to delete movie', 'error'); }
 }
@@ -592,7 +664,7 @@ function showError(msg) {
 }
 
 function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
-loadMovies();
+loadMovies(1);
 </script>
 </body>
 </html>

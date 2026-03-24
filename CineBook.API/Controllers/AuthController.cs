@@ -8,10 +8,18 @@ namespace CineBook.API.Controllers
     [Route("Auth")]
     public class AuthViewController : Controller
     {
+        /// <summary>
+        /// Returns the view for the login page.
+        /// </summary>
+        /// <returns>An <see cref="IActionResult"/> that renders the login view.</returns>
         // GET /Auth/Login
         [HttpGet("Login")]
         public IActionResult Login() => View();
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <returns></returns>
         // GET /Auth/Register
         [HttpGet("Register")]
         public IActionResult Register() => View();

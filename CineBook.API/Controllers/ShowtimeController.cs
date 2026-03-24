@@ -30,12 +30,18 @@ namespace CineBook.API.Controllers
             return Ok(result);
         }
 
-        // GET api/showtimes/my
+        // GET api/showtimes/my  (paged)
+        // ?date=2025-01-15  &page=1  &pageSize=10
         [HttpGet("my")]
         [Authorize(Roles = "CinemaManager")]
-        public async Task<IActionResult> GetMyShowtimes([FromQuery] string? date)
+        public async Task<IActionResult> GetMyShowtimes(
+            [FromQuery] string? date,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var result = await _showtimeService.GetMyShowtimesAsync(GetManagerId(), date);
+            var result = await _showtimeService.GetMyShowtimesPagedAsync(
+                GetManagerId(), date, page, pageSize);
+
             if (!result.Success) return NotFound(result);
             return Ok(result);
         }

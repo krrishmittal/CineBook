@@ -34,11 +34,18 @@
         .movie-option{display:flex;align-items:center;gap:10px;padding:10px;border:1px solid #2a2a2a;border-radius:8px;cursor:pointer;transition:all .2s;margin-bottom:6px;}
         .movie-option:hover{border-color:#444;background:#1e1e1e;}
         .movie-option.selected-movie{border-color:#E50914;background:rgba(229,9,20,.08);}
+
+        /* ── Pagination ── */
+        .page-btn{min-width:34px;height:34px;border-radius:8px;font-size:13px;font-weight:600;border:1px solid #2a2a2a;background:#141414;color:#777;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;padding:0 10px;}
+        .page-btn:hover:not(:disabled){border-color:#444;color:#fff;background:#1e1e1e;}
+        .page-btn.active{background:#E50914;border-color:#E50914;color:#fff;}
+        .page-btn:disabled{opacity:0.3;cursor:not-allowed;}
     </style>
 </head>
 <body class="bg-[#0a0a0a] text-white min-h-screen">
 <div id="toast-container"></div>
 
+<!-- ── Navbar ── -->
 <nav class="fixed top-0 left-0 right-0 h-14 bg-[#0a0a0a]/95 border-b border-[#2a2a2a] flex items-center px-4 sm:px-6 gap-4 z-50 backdrop-blur-sm">
     <button onclick="toggleSidebar()" class="sm:hidden text-[#888] text-xl p-1">☰</button>
     <span class="brand text-2xl text-[#E50914]">CINEBOOK</span>
@@ -49,6 +56,7 @@
     <button onclick="logout()" class="text-sm text-[#888] border border-[#2a2a2a] rounded-md px-3 py-1.5 hover:border-[#555] hover:text-white transition-all">Sign Out</button>
 </nav>
 
+<!-- ── Sidebar ── -->
 <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
 <aside id="sidebar" class="fixed left-0 top-14 bottom-0 w-56 bg-[#141414] border-r border-[#2a2a2a] px-3 py-5 z-[100] flex flex-col gap-1 -translate-x-full sm:translate-x-0 transition-transform duration-300">
     <div class="text-xs text-[#555] tracking-widest px-3 pb-3">MANAGE</div>
@@ -61,14 +69,22 @@
     <a class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-[#888] hover:bg-[#1e1e1e] hover:text-white transition-all" href="/">🏠 Dashboard</a>
 </aside>
 
+<!-- ── Main ── -->
 <div class="sm:ml-56 pt-14 flex min-h-screen">
     <div class="flex-1 p-4 sm:p-6 overflow-y-auto max-h-[calc(100vh-56px)]">
 
+        <!-- Header -->
         <div class="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-            <div><h1 class="text-xl font-bold">Showtimes</h1><p class="text-sm text-[#888] mt-0.5">Schedule movies in your halls</p></div>
-            <button onclick="openAddPanel()" class="bg-[#E50914] hover:bg-[#b20710] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors w-full sm:w-auto">+ Add Showtime</button>
+            <div>
+                <h1 class="text-xl font-bold">Showtimes</h1>
+                <p class="text-sm text-[#888] mt-0.5">Schedule movies in your halls</p>
+            </div>
+            <button onclick="openAddPanel()" class="bg-[#E50914] hover:bg-[#b20710] text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors w-full sm:w-auto">
+                + Add Showtime
+            </button>
         </div>
 
+        <!-- No Cinema Warning -->
         <div id="noCinemaWarning" class="hidden mb-6 bg-yellow-400/5 border border-yellow-400/20 rounded-2xl p-8 text-center">
             <div class="text-4xl mb-3">🏟</div>
             <div class="text-base font-semibold text-yellow-400 mb-2">Cinema not approved yet</div>
@@ -78,32 +94,57 @@
 
         <!-- Stats -->
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-5" id="statsSection">
-            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">🎬</div><div><div class="text-xl font-bold" id="totalShowtimes">0</div><div class="text-xs text-[#888]">Total</div></div></div>
-            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">📅</div><div><div class="text-xl font-bold" id="todayShowtimes">0</div><div class="text-xs text-[#888]">Today</div></div></div>
-            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">🪑</div><div><div class="text-xl font-bold" id="totalAvailable">0</div><div class="text-xs text-[#888]">Avail. Seats</div></div></div>
-            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3"><div class="text-2xl">✅</div><div><div class="text-xl font-bold" id="activeShowtimes">0</div><div class="text-xs text-[#888]">Active</div></div></div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-2xl">🎬</div>
+                <div><div class="text-xl font-bold" id="totalShowtimes">0</div><div class="text-xs text-[#888]">Total</div></div>
+            </div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-2xl">📅</div>
+                <div><div class="text-xl font-bold" id="todayShowtimes">0</div><div class="text-xs text-[#888]">Today</div></div>
+            </div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-2xl">🪑</div>
+                <div><div class="text-xl font-bold" id="totalAvailable">0</div><div class="text-xs text-[#888]">Avail. Seats</div></div>
+            </div>
+            <div class="bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 flex items-center gap-3">
+                <div class="text-2xl">✅</div>
+                <div><div class="text-xl font-bold" id="activeShowtimes">0</div><div class="text-xs text-[#888]">Active</div></div>
+            </div>
         </div>
 
-        <!-- Date filter -->
+        <!-- Date filter pills -->
         <div class="date-filter flex gap-2 overflow-x-auto pb-2 mb-5" id="dateFilter"></div>
 
+        <!-- Results info -->
+        <div class="flex items-center justify-between mb-3">
+            <div id="resultsInfo" class="text-xs text-[#555]"></div>
+        </div>
+
+        <!-- Showtime list -->
         <div id="showtimeList">
             <div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🎬</div><div>Loading showtimes...</div></div>
         </div>
+
+        <!-- ── Pagination Bar ── -->
+        <div id="paginationBar" class="flex items-center justify-center gap-2 mt-8 flex-wrap"></div>
+
     </div>
 </div>
 
-<!-- Overlay -->
+<!-- ── Overlay ── -->
 <div class="fixed inset-0 bg-black/60 z-40 opacity-0 pointer-events-none transition-opacity duration-300" id="overlay" onclick="closePanel()"></div>
 
-<!-- Slide Panel -->
+<!-- ── Slide Panel ── -->
 <div class="slide-panel fixed right-0 top-14 bottom-0 w-full sm:w-[520px] bg-[#141414] border-l border-[#2a2a2a] z-50 flex flex-col" id="slidePanel">
     <div class="p-5 border-b border-[#2a2a2a] flex items-center justify-between flex-shrink-0">
-        <div><div class="text-base font-semibold" id="panelTitle">Add Showtime</div><div class="text-xs text-[#888] mt-0.5" id="panelSubtitle">Schedule a movie in a hall</div></div>
+        <div>
+            <div class="text-base font-semibold" id="panelTitle">Add Showtime</div>
+            <div class="text-xs text-[#888] mt-0.5" id="panelSubtitle">Schedule a movie in a hall</div>
+        </div>
         <button onclick="closePanel()" class="text-[#888] hover:text-white text-2xl leading-none transition-colors">✕</button>
     </div>
     <div class="flex-1 overflow-y-auto p-5">
-        <div id="formError" class="hidden bg-[#E50914]/10 border border-[#E50914]/30 text-[#ff6b6b] rounded-lg px-4 py-2.5 text-sm mb-4"></div>
+        <div id="formError"   class="hidden bg-[#E50914]/10 border border-[#E50914]/30 text-[#ff6b6b] rounded-lg px-4 py-2.5 text-sm mb-4"></div>
         <div id="formSuccess" class="hidden bg-green-500/10 border border-green-500/30 text-green-400 rounded-lg px-4 py-2.5 text-sm mb-4"></div>
 
         <!-- Add Form -->
@@ -122,7 +163,9 @@
                 <div><label class="block text-xs font-medium text-[#999] mb-1.5">Date *</label><input class="cinput" type="date" id="fDate" oninput="updateEndTimePreview()" /></div>
                 <div><label class="block text-xs font-medium text-[#999] mb-1.5">Start Time *</label><input class="cinput" type="time" id="fTime" oninput="updateEndTimePreview()" /></div>
             </div>
-            <div id="endTimePreview" class="hidden bg-[#1e1e1e] border border-[#2a2a2a] rounded-lg px-4 py-2.5 text-sm text-[#888] mb-4">⏱ End time: <strong id="endTimeVal" class="text-white">--</strong></div>
+            <div id="endTimePreview" class="hidden bg-[#1e1e1e] border border-[#2a2a2a] rounded-lg px-4 py-2.5 text-sm text-[#888] mb-4">
+                ⏱ End time: <strong id="endTimeVal" class="text-white">--</strong>
+            </div>
             <div class="mb-2"><label class="block text-xs font-medium text-[#999] mb-2">Ticket Prices (₹) *</label></div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div><label class="block text-xs font-medium text-blue-400 mb-1.5">Standard</label><input class="cinput" type="number" id="fPriceStandard" placeholder="e.g. 150" min="0" /></div>
@@ -138,14 +181,19 @@
                 <div><label class="block text-xs font-medium text-[#999] mb-1.5">Date *</label><input class="cinput" type="date" id="eDate" oninput="updateEditEndTimePreview()" /></div>
                 <div><label class="block text-xs font-medium text-[#999] mb-1.5">Start Time *</label><input class="cinput" type="time" id="eTime" oninput="updateEditEndTimePreview()" /></div>
             </div>
-            <div id="editEndTimePreview" class="hidden bg-[#1e1e1e] border border-[#2a2a2a] rounded-lg px-4 py-2.5 text-sm text-[#888] mb-4">⏱ End time: <strong id="editEndTimeVal" class="text-white">--</strong></div>
+            <div id="editEndTimePreview" class="hidden bg-[#1e1e1e] border border-[#2a2a2a] rounded-lg px-4 py-2.5 text-sm text-[#888] mb-4">
+                ⏱ End time: <strong id="editEndTimeVal" class="text-white">--</strong>
+            </div>
             <div class="mb-2"><label class="block text-xs font-medium text-[#999] mb-2">Ticket Prices (₹) *</label></div>
             <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
                 <div><label class="block text-xs font-medium text-blue-400 mb-1.5">Standard</label><input class="cinput" type="number" id="ePriceStandard" min="0" /></div>
                 <div><label class="block text-xs font-medium text-purple-400 mb-1.5">Premium</label><input class="cinput" type="number" id="ePricePremium" min="0" /></div>
                 <div><label class="block text-xs font-medium text-yellow-400 mb-1.5">VIP</label><input class="cinput" type="number" id="ePriceVIP" min="0" /></div>
             </div>
-            <div><label class="block text-xs font-medium text-[#999] mb-1.5">Status</label><select class="cinput" id="eIsActive"><option value="true">Active</option><option value="false">Inactive</option></select></div>
+            <div>
+                <label class="block text-xs font-medium text-[#999] mb-1.5">Status</label>
+                <select class="cinput" id="eIsActive"><option value="true">Active</option><option value="false">Inactive</option></select>
+            </div>
             <div id="deleteConfirm" class="hidden mt-5 bg-[#E50914]/8 border border-[#E50914]/20 rounded-xl p-4">
                 <div class="text-sm font-semibold text-[#f87171] mb-2">⚠ Delete Showtime</div>
                 <div class="text-xs text-[#888] mb-3">Cannot delete if bookings exist.</div>
@@ -161,224 +209,561 @@
 </div>
 
 <script>
-function showToast(msg,type='info',duration=4000){const icons={success:'✓',error:'✕',info:'ℹ',warning:'⚠'};const colors={success:'#22c55e',error:'#E50914',info:'#3b82f6',warning:'#f59e0b'};const c=document.getElementById('toast-container');const t=document.createElement('div');t.className=`toast toast-${type}`;t.innerHTML=`<div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">${icons[type]}</div><div style="flex:1;line-height:1.5;">${msg}</div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:0;">✕</button>`;c.appendChild(t);setTimeout(()=>{t.classList.add('removing');setTimeout(()=>t.remove(),250);},duration);}
-function toggleSidebar(){document.getElementById('sidebar').classList.toggle('-translate-x-full');document.getElementById('sidebarOverlay').classList.toggle('show');}
-function logout(){localStorage.clear();window.location.href='/Auth/Login';}
-const token=localStorage.getItem('token');const user=JSON.parse(localStorage.getItem('user')||'{}');
-if(!token)window.location.href='/Auth/Login';if(user.role!=='CinemaManager')window.location.href='/';
-document.getElementById('managerName').textContent=user.fullName||'Manager';
-function authHeaders(){return{'Content-Type':'application/json','Authorization':`Bearer ${token}`};}
-
-let allShowtimes=[],allMovies=[],allHalls=[],editingId=null,isEditMode=false,selectedMovieDuration=0,editMovieDuration=0;
-
-async function init(){await Promise.all([loadShowtimes(),loadMovies(),loadHalls()]);}
-
-async function loadShowtimes(){
-    try{const res=await fetch('/api/showtimes/my',{headers:authHeaders()});const data=await res.json();
-        if(data.success){allShowtimes=data.data;updateStats();buildDateFilter();renderShowtimes(allShowtimes);}
-        else{document.getElementById('noCinemaWarning').classList.remove('hidden');document.getElementById('statsSection').classList.add('hidden');document.getElementById('showtimeList').innerHTML='';}
-    }catch{showToast('Failed to load showtimes','error');}
+/* ══════════════════════════════════════════
+   TOAST
+══════════════════════════════════════════ */
+function showToast(msg, type = 'info', duration = 4000) {
+    const icons  = { success: '✓', error: '✕', info: 'ℹ', warning: '⚠' };
+    const colors = { success: '#22c55e', error: '#E50914', info: '#3b82f6', warning: '#f59e0b' };
+    const c = document.getElementById('toast-container');
+    const t = document.createElement('div');
+    t.className = `toast toast-${type}`;
+    t.innerHTML = `<div style="width:22px;height:22px;border-radius:50%;background:${colors[type]}20;border:1px solid ${colors[type]}50;display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:12px;color:${colors[type]};font-weight:700;">${icons[type]}</div><div style="flex:1;line-height:1.5;">${msg}</div><button onclick="this.parentElement.remove()" style="background:none;border:none;color:#555;cursor:pointer;font-size:18px;padding:0;">✕</button>`;
+    c.appendChild(t);
+    setTimeout(() => { t.classList.add('removing'); setTimeout(() => t.remove(), 250); }, duration);
 }
 
-async function loadMovies(){
-    try{const res=await fetch('/api/movies',{headers:authHeaders()});const data=await res.json();
-        if(data.success)allMovies=data.data.filter(m=>m.status==='NowShowing'||m.status===1);
-    }catch{}
+/* ══════════════════════════════════════════
+   AUTH
+══════════════════════════════════════════ */
+function toggleSidebar() {
+    document.getElementById('sidebar').classList.toggle('-translate-x-full');
+    document.getElementById('sidebarOverlay').classList.toggle('show');
+}
+function logout() { localStorage.clear(); window.location.href = '/Auth/Login'; }
+
+const token = localStorage.getItem('token');
+const user   = JSON.parse(localStorage.getItem('user') || '{}');
+if (!token) window.location.href = '/Auth/Login';
+if (user.role !== 'CinemaManager') window.location.href = '/';
+document.getElementById('managerName').textContent = user.fullName || 'Manager';
+function authHeaders() { return { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` }; }
+
+/* ══════════════════════════════════════════
+   STATE
+══════════════════════════════════════════ */
+let allMovies            = [];
+let allHalls             = [];
+let editingId            = null;
+let isEditMode           = false;
+let selectedMovieDuration = 0;
+let editMovieDuration    = 0;
+
+// Pagination state
+let currentPage  = 1;
+const PAGE_SIZE  = 10;
+let totalPages   = 1;
+let totalCount   = 0;
+let activeDate   = '';   // '' = all dates
+
+// Stats are fetched once from a full unfiltered call
+let statsCache = { total: 0, today: 0, available: 0, active: 0 };
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+async function init() {
+    await Promise.all([loadMovies(), loadHalls()]);
+    await loadShowtimes(1);          // initial page load
+    await loadStats();               // separate unfiltered stats call
+    buildDateFilterShell();          // build date pills from a summary fetch
 }
 
-async function loadHalls(){
-    try{const res=await fetch('/api/halls',{headers:authHeaders()});const data=await res.json();
-        if(data.success){allHalls=data.data.filter(h=>h.isActive);const sel=document.getElementById('fHallId');sel.innerHTML='<option value="">-- Select Hall --</option>';allHalls.forEach(h=>{const o=document.createElement('option');o.value=h.id;o.textContent=`${h.hallName} (${h.hallTypeLabel||h.hallType}) — ${h.totalSeats} seats`;sel.appendChild(o);});}
-    }catch{}
+/* ══════════════════════════════════════════
+   LOAD MOVIES & HALLS (for add form)
+══════════════════════════════════════════ */
+async function loadMovies() {
+    try {
+        const res  = await fetch('/api/movies?pageSize=999&status=NowShowing', { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success) {
+            // data.data is now PagedResponse — read .items
+            const items = data.data.items ?? data.data;
+            allMovies = items.filter(m => m.status === 'NowShowing' || m.status === 1);
+        }
+    } catch {}
 }
 
-function updateStats(){
-    const today=new Date().toDateString();
-    document.getElementById('totalShowtimes').textContent=allShowtimes.length;
-    document.getElementById('todayShowtimes').textContent=allShowtimes.filter(s=>new Date(s.startTime).toDateString()===today).length;
-    document.getElementById('totalAvailable').textContent=allShowtimes.reduce((sum,s)=>sum+s.availableSeats,0);
-    document.getElementById('activeShowtimes').textContent=allShowtimes.filter(s=>s.isActive).length;
+async function loadHalls() {
+    try {
+        const res  = await fetch('/api/halls', { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success) {
+            allHalls = data.data.filter(h => h.isActive);
+            const sel = document.getElementById('fHallId');
+            sel.innerHTML = '<option value="">-- Select Hall --</option>';
+            allHalls.forEach(h => {
+                const o = document.createElement('option');
+                o.value       = h.id;
+                o.textContent = `${h.hallName} (${h.hallTypeLabel || h.hallType}) — ${h.totalSeats} seats`;
+                sel.appendChild(o);
+            });
+        }
+    } catch {}
 }
 
-function buildDateFilter(){
-    const dates=[...new Set(allShowtimes.map(s=>new Date(s.startTime).toDateString()))].sort((a,b)=>new Date(a)-new Date(b));
-    const c=document.getElementById('dateFilter');
-    c.innerHTML=`<button class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-[#E50914] text-white border border-[#E50914] date-pill" onclick="filterByDate('all',this)">All Dates</button>`;
-    dates.forEach(d=>{const date=new Date(d);const label=date.toLocaleDateString('en-IN',{weekday:'short',day:'numeric',month:'short'});c.innerHTML+=`<button class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium text-[#888] border border-[#2a2a2a] bg-[#141414] hover:border-[#444] hover:text-white transition-all date-pill" onclick="filterByDate('${d}',this)">${label}</button>`;});
+/* ══════════════════════════════════════════
+   STATS — separate unfiltered fetch so stats
+   always reflect the full cinema totals
+══════════════════════════════════════════ */
+async function loadStats() {
+    try {
+        // Fetch page 1 with a large size just for stats (or a dedicated stats endpoint if you have one)
+        const res  = await fetch(`/api/showtimes/my?page=1&pageSize=9999`, { headers: authHeaders() });
+        const data = await res.json();
+        if (data.success) {
+            const items = data.data.items;
+            const today = new Date().toDateString();
+            document.getElementById('totalShowtimes').textContent = data.data.totalCount;
+            document.getElementById('todayShowtimes').textContent = items.filter(s => new Date(s.startTime).toDateString() === today).length;
+            document.getElementById('totalAvailable').textContent = items.reduce((sum, s) => sum + s.availableSeats, 0);
+            document.getElementById('activeShowtimes').textContent = items.filter(s => s.isActive).length;
+            buildDateFilter(items);   // build date pills from unfiltered items
+        }
+    } catch {}
 }
 
-function filterByDate(date,el){
-    document.querySelectorAll('.date-pill').forEach(p=>{p.classList.remove('bg-[#E50914]','text-white','border-[#E50914]');p.classList.add('text-[#888]','border-[#2a2a2a]','bg-[#141414]');});
-    el.classList.add('bg-[#E50914]','text-white','border-[#E50914]');el.classList.remove('text-[#888]','border-[#2a2a2a]','bg-[#141414]');
-    const filtered=date==='all'?allShowtimes:allShowtimes.filter(s=>new Date(s.startTime).toDateString()===date);
-    renderShowtimes(filtered);
+/* ══════════════════════════════════════════
+   DATE FILTER PILLS
+══════════════════════════════════════════ */
+function buildDateFilterShell() {
+    // Placeholder — rebuilt once stats load
+    document.getElementById('dateFilter').innerHTML =
+        `<button class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-[#E50914] text-white border border-[#E50914] date-pill" onclick="filterByDate('',this)">All Dates</button>`;
 }
 
-function hallTypeBadge(type){
-    if(type==='TwoD'||type===0)return'<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-blue-400/10 border border-blue-400/20 text-blue-400">2D</span>';
-    if(type==='ThreeD'||type===1)return'<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-purple-400/10 border border-purple-400/20 text-purple-400">3D</span>';
-    return'<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-yellow-400/10 border border-yellow-400/20 text-yellow-400">IMAX</span>';
+function buildDateFilter(items) {
+    const dates = [...new Set(items.map(s => new Date(s.startTime).toDateString()))]
+        .sort((a, b) => new Date(a) - new Date(b));
+    const c = document.getElementById('dateFilter');
+    c.innerHTML = `<button class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium bg-[#E50914] text-white border border-[#E50914] date-pill" onclick="filterByDate('',this)">All Dates</button>`;
+    dates.forEach(d => {
+        const date  = new Date(d);
+        const label = date.toLocaleDateString('en-IN', { weekday: 'short', day: 'numeric', month: 'short' });
+        // Convert to YYYY-MM-DD for API
+        const isoDate = date.toISOString().split('T')[0];
+        c.innerHTML += `<button class="flex-shrink-0 px-4 py-1.5 rounded-full text-sm font-medium text-[#888] border border-[#2a2a2a] bg-[#141414] hover:border-[#444] hover:text-white transition-all date-pill" onclick="filterByDate('${isoDate}',this)">${label}</button>`;
+    });
 }
 
-function formatTime12(isoStr){
-    if(!isoStr)return'';const t=isoStr.split('T')[1]?.substring(0,5)||'';if(!t)return'';
-    const[h,m]=t.split(':');const hour=parseInt(h);const ampm=hour>=12?'pm':'am';const h12=hour%12||12;return`${h12}:${m} ${ampm}`;
+function filterByDate(date, el) {
+    document.querySelectorAll('.date-pill').forEach(p => {
+        p.classList.remove('bg-[#E50914]', 'text-white', 'border-[#E50914]');
+        p.classList.add('text-[#888]', 'border-[#2a2a2a]', 'bg-[#141414]');
+    });
+    el.classList.add('bg-[#E50914]', 'text-white', 'border-[#E50914]');
+    el.classList.remove('text-[#888]', 'border-[#2a2a2a]', 'bg-[#141414]');
+    activeDate  = date;
+    currentPage = 1;
+    loadShowtimes(1);
 }
 
-function renderShowtimes(showtimes){
-    const list=document.getElementById('showtimeList');
-    if(!showtimes.length){list.innerHTML=`<div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🎬</div><div class="text-base font-medium mb-1">No showtimes found</div><div class="text-sm">Click "+ Add Showtime" to schedule a movie</div></div>`;return;}
-    const groups={};showtimes.forEach(s=>{const dk=new Date(s.startTime).toDateString();if(!groups[dk])groups[dk]=[];groups[dk].push(s);});
-    let html='';
-    Object.entries(groups).forEach(([dk,items])=>{
-        const date=new Date(dk);const isToday=date.toDateString()===new Date().toDateString();
-        const label=(isToday?'TODAY':date.toLocaleDateString('en-IN',{weekday:'long',day:'numeric',month:'long'}).toUpperCase());
-        html+=`<div class="text-xs font-bold text-[#888] tracking-widest py-3 flex items-center gap-3">${label}<div class="flex-1 h-px bg-[#2a2a2a]"></div></div>`;
-        items.sort((a,b)=>new Date(a.startTime)-new Date(b.startTime)).forEach(s=>{
-            const startStr=formatTime12(s.startTime);const endStr=formatTime12(s.endTime);
-            const pct=s.totalSeats>0?(s.availableSeats/s.totalSeats)*100:0;
-            const barColor=pct>50?'#22c55e':pct>20?'#f59e0b':'#ef4444';
-            html+=`<div class="fade-in bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 mb-3 flex gap-4 items-start cursor-pointer hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-all" onclick="selectShowtime('${s.id}')" id="card-${s.id}">
-                <img src="${s.moviePoster||''}" onerror="this.style.display='none'" class="w-12 h-16 rounded-lg object-cover flex-shrink-0 bg-[#222]" />
+/* ══════════════════════════════════════════
+   LOAD SHOWTIMES (PAGED)
+══════════════════════════════════════════ */
+async function loadShowtimes(page = 1) {
+    document.getElementById('showtimeList').innerHTML =
+        `<div class="text-center py-16 text-[#555]"><div class="text-4xl mb-3">🎬</div><div>Loading showtimes...</div></div>`;
+    document.getElementById('paginationBar').innerHTML = '';
+    document.getElementById('resultsInfo').textContent = '';
+
+    try {
+        const params = new URLSearchParams({ page, pageSize: PAGE_SIZE });
+        if (activeDate) params.set('date', activeDate);
+
+        const res  = await fetch(`/api/showtimes/my?${params}`, { headers: authHeaders() });
+        const data = await res.json();
+
+        if (!data.success) {
+            document.getElementById('noCinemaWarning').classList.remove('hidden');
+            document.getElementById('statsSection').classList.add('hidden');
+            document.getElementById('showtimeList').innerHTML = '';
+            document.getElementById('paginationBar').innerHTML = '';
+            return;
+        }
+
+        const paged  = data.data;           // PagedResponse<ShowtimeResponse>
+        currentPage  = paged.page;
+        totalPages   = paged.totalPages;
+        totalCount   = paged.totalCount;
+
+        renderShowtimes(paged.items);
+        renderPagination();
+
+    } catch {
+        showToast('Failed to load showtimes', 'error');
+    }
+}
+
+/* ══════════════════════════════════════════
+   RENDER SHOWTIMES
+══════════════════════════════════════════ */
+function hallTypeBadge(type) {
+    if (type === 'TwoD'   || type === 0) return '<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-blue-400/10 border border-blue-400/20 text-blue-400">2D</span>';
+    if (type === 'ThreeD' || type === 1) return '<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-purple-400/10 border border-purple-400/20 text-purple-400">3D</span>';
+    return '<span class="text-xs font-bold px-1.5 py-0.5 rounded bg-yellow-400/10 border border-yellow-400/20 text-yellow-400">IMAX</span>';
+}
+
+function formatTime12(isoStr) {
+    if (!isoStr) return '';
+    const t = isoStr.split('T')[1]?.substring(0, 5) || '';
+    if (!t) return '';
+    const [h, m] = t.split(':');
+    const hour = parseInt(h);
+    const ampm = hour >= 12 ? 'pm' : 'am';
+    const h12  = hour % 12 || 12;
+    return `${h12}:${m} ${ampm}`;
+}
+
+function renderShowtimes(showtimes) {
+    const list = document.getElementById('showtimeList');
+
+    if (!showtimes.length) {
+        list.innerHTML = `<div class="text-center py-16 text-[#555]">
+            <div class="text-4xl mb-3">🎬</div>
+            <div class="text-base font-medium mb-1">No showtimes found</div>
+            <div class="text-sm">Click "+ Add Showtime" to schedule a movie</div>
+        </div>`;
+        return;
+    }
+
+    // Group current page items by date
+    const groups = {};
+    showtimes.forEach(s => {
+        const dk = new Date(s.startTime).toDateString();
+        if (!groups[dk]) groups[dk] = [];
+        groups[dk].push(s);
+    });
+
+    let html = '';
+    Object.entries(groups).forEach(([dk, items]) => {
+        const date    = new Date(dk);
+        const isToday = date.toDateString() === new Date().toDateString();
+        const label   = isToday
+            ? 'TODAY'
+            : date.toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long' }).toUpperCase();
+
+        html += `<div class="text-xs font-bold text-[#888] tracking-widest py-3 flex items-center gap-3">
+            ${label}<div class="flex-1 h-px bg-[#2a2a2a]"></div>
+        </div>`;
+
+        items.sort((a, b) => new Date(a.startTime) - new Date(b.startTime)).forEach(s => {
+            const startStr = formatTime12(s.startTime);
+            const endStr   = formatTime12(s.endTime);
+            const pct      = s.totalSeats > 0 ? (s.availableSeats / s.totalSeats) * 100 : 0;
+            const barColor = pct > 50 ? '#22c55e' : pct > 20 ? '#f59e0b' : '#ef4444';
+
+            html += `<div class="fade-in bg-[#141414] border border-[#2a2a2a] rounded-xl p-4 mb-3 flex gap-4 items-start cursor-pointer hover:border-[#3a3a3a] hover:bg-[#1a1a1a] transition-all" onclick="selectShowtime('${s.id}')" id="card-${s.id}">
+                <img src="${s.moviePoster || ''}" onerror="this.style.display='none'" class="w-12 h-16 rounded-lg object-cover flex-shrink-0 bg-[#222]" />
                 <div class="flex-1 min-w-0">
                     <div class="flex items-start justify-between gap-2 mb-1.5">
-                        <div><div class="font-semibold text-sm mb-0.5">${s.movieTitle}</div><div class="text-xs text-[#888]">${s.hallName} ${hallTypeBadge(s.hallType)} • ${s.movieLanguage}</div></div>
-                        <div class="text-right flex-shrink-0"><div class="brand text-lg text-[#E50914]">${startStr}</div><div class="text-xs text-[#555]">ends ${endStr}</div></div>
+                        <div>
+                            <div class="font-semibold text-sm mb-0.5">${s.movieTitle}</div>
+                            <div class="text-xs text-[#888]">${s.hallName} ${hallTypeBadge(s.hallType)} • ${s.movieLanguage}</div>
+                        </div>
+                        <div class="text-right flex-shrink-0">
+                            <div class="brand text-lg text-[#E50914]">${startStr}</div>
+                            <div class="text-xs text-[#555]">ends ${endStr}</div>
+                        </div>
                     </div>
                     <div class="flex flex-wrap items-center justify-between gap-2 mb-2">
-                        <div class="flex flex-wrap gap-3 text-xs"><span class="text-blue-400">Std ₹${s.priceStandard}</span><span class="text-purple-400">Prem ₹${s.pricePremium}</span><span class="text-yellow-400">VIP ₹${s.priceVIP}</span></div>
-                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full border ${s.isActive?'text-green-400 bg-green-400/10 border-green-400/20':'text-[#888] bg-[#888]/10 border-[#888]/20'}">${s.isActive?'Active':'Inactive'}</span>
+                        <div class="flex flex-wrap gap-3 text-xs">
+                            <span class="text-blue-400">Std ₹${s.priceStandard}</span>
+                            <span class="text-purple-400">Prem ₹${s.pricePremium}</span>
+                            <span class="text-yellow-400">VIP ₹${s.priceVIP}</span>
+                        </div>
+                        <span class="text-xs font-semibold px-2 py-0.5 rounded-full border ${s.isActive ? 'text-green-400 bg-green-400/10 border-green-400/20' : 'text-[#888] bg-[#888]/10 border-[#888]/20'}">
+                            ${s.isActive ? 'Active' : 'Inactive'}
+                        </span>
                     </div>
-                    <div class="flex items-center gap-2"><div class="text-xs text-[#888]">${s.availableSeats}/${s.totalSeats}</div><div class="flex-1 h-1 rounded-full bg-[#242424] overflow-hidden"><div style="width:${pct}%;background:${barColor};" class="h-full rounded-full transition-all"></div></div></div>
+                    <div class="flex items-center gap-2">
+                        <div class="text-xs text-[#888]">${s.availableSeats}/${s.totalSeats}</div>
+                        <div class="flex-1 h-1 rounded-full bg-[#242424] overflow-hidden">
+                            <div style="width:${pct}%;background:${barColor};" class="h-full rounded-full transition-all"></div>
+                        </div>
+                    </div>
                 </div>
             </div>`;
         });
     });
-    list.innerHTML=html;
+
+    list.innerHTML = html;
 }
 
-function renderMovieOptions(movies){
-    const c=document.getElementById('movieOptions');
-    if(!movies.length){c.innerHTML=`<div class="text-sm text-[#888] p-3">No movies found</div>`;return;}
-    c.innerHTML=movies.map(m=>`<div class="movie-option" onclick="selectMovie('${m.id}','${m.title.replace(/'/g,"\\'")}',${m.durationTime})" id="movie-opt-${m.id}">
-        <img src="${m.posterUrl||''}" style="width:32px;height:44px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'" />
-        <div><div class="text-sm font-semibold">${m.title}</div><div class="text-xs text-[#888]">${m.durationTime} min • ${m.language} • ${(m.genre||'').split(',')[0]}</div></div>
-    </div>`).join('');
+/* ══════════════════════════════════════════
+   PAGINATION
+══════════════════════════════════════════ */
+function renderPagination() {
+    const bar = document.getElementById('paginationBar');
+
+    // Results info
+    const info = document.getElementById('resultsInfo');
+    if (totalCount > 0) {
+        const from = (currentPage - 1) * PAGE_SIZE + 1;
+        const to   = Math.min(currentPage * PAGE_SIZE, totalCount);
+        info.textContent = `Showing ${from}–${to} of ${totalCount} showtimes`;
+    } else {
+        info.textContent = '';
+    }
+
+    if (totalPages <= 1) { bar.innerHTML = ''; return; }
+
+    // Build page numbers with ellipsis
+    const pages = [];
+    if (totalPages <= 7) {
+        for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+        pages.push(1);
+        if (currentPage > 3)               pages.push('…');
+        for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) pages.push(i);
+        if (currentPage < totalPages - 2)  pages.push('…');
+        pages.push(totalPages);
+    }
+
+    bar.innerHTML = `
+        <button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage === 1 ? 'disabled' : ''}>← Prev</button>
+        ${pages.map(p => p === '…'
+            ? `<span class="page-btn" style="cursor:default;color:#444;border-color:#1a1a1a">…</span>`
+            : `<button class="page-btn ${p === currentPage ? 'active' : ''}" onclick="goToPage(${p})">${p}</button>`
+        ).join('')}
+        <button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage === totalPages ? 'disabled' : ''}>Next →</button>`;
 }
 
-function filterMovieOptions(q){renderMovieOptions(q?allMovies.filter(m=>m.title.toLowerCase().includes(q.toLowerCase())):allMovies);}
+function goToPage(page) {
+    if (page < 1 || page > totalPages || page === currentPage) return;
+    currentPage = page;
+    loadShowtimes(page);
+    document.querySelector('.sm\\:ml-56')?.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
-function selectMovie(id,title,duration){
-    document.getElementById('fMovieId').value=id;document.getElementById('movieSearch').value=title;selectedMovieDuration=duration;
-    document.querySelectorAll('.movie-option').forEach(o=>o.classList.remove('selected-movie'));
+/* ══════════════════════════════════════════
+   MOVIE OPTIONS (add panel)
+══════════════════════════════════════════ */
+function renderMovieOptions(movies) {
+    const c = document.getElementById('movieOptions');
+    if (!movies.length) { c.innerHTML = `<div class="text-sm text-[#888] p-3">No movies found</div>`; return; }
+    c.innerHTML = movies.map(m => `
+        <div class="movie-option" onclick="selectMovie('${m.id}','${m.title.replace(/'/g, "\\'")}',${m.durationTime})" id="movie-opt-${m.id}">
+            <img src="${m.posterUrl || ''}" style="width:32px;height:44px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'" />
+            <div>
+                <div class="text-sm font-semibold">${m.title}</div>
+                <div class="text-xs text-[#888]">${m.durationTime} min • ${m.language} • ${(m.genre || '').split(',')[0]}</div>
+            </div>
+        </div>`).join('');
+}
+
+function filterMovieOptions(q) {
+    renderMovieOptions(q ? allMovies.filter(m => m.title.toLowerCase().includes(q.toLowerCase())) : allMovies);
+}
+
+function selectMovie(id, title, duration) {
+    document.getElementById('fMovieId').value   = id;
+    document.getElementById('movieSearch').value = title;
+    selectedMovieDuration = duration;
+    document.querySelectorAll('.movie-option').forEach(o => o.classList.remove('selected-movie'));
     document.getElementById(`movie-opt-${id}`)?.classList.add('selected-movie');
-    document.getElementById('movieOptions').innerHTML='';updateEndTimePreview();
+    document.getElementById('movieOptions').innerHTML = '';
+    updateEndTimePreview();
 }
 
-function updateEndTimePreview(){
-    const date=document.getElementById('fDate').value;const time=document.getElementById('fTime').value;
-    if(!date||!time||!selectedMovieDuration){document.getElementById('endTimePreview').classList.add('hidden');return;}
-    const end=new Date(`${date}T${time}`);end.setMinutes(end.getMinutes()+selectedMovieDuration);
-    document.getElementById('endTimeVal').textContent=end.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+/* ══════════════════════════════════════════
+   END TIME PREVIEW
+══════════════════════════════════════════ */
+function updateEndTimePreview() {
+    const date = document.getElementById('fDate').value;
+    const time = document.getElementById('fTime').value;
+    if (!date || !time || !selectedMovieDuration) { document.getElementById('endTimePreview').classList.add('hidden'); return; }
+    const end = new Date(`${date}T${time}`);
+    end.setMinutes(end.getMinutes() + selectedMovieDuration);
+    document.getElementById('endTimeVal').textContent = end.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
     document.getElementById('endTimePreview').classList.remove('hidden');
 }
 
-function updateEditEndTimePreview(){
-    const date=document.getElementById('eDate').value;const time=document.getElementById('eTime').value;
-    if(!date||!time||!editMovieDuration)return;
-    const end=new Date(`${date}T${time}`);end.setMinutes(end.getMinutes()+editMovieDuration);
-    document.getElementById('editEndTimeVal').textContent=end.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+function updateEditEndTimePreview() {
+    const date = document.getElementById('eDate').value;
+    const time = document.getElementById('eTime').value;
+    if (!date || !time || !editMovieDuration) return;
+    const end = new Date(`${date}T${time}`);
+    end.setMinutes(end.getMinutes() + editMovieDuration);
+    document.getElementById('editEndTimeVal').textContent = end.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit', hour12: true });
     document.getElementById('editEndTimePreview').classList.remove('hidden');
 }
 
-function openAddPanel(){
-    isEditMode=false;editingId=null;clearAddForm();
-    document.getElementById('panelTitle').textContent='Add Showtime';document.getElementById('panelSubtitle').textContent='Schedule a movie in a hall';
-    document.getElementById('saveBtn').textContent='Create Showtime';
-    document.getElementById('addForm').classList.remove('hidden');document.getElementById('editForm').classList.add('hidden');
-    renderMovieOptions(allMovies);openPanelUI();
+/* ══════════════════════════════════════════
+   PANEL OPEN / CLOSE
+══════════════════════════════════════════ */
+function openAddPanel() {
+    isEditMode = false; editingId = null; clearAddForm();
+    document.getElementById('panelTitle').textContent    = 'Add Showtime';
+    document.getElementById('panelSubtitle').textContent = 'Schedule a movie in a hall';
+    document.getElementById('saveBtn').textContent       = 'Create Showtime';
+    document.getElementById('addForm').classList.remove('hidden');
+    document.getElementById('editForm').classList.add('hidden');
+    renderMovieOptions(allMovies);
+    openPanelUI();
 }
 
-function selectShowtime(id){
-    const s=allShowtimes.find(x=>x.id===id);if(!s)return;
-    isEditMode=true;editingId=s.id;editMovieDuration=s.movieDurationTime;
-    document.querySelectorAll('[id^="card-"]').forEach(c=>c.classList.remove('border-[#E50914]','bg-[#E50914]/5'));
-    document.getElementById(`card-${id}`)?.classList.add('border-[#E50914]','bg-[#E50914]/5');
-    document.getElementById('panelTitle').textContent=s.movieTitle;document.getElementById('panelSubtitle').textContent='Edit showtime details';
-    document.getElementById('saveBtn').textContent='Update Showtime';
-    document.getElementById('addForm').classList.add('hidden');document.getElementById('editForm').classList.remove('hidden');
+function selectShowtime(id) {
+    // Find the showtime in the current rendered list — we need to re-fetch if it's not cached
+    // We'll fetch it directly from the current page items
+    fetch(`/api/showtimes/my?page=${currentPage}&pageSize=${PAGE_SIZE}${activeDate ? '&date=' + activeDate : ''}`, { headers: authHeaders() })
+        .then(r => r.json())
+        .then(data => {
+            if (!data.success) return;
+            const s = data.data.items.find(x => x.id === id);
+            if (!s) return;
+            _openEditPanel(s);
+        });
+}
+
+function _openEditPanel(s) {
+    isEditMode = true; editingId = s.id; editMovieDuration = s.movieDurationTime;
+    document.querySelectorAll('[id^="card-"]').forEach(c => c.classList.remove('border-[#E50914]', 'bg-[#E50914]/5'));
+    document.getElementById(`card-${s.id}`)?.classList.add('border-[#E50914]', 'bg-[#E50914]/5');
+    document.getElementById('panelTitle').textContent    = s.movieTitle;
+    document.getElementById('panelSubtitle').textContent = 'Edit showtime details';
+    document.getElementById('saveBtn').textContent       = 'Update Showtime';
+    document.getElementById('addForm').classList.add('hidden');
+    document.getElementById('editForm').classList.remove('hidden');
     document.getElementById('deleteConfirm').classList.add('hidden');
-    document.getElementById('editMovieInfo').innerHTML=`<div class="flex gap-3 items-center"><img src="${s.moviePoster}" style="width:36px;height:50px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'" /><div><div class="text-sm font-semibold">${s.movieTitle}</div><div class="text-xs text-[#888]">${s.hallName} • ${s.movieLanguage} • ${s.movieDurationTime} min</div></div></div>`;
-    const start=new Date(s.startTime);
-    document.getElementById('eDate').value=start.toISOString().split('T')[0];
-    document.getElementById('eTime').value=start.toTimeString().slice(0,5);
-    document.getElementById('ePriceStandard').value=s.priceStandard;document.getElementById('ePricePremium').value=s.pricePremium;document.getElementById('ePriceVIP').value=s.priceVIP;
-    document.getElementById('eIsActive').value=s.isActive.toString();
-    updateEditEndTimePreview();openPanelUI();
+    document.getElementById('editMovieInfo').innerHTML = `
+        <div class="flex gap-3 items-center">
+            <img src="${s.moviePoster}" style="width:36px;height:50px;object-fit:cover;border-radius:4px;" onerror="this.style.display='none'" />
+            <div>
+                <div class="text-sm font-semibold">${s.movieTitle}</div>
+                <div class="text-xs text-[#888]">${s.hallName} • ${s.movieLanguage} • ${s.movieDurationTime} min</div>
+            </div>
+        </div>`;
+    const start = new Date(s.startTime);
+    document.getElementById('eDate').value          = start.toISOString().split('T')[0];
+    document.getElementById('eTime').value          = start.toTimeString().slice(0, 5);
+    document.getElementById('ePriceStandard').value = s.priceStandard;
+    document.getElementById('ePricePremium').value  = s.pricePremium;
+    document.getElementById('ePriceVIP').value      = s.priceVIP;
+    document.getElementById('eIsActive').value      = s.isActive.toString();
+    updateEditEndTimePreview();
+    openPanelUI();
 }
 
-function openPanelUI(){
+function openPanelUI() {
     document.getElementById('slidePanel').classList.add('open');
-    const ov=document.getElementById('overlay');ov.classList.remove('opacity-0','pointer-events-none');ov.classList.add('opacity-100');
+    const ov = document.getElementById('overlay');
+    ov.classList.remove('opacity-0', 'pointer-events-none');
+    ov.classList.add('opacity-100');
 }
 
-function closePanel(){
+function closePanel() {
     document.getElementById('slidePanel').classList.remove('open');
-    const ov=document.getElementById('overlay');ov.classList.add('opacity-0','pointer-events-none');ov.classList.remove('opacity-100');
-    document.querySelectorAll('[id^="card-"]').forEach(c=>c.classList.remove('border-[#E50914]','bg-[#E50914]/5'));
-    editingId=null;isEditMode=false;
+    const ov = document.getElementById('overlay');
+    ov.classList.add('opacity-0', 'pointer-events-none');
+    ov.classList.remove('opacity-100');
+    document.querySelectorAll('[id^="card-"]').forEach(c => c.classList.remove('border-[#E50914]', 'bg-[#E50914]/5'));
+    editingId  = null;
+    isEditMode = false;
 }
 
-function clearAddForm(){
-    document.getElementById('fMovieId').value='';document.getElementById('movieSearch').value='';document.getElementById('fHallId').value='';
-    document.getElementById('fDate').value='';document.getElementById('fTime').value='';
-    document.getElementById('fPriceStandard').value='';document.getElementById('fPricePremium').value='';document.getElementById('fPriceVIP').value='';
+function clearAddForm() {
+    ['fMovieId', 'fDate', 'fTime', 'fPriceStandard', 'fPricePremium', 'fPriceVIP'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('movieSearch').value = '';
+    document.getElementById('fHallId').value     = '';
     document.getElementById('endTimePreview').classList.add('hidden');
-    document.getElementById('formError').classList.add('hidden');document.getElementById('formSuccess').classList.add('hidden');
-    selectedMovieDuration=0;
+    document.getElementById('formError').classList.add('hidden');
+    document.getElementById('formSuccess').classList.add('hidden');
+    selectedMovieDuration = 0;
+    // Reset date to today
+    document.getElementById('fDate').value = new Date().toISOString().split('T')[0];
 }
 
-function toggleDelete(){document.getElementById('deleteConfirm').classList.toggle('hidden');}
-function showError(msg){const el=document.getElementById('formError');el.textContent=msg;el.classList.remove('hidden');}
+function toggleDelete() { document.getElementById('deleteConfirm').classList.toggle('hidden'); }
+function showError(msg) { const el = document.getElementById('formError'); el.textContent = msg; el.classList.remove('hidden'); }
 
-async function saveShowtime(){if(isEditMode)await updateShowtime();else await createShowtime();}
+/* ══════════════════════════════════════════
+   SAVE / UPDATE / DELETE
+══════════════════════════════════════════ */
+async function saveShowtime() { if (isEditMode) await updateShowtime(); else await createShowtime(); }
 
-async function createShowtime(){
-    const movieId=document.getElementById('fMovieId').value;const hallId=document.getElementById('fHallId').value;
-    const date=document.getElementById('fDate').value;const time=document.getElementById('fTime').value;
-    const ps=parseFloat(document.getElementById('fPriceStandard').value);const pp=parseFloat(document.getElementById('fPricePremium').value);const pv=parseFloat(document.getElementById('fPriceVIP').value);
-    if(!movieId){showError('Please select a movie');showToast('Please select a movie','error');return;}
-    if(!hallId){showError('Please select a hall');showToast('Please select a hall','error');return;}
-    if(!date||!time){showError('Please set date and time');showToast('Please set date and time','error');return;}
-    if(!ps||!pp||!pv){showError('Please set all prices');showToast('Please set all prices','error');return;}
-    await submitShowtime('POST','/api/showtimes',{movieId,hallId,startTime:`${date}T${time}:00`,priceStandard:ps,pricePremium:pp,priceVIP:pv});
+async function createShowtime() {
+    const movieId = document.getElementById('fMovieId').value;
+    const hallId  = document.getElementById('fHallId').value;
+    const date    = document.getElementById('fDate').value;
+    const time    = document.getElementById('fTime').value;
+    const ps      = parseFloat(document.getElementById('fPriceStandard').value);
+    const pp      = parseFloat(document.getElementById('fPricePremium').value);
+    const pv      = parseFloat(document.getElementById('fPriceVIP').value);
+
+    if (!movieId)       { showError('Please select a movie');      showToast('Please select a movie', 'error');      return; }
+    if (!hallId)        { showError('Please select a hall');       showToast('Please select a hall', 'error');       return; }
+    if (!date || !time) { showError('Please set date and time');   showToast('Please set date and time', 'error');   return; }
+    if (!ps || !pp || !pv) { showError('Please set all prices');  showToast('Please set all prices', 'error');      return; }
+
+    await submitShowtime('POST', '/api/showtimes', {
+        movieId, hallId,
+        startTime:    `${date}T${time}:00`,
+        priceStandard: ps, pricePremium: pp, priceVIP: pv
+    });
 }
 
-async function updateShowtime(){
-    const date=document.getElementById('eDate').value;const time=document.getElementById('eTime').value;
-    if(!date||!time){showError('Please set date and time');showToast('Please set date and time','error');return;}
-    await submitShowtime('PUT',`/api/showtimes/${editingId}`,{startTime:`${date}T${time}:00`,priceStandard:parseFloat(document.getElementById('ePriceStandard').value),pricePremium:parseFloat(document.getElementById('ePricePremium').value),priceVIP:parseFloat(document.getElementById('ePriceVIP').value),isActive:document.getElementById('eIsActive').value==='true'});
+async function updateShowtime() {
+    const date = document.getElementById('eDate').value;
+    const time = document.getElementById('eTime').value;
+    if (!date || !time) { showError('Please set date and time'); showToast('Please set date and time', 'error'); return; }
+    await submitShowtime('PUT', `/api/showtimes/${editingId}`, {
+        startTime:     `${date}T${time}:00`,
+        priceStandard: parseFloat(document.getElementById('ePriceStandard').value),
+        pricePremium:  parseFloat(document.getElementById('ePricePremium').value),
+        priceVIP:      parseFloat(document.getElementById('ePriceVIP').value),
+        isActive:      document.getElementById('eIsActive').value === 'true'
+    });
 }
 
-async function submitShowtime(method,url,data){
-    const btn=document.getElementById('saveBtn');btn.disabled=true;btn.textContent=method==='POST'?'Creating...':'Updating...';document.getElementById('formError').classList.add('hidden');
-    try{
-        const res=await fetch(url,{method,headers:authHeaders(),body:JSON.stringify(data)});const result=await res.json();
-        if(result.success){showToast(isEditMode?'✅ Showtime updated!':'✅ Showtime created!','success');document.getElementById('formSuccess').textContent=isEditMode?'Showtime updated!':'Showtime created!';document.getElementById('formSuccess').classList.remove('hidden');await loadShowtimes();setTimeout(closePanel,1000);}
-        else{showError(result.message||'Failed');showToast(result.message||'Failed','error');}
-    }catch{showError('Something went wrong');showToast('Something went wrong','error');}
-    finally{btn.disabled=false;btn.textContent=isEditMode?'Update Showtime':'Create Showtime';}
+async function submitShowtime(method, url, data) {
+    const btn = document.getElementById('saveBtn');
+    btn.disabled    = true;
+    btn.textContent = method === 'POST' ? 'Creating...' : 'Updating...';
+    document.getElementById('formError').classList.add('hidden');
+    try {
+        const res    = await fetch(url, { method, headers: authHeaders(), body: JSON.stringify(data) });
+        const result = await res.json();
+        if (result.success) {
+            showToast(isEditMode ? '✅ Showtime updated!' : '✅ Showtime created!', 'success');
+            document.getElementById('formSuccess').textContent = isEditMode ? 'Showtime updated!' : 'Showtime created!';
+            document.getElementById('formSuccess').classList.remove('hidden');
+            // Reload current page + refresh stats
+            await Promise.all([loadShowtimes(currentPage), loadStats()]);
+            setTimeout(closePanel, 800);
+        } else {
+            showError(result.message || 'Failed');
+            showToast(result.message || 'Failed', 'error');
+        }
+    } catch {
+        showError('Something went wrong');
+        showToast('Something went wrong', 'error');
+    } finally {
+        btn.disabled    = false;
+        btn.textContent = isEditMode ? 'Update Showtime' : 'Create Showtime';
+    }
 }
 
-async function deleteShowtime(){
-    if(!editingId)return;
-    try{const res=await fetch(`/api/showtimes/${editingId}`,{method:'DELETE',headers:authHeaders()});const result=await res.json();
-        if(result.success){showToast('🗑 Showtime deleted','info');await loadShowtimes();closePanel();}
-        else showToast(result.message||'Failed to delete','error');
-    }catch{showToast('Failed to delete showtime','error');}
+async function deleteShowtime() {
+    if (!editingId) return;
+    try {
+        const res    = await fetch(`/api/showtimes/${editingId}`, { method: 'DELETE', headers: authHeaders() });
+        const result = await res.json();
+        if (result.success) {
+            showToast('🗑 Showtime deleted', 'info');
+            await Promise.all([loadShowtimes(currentPage), loadStats()]);
+            closePanel();
+        } else {
+            showToast(result.message || 'Failed to delete', 'error');
+        }
+    } catch {
+        showToast('Failed to delete showtime', 'error');
+    }
 }
 
-document.getElementById('fDate').value=new Date().toISOString().split('T')[0];
+/* ══════════════════════════════════════════
+   BOOTSTRAP
+══════════════════════════════════════════ */
 init();
 </script>
 </body>

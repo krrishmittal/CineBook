@@ -27,16 +27,29 @@ namespace CineBook.API.Controllers
             _movieService = movieService;
         }
 
-        
+        // GET api/movies/paged
+        [HttpGet("paged")]
+        public async Task<IActionResult> GetAllPaged(
+            [FromQuery] string? search,
+            [FromQuery] string? genre,
+            [FromQuery] string? status,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 18)
+        {
+            var result = await _movieService.GetAllPagedAsync(search, genre, status, page, pageSize);
+            return Ok(result);
+        }
 
         // GET api/movies
         [HttpGet]
         public async Task<IActionResult> GetAll(
-            [FromQuery] string? search,
-            [FromQuery] string? genre,
-            [FromQuery] string? status)
+        [FromQuery] string? search,
+        [FromQuery] string? genre,
+        [FromQuery] string? status,
+        [FromQuery] int page = 1,
+        [FromQuery] int pageSize = 18)
         {
-            var result = await _movieService.GetAllAsync(search, genre, status);
+            var result = await _movieService.GetAllPagedAsync(search, genre, status, page, pageSize);
             return Ok(result);
         }
 
